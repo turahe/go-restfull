@@ -18,7 +18,7 @@ type MediaApp interface {
 	GetMediaByParentID(ctx context.Context, parentID uuid.UUID) ([]model.Media, error)
 	GetMediaWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) (dto.DataWithPaginationDTO, error)
 	GetMediaByParentIDWithPagination(ctx context.Context, parentID uuid.UUID, page int, limit int) ([]model.Media, error)
-	CreateMedia(ctx context.Context, media model.Media) (model.Media, error)
+	CreateMedia(ctx context.Context, media model.Media) (dto.GetMediaDTO, error)
 	DeleteMedia(ctx context.Context, media model.Media) (bool, error)
 }
 
@@ -92,13 +92,23 @@ func (m *mediaApp) GetMediaWithPagination(ctx context.Context, input requests.Da
 	}
 	return media, nil
 }
-func (m *mediaApp) CreateMedia(ctx context.Context, media model.Media) (model.Media, error) {
-	media, err := m.Repo.Media.CreateMedia(ctx, media)
+func (m *mediaApp) CreateMedia(ctx context.Context, media model.Media) (dto.GetMediaDTO, error) {
+	mediaRepo, err := m.Repo.Media.CreateMedia(ctx, model.Media{
+		FileName: media.FileName,
+	})
 
 	if err != nil {
-		return model.Media{}, err
+		return dto.GetMediaDTO{}, err
 	}
-	return media, nil
+	return dto.GetMediaDTO{
+		ID:        mediaRepo.ID,
+		Name:      mediaRepo.Name,
+		FileName:  mediaRepo.FileName,
+		Size:      mediaRepo.Size,
+		MimeType:  mediaRepo.MimeType,
+		CreatedAt: mediaRepo.CreatedAt,
+		UpdatedAt: mediaRepo.UpdatedAt,
+	}, nil
 }
 func (m *mediaApp) DeleteMedia(ctx context.Context, media model.Media) (bool, error) {
 	deleted, err := m.Repo.Media.DeleteMedia(ctx, media)

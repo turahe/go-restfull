@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"mime/multipart"
@@ -32,7 +32,7 @@ type UserApp interface {
 	GetUserByUsername(ctx context.Context, input requests.GetUserNameRequest) (user.GetUserDTO, error)
 	GetUserByEmail(ctx context.Context, input requests.ChangeEmailRequest) (user.GetUserDTO, error)
 	GetUserByPhone(ctx context.Context, input requests.ChangePhoneRequest) (user.GetUserDTO, error)
-	UploadAvatar(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (user.GetUserDTO, error)
+	UploadAvatar(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (minio.UploadInfo, error)
 }
 
 type userApp struct {
@@ -50,7 +50,6 @@ func (s *userApp) Login(ctx context.Context, input requests.AuthLoginRequest) (u
 	if err != nil {
 		return user.GetUserDTO{}, err
 	}
-	fmt.Println(userRepo)
 	authLogin := password.ComparePassword(userRepo.Password, input.Password)
 
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
@@ -326,10 +325,10 @@ func (s *userApp) GetUserByPhone(ctx context.Context, input requests.ChangePhone
 	}, nil
 }
 
-func (s *userApp) UploadAvatar(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (user.GetUserDTO, error) {
+func (s *userApp) UploadAvatar(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (minio.UploadInfo, error) {
 	fileContent, err := file.Open()
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return minio.UploadInfo{}, err
 	}
 	defer fileContent.Close()
 
@@ -340,17 +339,30 @@ func (s *userApp) UploadAvatar(ctx context.Context, id uuid.UUID, file *multipar
 
 	userRepo, err := s.GetUserByID(ctx, requests.GetUserIdRequest{ID: id})
 
-	_, err = s.Repo.Media.CreateMedia(ctx, model.Media{
-		Name:     objectName,
-		FileName: file.Filename,
-		Size:     file.Size,
-		MimeType: contentType,
+	minioClient := internal_minio.GetMinio()
+	uploadInfo, err := minioClient.PutObject(context.Background(), bucketName, objectName, fileContent, file.Size, minio.PutObjectOptions{ContentType: contentType})
+
+	if err != nil {
+		return minio.UploadInfo{}, err
+	}
+	atribute, _ := json.Marshal(uploadInfo)
+	media, err := s.Repo.Media.CreateMedia(ctx, model.Media{
+		Name:             objectName,
+		FileName:         file.Filename,
+		Size:             file.Size,
+		MimeType:         contentType,
+		Hash:             uploadInfo.ChecksumSHA256,
+		CustomAttributes: string(atribute),
+	})
+	if err != nil {
+		return minio.UploadInfo{}, err
+	}
+	err = s.Repo.Media.AttachMedia(ctx, user.MediaRelation{
+		MediaID:      media.ID,
+		MediableType: "user",
+		MediableId:   userRepo.ID,
+		Group:        "avatar",
 	})
 
-	minioClient := internal_minio.GetMinio()
-	if _, err = minioClient.PutObject(context.Background(), bucketName, objectName, fileContent, file.Size, minio.PutObjectOptions{ContentType: contentType}); err != nil {
-		return user.GetUserDTO{}, err
-	}
-
-	return userRepo, nil
+	return uploadInfo, nil
 }

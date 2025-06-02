@@ -29,6 +29,12 @@ var (
 		SUBCODE_INVALID_REQUEST_BODY,
 		"invalid request body",
 	)
+	NewBucketNotFoundError *ExceptionErrors = createFixedExceptionErrors(
+		http.StatusBadRequest,
+		ERROR_TYPE_BAD_REQUEST,
+		SUBCODE_BAD_REQUEST,
+		"cannot create new bucket",
+	)
 	InvalidRequestQueryParamError *ExceptionErrors = createFixedExceptionErrors(
 		http.StatusBadRequest,
 		ERROR_TYPE_BAD_REQUEST,

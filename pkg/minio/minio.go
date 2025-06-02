@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
 	"webapi/config"
+	"webapi/internal/logger"
 )
 
 var (
@@ -18,12 +20,16 @@ func Setup() error {
 	conf := config.GetConfig()
 
 	if conf.Minio.Enable {
-		minioClient, _ = minio.New(conf.Minio.Endpoint, &minio.Options{
+		minioClient, err := minio.New(conf.Minio.Endpoint, &minio.Options{
 			Creds:  credentials.NewStaticV4(conf.Minio.AccessKeyID, conf.Minio.AccessKeySecret, ""),
 			Secure: conf.Minio.UseSSL,
 		})
+		if err != nil {
+			logger.Log.Error("Failed to connect to Minio", zap.Error(err))
+		}
 
 		if _, err := minioClient.ListBuckets(ctx); err != nil {
+			logger.Log.Error("Error connecting to Minio: %v", zap.Error(err))
 			return err
 		}
 	}

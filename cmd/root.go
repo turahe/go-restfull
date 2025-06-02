@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
+	internal_minio "webapi/pkg/minio"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
@@ -42,6 +43,8 @@ func setupAll() {
 	setUpPostgres()
 	setUpRedis()
 	setUpSentry()
+	setUpMinio()
+
 }
 
 func Execute() {
@@ -144,4 +147,18 @@ func setUpSentry() {
 	sentry.CaptureMessage("Sentry initialized")
 
 	defer sentry.Flush(2 * time.Second)
+}
+
+func setUpMinio() {
+	// Don't initialize minio if it is not enabled
+	if !config.GetConfig().Minio.Enable {
+		return
+	}
+
+	logger.Log.Info("Initializing Minio")
+	err := internal_minio.Setup()
+	if err != nil {
+		logger.Log.Fatal("internal_minio.Setup()", zap.Error(err))
+	}
+	logger.Log.Info("Minio initialized")
 }

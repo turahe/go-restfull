@@ -3,16 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
+      target: production
     restart: on-failure
     depends_on:
       - redis
       - postgres
     volumes:
-      - .:/app
-      - .:/app:delegated
-    environment:
-      APP_ENV: "development"
+      - ./tmp:/app/tmp
     ports:
         - 8000:8000
     networks:

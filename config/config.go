@@ -73,7 +73,7 @@ type Minio struct {
 	AccessKeyID     string `yaml:"accessKeyID"`
 	AccessKeySecret string `yaml:"accessKeySecret"`
 	UseSSL          bool   `yaml:"useSSL"`
-	BucketName      string `yaml:"bucketName"`
+	BucketName      string `yaml:"bucket"`
 	Region          string `yaml:"region"`
 }
 

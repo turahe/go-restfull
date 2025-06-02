@@ -22,6 +22,7 @@ type MediaRepository interface {
 	GetMediaByParentIDWithPagination(ctx context.Context, parentID uuid.UUID, page int, limit int) ([]model.Media, error)
 	CreateMedia(ctx context.Context, media model.Media) (model.Media, error)
 	DeleteMedia(ctx context.Context, media model.Media) (bool, error)
+	AttachMedia(ctx context.Context, media dto.MediaRelation) error
 }
 
 type MediaRepositoryImpl struct {
@@ -146,7 +147,7 @@ func (m *MediaRepositoryImpl) UpdateMedia(ctx context.Context, media model.Media
 
 func (m *MediaRepositoryImpl) GetMediaByParentID(ctx context.Context, parentID uuid.UUID) ([]model.Media, error) {
 	var media []model.Media
-	rows, err := m.pgxPool.Query(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth FROM media WHERE parent_id = $1", parentID)
+	rows, err := m.pgxPool.Query(ctx, "SELECT 'id', 'name', 'hash', 'file_name', 'disk', 'size', 'mime_type', 'custom_attributes', 'record_left', 'record_right', 'record_depth' FROM media WHERE 'parent_id' = $1", parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -295,6 +296,16 @@ func (m *MediaRepositoryImpl) DeleteMedia(ctx context.Context, media model.Media
 	return true, nil
 }
 
-func (m *MediaRepositoryImpl) CreateRelation(ctx context.Context, media model.Media) error {
+func (m *MediaRepositoryImpl) AttachMedia(ctx context.Context, media dto.MediaRelation) error {
+	tx, err := m.pgxPool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	err = tx.QueryRow(ctx, "INSERT INTO mediables (media_id, mediable_id, mediable_type, group) VALUES ($1, $2, $3, $4) RETURNING media_id", media.MediaID, media.MediableId, media.MediableType, media.Group).Scan(&media.MediaID)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
