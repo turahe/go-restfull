@@ -27,9 +27,9 @@ var createTaxonomyTable = &Migration{
 			    "created_by" UUID NULL,
 			    "updated_by" UUID NULL,
 			    "deleted_by" UUID NULL,
-			    "deleted_at" TIMESTAMP NULL,
-			    "created_at" TIMESTAMP DEFAULT NOW(),
-			    "updated_at" TIMESTAMP DEFAULT NOW(),
+			    "deleted_at" BIGINT NULL,
+			    "created_at" BIGINT NULL,
+			    "updated_at" BIGINT NULL,
 			    CONSTRAINT "taxonomies_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "taxonomies_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "taxonomies_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION

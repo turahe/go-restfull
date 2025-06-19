@@ -20,11 +20,11 @@ var createUserTable = &Migration{
 				"email" VARCHAR(255) NOT NULL UNIQUE,
 			    "phone" VARCHAR(255) NULL UNIQUE,
 			    "password" VARCHAR(255) NULL,
-			    "email_verified_at" TIMESTAMP NULL,
-			    "phone_verified_at" TIMESTAMP NULL,
-			    "created_at" TIMESTAMP DEFAULT NOW(),
-			    "updated_at" TIMESTAMP DEFAULT NOW(),
-			    "deleted_at" TIMESTAMP NULL,
+			    "email_verified_at" BIGINT NULL,
+			    "phone_verified_at" BIGINT NULL,
+			    "created_at" BIGINT NULL,
+			    "updated_at" BIGINT NULL,
+			    "deleted_at" BIGINT NULL,
 			    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 			);
 

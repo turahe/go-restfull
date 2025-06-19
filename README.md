@@ -3,7 +3,7 @@
 This boilerplate is intended to be used as a starting point for a go application. It is not intended to be used as a but it is can be.
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/49369000/236752939-05e510db-a5ae-42ad-b1aa-da1c0222418b.png"  width="600" />
+<img src="docs/images/console.png"  width="600" />
 </p>
 
 ## Getting Started
@@ -18,7 +18,7 @@ This boilerplate is intended to be used as a starting point for a go application
 ### Installation
 1. Clone the repo
    ```sh
-   git clone https://webapi.git
+   git clone https://github.com/turahe/go-restfull.git
     ```
 2. Install Go dependencies
     ```sh
@@ -122,4 +122,5 @@ This boilerplate is intended to be used as a starting point for a go application
 ## Roadmap
 - [ ] Add gRPC API
 - [ ] Document the code
+- [ ] Add Websocket
 
