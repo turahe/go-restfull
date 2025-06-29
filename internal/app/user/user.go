@@ -3,14 +3,15 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/minio/minio-go/v7"
 	"mime/multipart"
 	"webapi/config"
 	user "webapi/internal/dto"
-	password "webapi/internal/helper/utils"
+	"webapi/internal/helper/utils"
 	"webapi/internal/http/requests"
 	internal_minio "webapi/pkg/minio"
+
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 
 	"webapi/internal/db/model"
 	"webapi/internal/repository"
@@ -18,20 +19,20 @@ import (
 )
 
 type UserApp interface {
-	Login(ctx context.Context, dti requests.AuthLoginRequest) (user.GetUserDTO, error)
-	GetUsers(ctx context.Context) ([]user.GetUserDTO, error)
-	GetUsersWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) (user.DataWithPaginationDTO, error)
-	GetUserByID(ctx context.Context, input requests.GetUserIdRequest) (user.GetUserDTO, error)
-	CreateUser(ctx context.Context, input requests.CreateUserRequest) (user.GetUserDTO, error)
-	UpdateUser(ctx context.Context, id uuid.UUID, input requests.UpdateUserRequest) (user.GetUserDTO, error)
+	Login(ctx context.Context, dti requests.AuthLoginRequest) (*user.GetUserDTO, error)
+	GetUsers(ctx context.Context) ([]*user.GetUserDTO, error)
+	GetUsersWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) (*user.DataWithPaginationDTO, error)
+	GetUserByID(ctx context.Context, input requests.GetUserIdRequest) (*user.GetUserDTO, error)
+	CreateUser(ctx context.Context, input requests.CreateUserRequest) (*user.GetUserDTO, error)
+	UpdateUser(ctx context.Context, id uuid.UUID, input requests.UpdateUserRequest) (*user.GetUserDTO, error)
 	DeleteUser(ctx context.Context, input requests.GetUserIdRequest) (bool, error)
-	ChangePassword(ctx context.Context, id uuid.UUID, input requests.ChangePasswordRequest) (user.GetUserDTO, error)
-	ChangePhone(ctx context.Context, id uuid.UUID, input requests.ChangePhoneRequest) (user.GetUserDTO, error)
-	ChangeEmail(ctx context.Context, id uuid.UUID, input requests.ChangeEmailRequest) (user.GetUserDTO, error)
-	ChangeUserName(ctx context.Context, id uuid.UUID, input requests.ChangeUserNameRequest) (user.GetUserDTO, error)
-	GetUserByUsername(ctx context.Context, input requests.GetUserNameRequest) (user.GetUserDTO, error)
-	GetUserByEmail(ctx context.Context, input requests.ChangeEmailRequest) (user.GetUserDTO, error)
-	GetUserByPhone(ctx context.Context, input requests.ChangePhoneRequest) (user.GetUserDTO, error)
+	ChangePassword(ctx context.Context, id uuid.UUID, input requests.ChangePasswordRequest) (*user.GetUserDTO, error)
+	ChangePhone(ctx context.Context, id uuid.UUID, input requests.ChangePhoneRequest) (*user.GetUserDTO, error)
+	ChangeEmail(ctx context.Context, id uuid.UUID, input requests.ChangeEmailRequest) (*user.GetUserDTO, error)
+	ChangeUserName(ctx context.Context, id uuid.UUID, input requests.ChangeUserNameRequest) (*user.GetUserDTO, error)
+	GetUserByUsername(ctx context.Context, input requests.GetUserNameRequest) (*user.GetUserDTO, error)
+	GetUserByEmail(ctx context.Context, input requests.ChangeEmailRequest) (*user.GetUserDTO, error)
+	GetUserByPhone(ctx context.Context, input requests.ChangePhoneRequest) (*user.GetUserDTO, error)
 	UploadAvatar(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (minio.UploadInfo, error)
 }
 
@@ -45,18 +46,18 @@ func NewUserApp(repo *repository.Repository) UserApp {
 	}
 }
 
-func (s *userApp) Login(ctx context.Context, input requests.AuthLoginRequest) (user.GetUserDTO, error) {
+func (s *userApp) Login(ctx context.Context, input requests.AuthLoginRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByUsername(ctx, input.UserName)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
-	authLogin := password.ComparePassword(userRepo.Password, input.Password)
+	authLogin := utils.ComparePassword(userRepo.Password, input.Password)
 
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
-		return user.GetUserDTO{}, exception.DataNotFoundError
+		return nil, exception.DataNotFoundError
 	}
 	if authLogin {
-		return user.GetUserDTO{
+		return &user.GetUserDTO{
 			ID:        userRepo.ID,
 			UserName:  userRepo.UserName,
 			Email:     userRepo.Email,
@@ -66,19 +67,19 @@ func (s *userApp) Login(ctx context.Context, input requests.AuthLoginRequest) (u
 		}, nil
 
 	}
-	return user.GetUserDTO{}, exception.InvalidCredentialsError
+	return nil, exception.InvalidCredentialsError
 
 }
 
-func (s *userApp) GetUsers(ctx context.Context) ([]user.GetUserDTO, error) {
+func (s *userApp) GetUsers(ctx context.Context) ([]*user.GetUserDTO, error) {
 	users, err := s.Repo.User.GetUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var usersDTO []user.GetUserDTO
+	var usersDTO []*user.GetUserDTO
 	for _, userRepo := range users {
-		usersDTO = append(usersDTO, user.GetUserDTO{
+		usersDTO = append(usersDTO, &user.GetUserDTO{
 			ID:       userRepo.ID,
 			UserName: userRepo.UserName,
 			Email:    userRepo.Email,
@@ -89,24 +90,24 @@ func (s *userApp) GetUsers(ctx context.Context) ([]user.GetUserDTO, error) {
 	return usersDTO, nil
 }
 
-func (s *userApp) GetUsersWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) (user.DataWithPaginationDTO, error) {
+func (s *userApp) GetUsersWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) (*user.DataWithPaginationDTO, error) {
 	responseUser, err := s.Repo.User.GetUsersWithPagination(ctx, input)
 	if err != nil {
-		return user.DataWithPaginationDTO{}, err
+		return nil, err
 	}
 
-	return responseUser, nil
+	return &responseUser, nil
 }
 
-func (s *userApp) GetUserByID(ctx context.Context, input requests.GetUserIdRequest) (user.GetUserDTO, error) {
+func (s *userApp) GetUserByID(ctx context.Context, input requests.GetUserIdRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByID(ctx, input.ID)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
-		return user.GetUserDTO{}, exception.DataNotFoundError
+		return nil, exception.DataNotFoundError
 	}
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:       userRepo.ID,
 		UserName: userRepo.UserName,
 		Email:    userRepo.Email,
@@ -114,34 +115,38 @@ func (s *userApp) GetUserByID(ctx context.Context, input requests.GetUserIdReque
 	}, nil
 }
 
-func (s *userApp) CreateUser(ctx context.Context, input requests.CreateUserRequest) (user.GetUserDTO, error) {
+func (s *userApp) CreateUser(ctx context.Context, input requests.CreateUserRequest) (*user.GetUserDTO, error) {
 	// Ensure email is not already taken
 	isUserEmailExist, err := s.Repo.User.IsUserEmailExist(ctx, input.Email)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if isUserEmailExist {
-		return user.GetUserDTO{}, exception.UserEmailAlreadyTakenError
+		return nil, exception.UserEmailAlreadyTakenError
 	}
 	isUserPhoneExist, err := s.Repo.User.IsUserPhoneExist(ctx, input.Phone)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if isUserPhoneExist {
-		return user.GetUserDTO{}, exception.UserPhoneAlreadyTakenError
+		return nil, exception.UserPhoneAlreadyTakenError
+	}
+	phone, err := utils.FormatPhoneToInternational(input.Phone, "ID")
+	if err != nil {
+		return nil, exception.UserPhoneAlreadyTakenError
 	}
 
 	userRepo, err := s.Repo.User.AddUser(ctx, model.User{
 		UserName: input.UserName,
 		Email:    input.Email,
-		Phone:    input.Phone,
-		Password: password.GeneratePassword(input.Password),
+		Phone:    phone,
+		Password: utils.GeneratePassword(input.Password),
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:        userRepo.ID,
 		UserName:  userRepo.UserName,
 		Email:     userRepo.Email,
@@ -151,11 +156,11 @@ func (s *userApp) CreateUser(ctx context.Context, input requests.CreateUserReque
 	}, nil
 }
 
-func (s *userApp) UpdateUser(ctx context.Context, id uuid.UUID, input requests.UpdateUserRequest) (user.GetUserDTO, error) {
+func (s *userApp) UpdateUser(ctx context.Context, id uuid.UUID, input requests.UpdateUserRequest) (*user.GetUserDTO, error) {
 
 	userRepo, err := s.Repo.User.GetUserByID(ctx, id)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
 	userRepo, err = s.Repo.User.UpdateUser(ctx, model.User{
@@ -165,11 +170,11 @@ func (s *userApp) UpdateUser(ctx context.Context, id uuid.UUID, input requests.U
 		Phone:    input.Phone,
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
 	if userRepo.ID != uuid.Nil { // Check if the user was successfully updated
-		return user.GetUserDTO{
+		return &user.GetUserDTO{
 			ID:        userRepo.ID,
 			UserName:  userRepo.UserName,
 			Email:     userRepo.Email,
@@ -179,7 +184,7 @@ func (s *userApp) UpdateUser(ctx context.Context, id uuid.UUID, input requests.U
 		}, nil
 	}
 
-	return user.GetUserDTO{}, nil
+	return nil, nil
 }
 
 func (s *userApp) DeleteUser(ctx context.Context, input requests.GetUserIdRequest) (bool, error) {
@@ -194,27 +199,27 @@ func (s *userApp) DeleteUser(ctx context.Context, input requests.GetUserIdReques
 
 	return deleteUser, nil
 }
-func (s *userApp) ChangePassword(ctx context.Context, id uuid.UUID, input requests.ChangePasswordRequest) (user.GetUserDTO, error) {
+func (s *userApp) ChangePassword(ctx context.Context, id uuid.UUID, input requests.ChangePasswordRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByID(ctx, id)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
-	authLogin := password.ComparePassword(userRepo.Password, input.OldPassword)
+	authLogin := utils.ComparePassword(userRepo.Password, input.OldPassword)
 	if !authLogin {
-		return user.GetUserDTO{}, exception.InvalidCredentialsError
+		return nil, exception.InvalidCredentialsError
 	}
 	userRepo, err = s.Repo.User.UpdateUser(ctx, model.User{
 		ID:       userRepo.ID,
 		UserName: userRepo.UserName,
 		Email:    userRepo.Email,
 		Phone:    userRepo.Phone,
-		Password: password.GeneratePassword(input.NewPassword),
+		Password: utils.GeneratePassword(input.NewPassword),
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:        userRepo.ID,
 		UserName:  userRepo.UserName,
 		Email:     userRepo.Email,
@@ -223,16 +228,16 @@ func (s *userApp) ChangePassword(ctx context.Context, id uuid.UUID, input reques
 		UpdatedAt: userRepo.UpdatedAt,
 	}, nil
 }
-func (s *userApp) ChangePhone(ctx context.Context, id uuid.UUID, input requests.ChangePhoneRequest) (user.GetUserDTO, error) {
+func (s *userApp) ChangePhone(ctx context.Context, id uuid.UUID, input requests.ChangePhoneRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.UpdateUser(ctx, model.User{
 		ID:    id,
 		Phone: input.Phone,
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:        userRepo.ID,
 		UserName:  userRepo.UserName,
 		Email:     userRepo.Email,
@@ -241,16 +246,16 @@ func (s *userApp) ChangePhone(ctx context.Context, id uuid.UUID, input requests.
 		UpdatedAt: userRepo.UpdatedAt,
 	}, nil
 }
-func (s *userApp) ChangeEmail(ctx context.Context, id uuid.UUID, input requests.ChangeEmailRequest) (user.GetUserDTO, error) {
+func (s *userApp) ChangeEmail(ctx context.Context, id uuid.UUID, input requests.ChangeEmailRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.UpdateUser(ctx, model.User{
 		ID:    id,
 		Email: input.Email,
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:        userRepo.ID,
 		UserName:  userRepo.UserName,
 		Email:     userRepo.Email,
@@ -259,16 +264,16 @@ func (s *userApp) ChangeEmail(ctx context.Context, id uuid.UUID, input requests.
 		UpdatedAt: userRepo.UpdatedAt,
 	}, nil
 }
-func (s *userApp) ChangeUserName(ctx context.Context, id uuid.UUID, input requests.ChangeUserNameRequest) (user.GetUserDTO, error) {
+func (s *userApp) ChangeUserName(ctx context.Context, id uuid.UUID, input requests.ChangeUserNameRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.UpdateUser(ctx, model.User{
 		ID:       id,
 		UserName: input.UserName,
 	})
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:        userRepo.ID,
 		UserName:  userRepo.UserName,
 		Email:     userRepo.Email,
@@ -277,15 +282,15 @@ func (s *userApp) ChangeUserName(ctx context.Context, id uuid.UUID, input reques
 		UpdatedAt: userRepo.UpdatedAt,
 	}, nil
 }
-func (s *userApp) GetUserByUsername(ctx context.Context, input requests.GetUserNameRequest) (user.GetUserDTO, error) {
+func (s *userApp) GetUserByUsername(ctx context.Context, input requests.GetUserNameRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByUsername(ctx, input.UserName)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
-		return user.GetUserDTO{}, exception.DataNotFoundError
+		return nil, exception.DataNotFoundError
 	}
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:       userRepo.ID,
 		UserName: userRepo.UserName,
 		Email:    userRepo.Email,
@@ -293,15 +298,15 @@ func (s *userApp) GetUserByUsername(ctx context.Context, input requests.GetUserN
 	}, nil
 }
 
-func (s *userApp) GetUserByEmail(ctx context.Context, input requests.ChangeEmailRequest) (user.GetUserDTO, error) {
+func (s *userApp) GetUserByEmail(ctx context.Context, input requests.ChangeEmailRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByEmail(ctx, input.Email)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
-		return user.GetUserDTO{}, exception.DataNotFoundError
+		return nil, exception.DataNotFoundError
 	}
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:       userRepo.ID,
 		UserName: userRepo.UserName,
 		Email:    userRepo.Email,
@@ -309,15 +314,15 @@ func (s *userApp) GetUserByEmail(ctx context.Context, input requests.ChangeEmail
 	}, nil
 }
 
-func (s *userApp) GetUserByPhone(ctx context.Context, input requests.ChangePhoneRequest) (user.GetUserDTO, error) {
+func (s *userApp) GetUserByPhone(ctx context.Context, input requests.ChangePhoneRequest) (*user.GetUserDTO, error) {
 	userRepo, err := s.Repo.User.GetUserByPhone(ctx, input.Phone)
 	if err != nil {
-		return user.GetUserDTO{}, err
+		return nil, err
 	}
 	if userRepo.ID == uuid.Nil { // Check for zero-value UUID
-		return user.GetUserDTO{}, exception.DataNotFoundError
+		return nil, exception.DataNotFoundError
 	}
-	return user.GetUserDTO{
+	return &user.GetUserDTO{
 		ID:       userRepo.ID,
 		UserName: userRepo.UserName,
 		Email:    userRepo.Email,
@@ -330,7 +335,12 @@ func (s *userApp) UploadAvatar(ctx context.Context, id uuid.UUID, file *multipar
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}
-	defer fileContent.Close()
+	defer func(fileContent multipart.File) {
+		err := fileContent.Close()
+		if err != nil {
+
+		}
+	}(fileContent)
 
 	conf := config.GetConfig().Minio
 	objectName := file.Filename

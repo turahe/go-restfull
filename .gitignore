@@ -15,7 +15,7 @@
 # vendor/
 
 config/config.yaml
-
+db_data/
 .DS_Store
 
 log/*.log

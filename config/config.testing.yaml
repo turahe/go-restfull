@@ -1,54 +1,63 @@
-env: "dev" # dev, staging, production
+env: "test"
 app:
-  key: "my-app-key"
-  name: "My App"
-  nameSlug: "my-app"
+  key: "test-app-key"
+  name: "Test App"
+  nameSlug: "test-app"
+  jwtSecret: "test-jwt-secret-key-for-testing-purposes-only"
 
 httpServer:
-  port: 8082
+  port: 8000
 
 log:
-  level: "info"
-  stacktraceLevel: "error" # debug, info, warn, error, dpanic, panic, fatal
+  level: "debug"
+  stacktraceLevel: "error"
   fileEnabled: false
-  fileSize: 10 # MB
+  fileSize: 10
   filePath: "log/log.log"
-  fileCompress: false # enable log file compress before rotate
-  maxAge: 1 # days to keep log files
-  maxBackups: 10 # umber of log files
+  fileCompress: false
+  maxAge: 1
+  maxBackups: 10
 
 postgres:
-  host: "localhost" # use "host.docker.internal" if you run app inside docker container
-  port: 54321
-  database: "my_db"
+  host: "localhost"
+  port: 5432
+  database: "test_db"
   schema: "public"
-  username: "my_user"
-  password: "my_password"
+  username: "test_user"
+  password: "test_password"
   maxConnections: 20
   maxIdleConnections: 10
 
 Redis:
   - host: "localhost"
-    port: 63791
+    port: 6379
     password: ""
     db: 0
 
 minio:
   enable: false
-  endpoint: "http://minio:9000"
-  accessKeyID: "minioadmin"
-  secretAccessKey: "minioadmin"
+  endpoint: '127.0.0.1:9000'
+  accessKeyID: 'minioadmin'
+  secretAccessKey: 'minioadmin'
   useSSL: false
-  bucket: "my-bucket"
-    # region: "us-east-1"
+  bucket: 'test-bucket'
+
 sentry:
   dsn: ""
-  environment: "DEV"
-  release: "go-boilerplate@v0.1.0"
+  environment: "TEST"
+  release: "webapi@v0.1.0"
   debug: false
 
+email:
+  smtpHost: "smtp.gmail.com"
+  smtpPort: 587
+  username: "your-email@gmail.com"
+  password: "your-app-password"
+  fromAddress: "noreply@yourapp.com"
+  fromName: "Your App"
+  
 scheduler:
-  timezone: "Asia/Jakarta"
+  timezone: "UTC"
 # schedules:
 #   - cron: "0 */20 * * * *"
 #     job: "SyncAll"

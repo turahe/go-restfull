@@ -13,6 +13,7 @@ type SettingRepository interface {
 	GetSettingByKey(ctx context.Context, key string) (model.Setting, error)
 	SetSetting(ctx context.Context, setting model.Setting) error
 	SetModelSetting(ctx context.Context, setting model.Setting) error
+	UpdateSetting(ctx context.Context, key string, value string) (model.Setting, error)
 	DeleteSetting(ctx context.Context, setting model.Setting) error
 }
 

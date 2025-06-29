@@ -23,6 +23,17 @@ func NewMediaHttpHandler(app media.MediaApp) *MediaHttpHandler {
 	return &MediaHttpHandler{app: app}
 }
 
+// GetMediaId godoc
+// @Summary Get media by ID
+// @Description Retrieve a specific media file by its UUID
+// @Tags media
+// @Accept json
+// @Produce json
+// @Param id path string true "Media UUID"
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Router /v1/media/{id} [get]
 func (h *MediaHttpHandler) GetMediaId(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 
@@ -39,6 +50,17 @@ func (h *MediaHttpHandler) GetMediaId(c *fiber.Ctx) error {
 	})
 }
 
+// CreateMedia godoc
+// @Summary Upload media file
+// @Description Upload a new media file to the system
+// @Tags media
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Media file to upload"
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
+// @Failure 500 {object} response.CommonResponse
+// @Router /v1/media [post]
 func (h *MediaHttpHandler) CreateMedia(c *fiber.Ctx) error {
 
 	file, err := c.FormFile("file")
@@ -76,6 +98,17 @@ func (h *MediaHttpHandler) CreateMedia(c *fiber.Ctx) error {
 	})
 }
 
+// DeleteMedia godoc
+// @Summary Delete media file
+// @Description Delete a media file by its UUID
+// @Tags media
+// @Accept json
+// @Produce json
+// @Param id path string true "Media UUID"
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Router /v1/media/{id} [delete]
 func (h *MediaHttpHandler) DeleteMedia(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 
@@ -95,6 +128,19 @@ func (h *MediaHttpHandler) DeleteMedia(c *fiber.Ctx) error {
 	})
 }
 
+// GetMediaList godoc
+// @Summary Get all media files with pagination
+// @Description Retrieve a paginated list of media files with optional search query
+// @Tags media
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of items per page (default: 10)"
+// @Param page query int false "Page number (default: 1)"
+// @Param query query string false "Search query for filtering media"
+// @Success 200 {object} response.PaginationResponse
+// @Failure 400 {object} response.CommonResponse
+// @Failure 500 {object} response.CommonResponse
+// @Router /v1/media [get]
 func (h *MediaHttpHandler) GetMediaList(c *fiber.Ctx) error {
 	limit := c.QueryInt("limit", 10) // Default to 10 if not provided
 	page := c.QueryInt("page", 1)    // Default to 1 if not provided

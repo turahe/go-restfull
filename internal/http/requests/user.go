@@ -15,6 +15,10 @@ type AuthRegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
 
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 type CreateUserRequest struct {
 	UserName string `json:"username" validate:"required,min=3,max=32"`
 	Email    string `json:"email" validate:"required,email"`
@@ -62,4 +66,19 @@ type GetUserIdRequest struct {
 
 type ChangeAvatarRequest struct {
 	Image []byte `json:"image" validate:"required,base64"`
+}
+
+type ForgetPasswordRequest struct {
+	Identity string `json:"identity" validate:"required"`
+}
+
+type ValidateOTPRequest struct {
+	Identity string `json:"identity" validate:"required"`
+	OTP      string `json:"otp" validate:"omitempty,numeric,len=6"`
+	Token    string `json:"token" validate:"omitempty"`
+}
+
+type ValidateResetLinkRequest struct {
+	Identity string `json:"identity" validate:"required"`
+	Token    string `json:"token" validate:"required"`
 }

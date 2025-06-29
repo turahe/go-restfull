@@ -3,6 +3,7 @@ app:
   key: "my-app-key"
   name: "My App"
   nameSlug: "my-app"
+  jwtSecret: "your-super-secret-jwt-key-here-make-it-long-and-secure"
 
 httpServer:
   port: 8000
@@ -54,3 +55,11 @@ scheduler:
 # schedules:
 #   - cron: "0 */20 * * * *"
 #     job: "SyncAll"
+
+email:
+  smtpHost: "smtp.gmail.com"
+  smtpPort: 587
+  username: "your-email@gmail.com"
+  password: "your-app-password"
+  fromAddress: "noreply@yourapp.com"
+  fromName: "Your App"

@@ -2,16 +2,30 @@ package user
 
 import (
 	"errors"
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"net/http"
 	"webapi/internal/http/requests"
 	"webapi/internal/http/response"
 	"webapi/internal/http/validation"
 	"webapi/pkg/exception"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
+// UploadAvatar godoc
+// @Summary Upload avatar
+// @Description Upload avatar for a user
+// @Tags users
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "User UUID"
+// @Param avatar formData file true "Avatar file"
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
+// @Failure 401 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Failure 500 {object} response.CommonResponse
 func (h *UserHTTPHandler) UploadAvatar(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userID, err := uuid.Parse(id)

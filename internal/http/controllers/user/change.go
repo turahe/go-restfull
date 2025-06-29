@@ -12,6 +12,19 @@ import (
 	"webapi/pkg/exception"
 )
 
+// ChangePassword godoc
+// @Summary Change user password
+// @Description Change the password for a specific user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User UUID"
+// @Param password body requests.ChangePasswordRequest true "Password change information"
+// @Success 200 {object} response.CommonResponse{data=dto.GetUserDTO}
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Failure 422 {object} response.CommonResponse
+// @Router /v1/users/change-password [post]
 func (h *UserHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userID, err := uuid.Parse(id)
@@ -49,6 +62,19 @@ func (h *UserHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 	})
 }
 
+// ChangeUserName godoc
+// @Summary Change user username
+// @Description Change the username for a specific user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User UUID"
+// @Param username body requests.ChangeUserNameRequest true "Username change information"
+// @Success 200 {object} response.CommonResponse{data=dto.GetUserDTO}
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Failure 422 {object} response.CommonResponse
+// @Router /v1/users/change-username [post]
 func (h *UserHTTPHandler) ChangeUserName(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	userId, err := uuid.Parse(idParam)
@@ -86,6 +112,19 @@ func (h *UserHTTPHandler) ChangeUserName(c *fiber.Ctx) error {
 
 }
 
+// ChangePhone godoc
+// @Summary Change user phone number
+// @Description Change the phone number for a specific user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User UUID"
+// @Param phone body requests.ChangePhoneRequest true "Phone change information"
+// @Success 200 {object} response.CommonResponse{data=dto.GetUserDTO}
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Failure 422 {object} response.CommonResponse
+// @Router /v1/users/change-phone [post]
 func (h *UserHTTPHandler) ChangePhone(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userID, err := uuid.Parse(id)
@@ -121,6 +160,20 @@ func (h *UserHTTPHandler) ChangePhone(c *fiber.Ctx) error {
 		Data:            dto,
 	})
 }
+
+// ChangeEmail godoc
+// @Summary Change user email
+// @Description Change the email address for a specific user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User UUID"
+// @Param email body requests.ChangeEmailRequest true "Email change information"
+// @Success 200 {object} response.CommonResponse{data=dto.GetUserDTO}
+// @Failure 400 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
+// @Failure 422 {object} response.CommonResponse
+// @Router /v1/users/change-email [post]
 func (h *UserHTTPHandler) ChangeEmail(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userID, err := uuid.Parse(id)

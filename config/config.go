@@ -22,6 +22,7 @@ type Config struct {
 	Minio      Minio      `yaml:"minio"`
 	Redis      []Redis    `yaml:"redis"`
 	Sentry     Sentry     `yaml:"sentry"`
+	Email      Email      `yaml:"email"`
 }
 
 type HttpServer struct {
@@ -45,8 +46,9 @@ type Label struct {
 }
 
 type App struct {
-	Name     string `yaml:"name"`
-	NameSlug string `yaml:"nameSlug"`
+	Name      string `yaml:"name"`
+	NameSlug  string `yaml:"nameSlug"`
+	JWTSecret string `yaml:"jwtSecret"`
 }
 
 type Postgres struct {
@@ -98,6 +100,15 @@ type Authentication struct {
 	Endpoint string `yaml:"endpoint"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type Email struct {
+	SMTPHost    string `yaml:"smtpHost"`
+	SMTPPort    int    `yaml:"smtpPort"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	FromAddress string `yaml:"fromAddress"`
+	FromName    string `yaml:"fromName"`
 }
 
 func GetConfig() *Config {
