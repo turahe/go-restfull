@@ -8,7 +8,7 @@ require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/bytedance/sonic v1.13.2
 	github.com/gavv/httpexpect/v2 v2.17.0
-	github.com/getsentry/sentry-go v0.33.0
+	github.com/getsentry/sentry-go v0.34.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-co-op/gocron/v2 v2.16.2
 	github.com/go-playground/locales v0.14.1
@@ -23,6 +23,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/lnquy/cron v1.1.1
 	github.com/minio/minio-go/v7 v7.0.92
+	github.com/nyaruka/phonenumbers v1.6.3
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
@@ -47,7 +48,6 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/nyaruka/phonenumbers v1.6.3 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
