@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"webapi/internal/app/user"
+	"webapi/internal/db/model"
 	"webapi/internal/helper/utils"
 	"webapi/internal/http/requests"
 	"webapi/internal/http/response"
@@ -91,14 +92,19 @@ func (h *AuthHttpHandler) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	// Process the business logic
-	dto, err := h.app.CreateUser(c.Context(), requests.CreateUserRequest{
+	validator := requests.XValidator{}
+	errs := validator.Validate(&req)
+	if len(errs) > 0 {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"validation_errors": errs})
+	}
+
+	userModel := model.User{
 		UserName: req.UserName,
 		Email:    req.Email,
 		Phone:    req.Phone,
 		Password: req.Password,
-	})
-
+	}
+	dto, err := h.app.CreateUser(c.Context(), userModel)
 	if err != nil {
 		return err
 	}

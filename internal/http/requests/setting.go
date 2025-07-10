@@ -9,13 +9,16 @@ type CreateSettingRequest struct {
 	ModelId   uuid.UUID `json:"modelId"`
 	Key       string    `json:"key" validate:"required"`
 	Value     string    `json:"value" validate:"required"`
+	CreatedBy string    `json:"created_by"`
+	UpdatedBy string    `json:"updated_by"`
 }
 
 type UpdateSettingRequest struct {
-	Key   string `json:"key" validate:"required"`
-	Value string `json:"value" validate:"required"`
+	Key       string `json:"key" validate:"required"`
+	Value     string `json:"value" validate:"required"`
+	UpdatedBy string `json:"updated_by"`
 }
 
 type GetSettingByKeyRequest struct {
 	Key string `json:"key" validate:"required"`
-} 
+}

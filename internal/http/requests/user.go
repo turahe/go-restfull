@@ -45,9 +45,10 @@ type ChangeUserNameRequest struct {
 }
 
 type UpdateUserRequest struct {
-	UserName string `json:"username" validate:"required,min=3,max=32"`
-	Email    string `json:"email" validate:"required,email"`
-	Phone    string `json:"phone" validate:"required,numeric"`
+	UserName  string `json:"username" validate:"required,min=3,max=32"`
+	Email     string `json:"email" validate:"required,email"`
+	Phone     string `json:"phone" validate:"required,numeric"`
+	UpdatedBy string `json:"updated_by"`
 }
 
 type GetUserNameRequest struct {

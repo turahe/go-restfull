@@ -2,9 +2,12 @@ package httpapi
 
 import (
 	"webapi/internal/app/media"
+	"webapi/internal/app/post"
 	"webapi/internal/app/queue"
 	"webapi/internal/app/setting"
+	"webapi/internal/app/tag"
 	"webapi/internal/app/user"
+	httTag "webapi/internal/http/controllers/tag"
 	"webapi/internal/repository"
 	"webapi/internal/router/middleware"
 
@@ -14,6 +17,7 @@ import (
 	httpHealthz "webapi/internal/http/controllers/healthz"
 	httpMedia "webapi/internal/http/controllers/media"
 	httpMiscellaneous "webapi/internal/http/controllers/miscellaneous"
+	httpPost "webapi/internal/http/controllers/post"
 	httpQueue "webapi/internal/http/controllers/queue"
 	httpSetting "webapi/internal/http/controllers/setting"
 	httpUser "webapi/internal/http/controllers/user"
@@ -39,6 +43,8 @@ func RegisterRoute(r *fiber.App) {
 	mediaApp := media.NewMediaApp(repo)
 	settingApp := setting.NewSettingApp(repo)
 	queueApp := queue.NewQueueApp(repo)
+	tagApp := tag.NewTagApp(repo)
+	postApp := post.NewPostApp(repo)
 
 	// Auth API (public routes)
 	authApi := v1.Group("/auth")
@@ -90,6 +96,24 @@ func RegisterRoute(r *fiber.App) {
 	queueHandler := httpQueue.NewQueueHTTPHandler(queueApp)
 	queueAPI.Get("/", queueHandler.GetQueues)
 	// queueAPI.Get("/:key", queueHandler.GetQueueByKey)
+
+	// Tag API (protected)
+	tagAPI := protected.Group("/tags")
+	tagHandler := httTag.NewTagHttpHandler(tagApp)
+	tagAPI.Post("/", tagHandler.CreateTag)
+	tagAPI.Get("/", tagHandler.GetAllTags)
+	tagAPI.Get("/:id", tagHandler.GetTagByID)
+	tagAPI.Put("/:id", tagHandler.UpdateTag)
+	tagAPI.Delete("/:id", tagHandler.DeleteTag)
+
+	// Post API (protected)
+	postAPI := protected.Group("/posts")
+	postHandler := httpPost.NewPostHttpHandler(postApp)
+	postAPI.Post("/", postHandler.CreatePost)
+	postAPI.Get("/", postHandler.GetAllPosts)
+	postAPI.Get("/:id", postHandler.GetPostByID)
+	postAPI.Put("/:id", postHandler.UpdatePost)
+	postAPI.Delete("/:id", postHandler.DeletePost)
 
 	// Error Case Handler
 	miscellaneousHandler := httpMiscellaneous.NewMiscellaneousHTTPHandler()

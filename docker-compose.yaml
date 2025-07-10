@@ -1,22 +1,22 @@
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    restart: on-failure
-    depends_on:
-      - redis
-      - postgres
-    volumes:
-      - .:/app
-      - .:/app:delegated
-    environment:
-      APP_ENV: "development"
-    ports:
-        - 8000:8000
-    networks:
-      - webapi
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: development
+  #   restart: on-failure
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   volumes:
+  #     - .:/app
+  #     - .:/app:delegated
+  #   environment:
+  #     APP_ENV: "development"
+  #   ports:
+  #       - 8000:8000
+  #   networks:
+  #     - webapi
 
 
   postgres:

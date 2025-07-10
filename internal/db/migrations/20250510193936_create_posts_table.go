@@ -29,9 +29,9 @@ var createPostTable = &Migration{
 			    "created_by" UUID NULL,
 			    "updated_by" UUID NULL,
 			    "deleted_by" UUID NULL,
-			    "deleted_at" BIGINT NULL,
-			    "created_at" BIGINT NULL,
-			    "updated_at" BIGINT NULL,
+			    "deleted_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+			    "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			    "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			    CONSTRAINT "posts_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "posts_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "posts_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION

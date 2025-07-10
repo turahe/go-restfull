@@ -2,14 +2,16 @@ package setting
 
 import (
 	"errors"
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
 	"net/http"
 	"webapi/internal/app/setting"
+	"webapi/internal/helper/utils"
 	"webapi/internal/http/requests"
 	"webapi/internal/http/response"
 	"webapi/internal/http/validation"
 	"webapi/pkg/exception"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 type SettingHTTPHandler struct {
@@ -39,6 +41,11 @@ func (h *SettingHTTPHandler) CreateSetting(c *fiber.Ctx) error {
 		return exception.InvalidRequestBodyError
 	}
 
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
 	// Validate the request body
 	v, _ := validation.GetValidator()
 	if err := v.Struct(req); err != nil {
@@ -47,6 +54,9 @@ func (h *SettingHTTPHandler) CreateSetting(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
+
+	req.CreatedBy = userID.String()
+	req.UpdatedBy = userID.String()
 
 	// Process the business logic
 	dto, err := h.app.CreateSetting(c.Context(), req)
@@ -139,6 +149,11 @@ func (h *SettingHTTPHandler) UpdateSetting(c *fiber.Ctx) error {
 		return exception.InvalidRequestBodyError
 	}
 
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
 	// Validate the request body
 	v, _ := validation.GetValidator()
 	if err := v.Struct(req); err != nil {
@@ -147,6 +162,8 @@ func (h *SettingHTTPHandler) UpdateSetting(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
+
+	req.UpdatedBy = userID.String()
 
 	// Process the business logic
 	dto, err := h.app.UpdateSetting(c.Context(), req)
@@ -187,4 +204,4 @@ func (h *SettingHTTPHandler) DeleteSetting(c *fiber.Ctx) error {
 		ResponseCode:    http.StatusOK,
 		ResponseMessage: "Setting deleted successfully",
 	})
-} 
+}

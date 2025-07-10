@@ -2,15 +2,19 @@ package user
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"net/http"
+	"webapi/internal/db/model"
 	"webapi/internal/http/requests"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+
+	"webapi/internal/helper/utils"
 	"webapi/internal/http/response"
 	"webapi/internal/http/validation"
 	"webapi/pkg/exception"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 // GetUsers godoc
@@ -75,7 +79,7 @@ func (h *UserHTTPHandler) GetUserByID(c *fiber.Ctx) error {
 		return exception.InvalidIDError
 	}
 
-	userDto, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: id})
+	userDto, err := h.app.GetUserByID(c.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -115,11 +119,18 @@ func (h *UserHTTPHandler) CreateUser(c *fiber.Ctx) error {
 		}
 	}
 
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
 	// Process the business logic
-	dto, err := h.app.CreateUser(c.Context(), requests.CreateUserRequest{
-		UserName: req.UserName,
-		Email:    req.Email,
-		Phone:    req.Phone,
+	dto, err := h.app.CreateUser(c.Context(), model.User{
+		UserName:  req.UserName,
+		Email:     req.Email,
+		Phone:     req.Phone,
+		CreatedBy: &userID,
+		UpdatedBy: &userID,
 	})
 
 	if err != nil {
@@ -170,15 +181,22 @@ func (h *UserHTTPHandler) UpdateUser(c *fiber.Ctx) error {
 		}
 	}
 
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: id})
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+	req.UpdatedBy = userID.String()
+
+	user, err := h.app.GetUserByID(c.Context(), id)
 	if err != nil {
 		return exception.DataNotFoundError
 	}
 
-	dto, err := h.app.UpdateUser(c.Context(), user.ID, requests.UpdateUserRequest{
-		UserName: req.UserName,
-		Email:    req.Email,
-		Phone:    req.Phone,
+	dto, err := h.app.UpdateUser(c.Context(), user.ID, model.User{
+		UserName:  req.UserName,
+		Email:     req.Email,
+		Phone:     req.Phone,
+		UpdatedBy: &userID,
 	})
 
 	if err != nil {
@@ -211,7 +229,7 @@ func (h *UserHTTPHandler) DeleteUser(c *fiber.Ctx) error {
 		return exception.InvalidIDError
 	}
 
-	_, err = h.app.DeleteUser(c.Context(), requests.GetUserIdRequest{ID: id})
+	_, err = h.app.DeleteUser(c.Context(), id)
 	if err != nil {
 		return err
 	}

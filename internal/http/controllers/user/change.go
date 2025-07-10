@@ -2,14 +2,15 @@ package user
 
 import (
 	"errors"
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"net/http"
 	"webapi/internal/http/requests"
 	"webapi/internal/http/response"
 	"webapi/internal/http/validation"
 	"webapi/pkg/exception"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // ChangePassword godoc
@@ -44,7 +45,7 @@ func (h *UserHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: userID})
+	user, err := h.app.GetUserByID(c.Context(), userID)
 	if err != nil {
 		return exception.DataNotFoundError
 	}
@@ -94,13 +95,11 @@ func (h *UserHTTPHandler) ChangeUserName(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: userId})
+	user, err := h.app.GetUserByID(c.Context(), userId)
 	if err != nil {
 		return exception.DataNotFoundError
 	}
-	dto, err := h.app.ChangeUserName(c.Context(), user.ID, requests.ChangeUserNameRequest{
-		UserName: req.UserName,
-	})
+	dto, err := h.app.ChangeUserName(c.Context(), user.ID, req.UserName)
 	if err != nil {
 		return err
 	}
@@ -144,13 +143,11 @@ func (h *UserHTTPHandler) ChangePhone(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: userID})
+	user, err := h.app.GetUserByID(c.Context(), userID)
 	if err != nil {
 		return exception.DataNotFoundError
 	}
-	dto, err := h.app.ChangePhone(c.Context(), user.ID, requests.ChangePhoneRequest{
-		Phone: req.Phone,
-	})
+	dto, err := h.app.ChangePhone(c.Context(), user.ID, req.Phone)
 	if err != nil {
 		return err
 	}
@@ -193,13 +190,11 @@ func (h *UserHTTPHandler) ChangeEmail(c *fiber.Ctx) error {
 			return exception.NewValidationFailedErrors(validationErrs)
 		}
 	}
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: userID})
+	user, err := h.app.GetUserByID(c.Context(), userID)
 	if err != nil {
 		return exception.DataNotFoundError
 	}
-	dto, err := h.app.ChangeEmail(c.Context(), user.ID, requests.ChangeEmailRequest{
-		Email: req.Email,
-	})
+	dto, err := h.app.ChangeEmail(c.Context(), user.ID, req.Email)
 	if err != nil {
 		return err
 	}

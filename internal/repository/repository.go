@@ -10,6 +10,8 @@ type Repository struct {
 	Job     JobRepository
 	Media   MediaRepository
 	Setting SettingRepository
+	Tag     TagRepository
+	Post    PostRepository
 }
 
 func NewRepository() *Repository {
@@ -21,5 +23,7 @@ func NewRepository() *Repository {
 		Job:     NewJobRepository(pgxPool),
 		Media:   NewMediaRepository(pgxPool, redisClient),
 		Setting: NewSettingRepository(pgxPool, redisClient),
+		Tag:     NewTagRepository(pgxPool, redisClient),
+		Post:    NewPostRepository(pgxPool),
 	}
 }

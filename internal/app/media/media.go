@@ -22,6 +22,7 @@ type MediaApp interface {
 	GetMediaByParentIDWithPagination(ctx context.Context, parentID uuid.UUID, page int, limit int) ([]*model.Media, error)
 	CreateMedia(ctx context.Context, media model.Media) (*dto.GetMediaDTO, error)
 	DeleteMedia(ctx context.Context, media model.Media) (bool, error)
+	CreateMediaWithTags(ctx context.Context, media model.Media, tagIDs []uuid.UUID) (*dto.GetMediaDTO, error)
 }
 
 type mediaApp struct {
@@ -118,4 +119,18 @@ func (m *mediaApp) DeleteMedia(ctx context.Context, media model.Media) (bool, er
 		return false, err
 	}
 	return deleted, nil
+}
+
+func (m *mediaApp) CreateMediaWithTags(ctx context.Context, media model.Media, tagIDs []uuid.UUID) (*dto.GetMediaDTO, error) {
+	mediaDto, err := m.CreateMedia(ctx, media)
+	if err != nil {
+		return nil, err
+	}
+	mediaID := mediaDto.ID
+	for _, tagID := range tagIDs {
+		if err := m.Repo.Tag.AttachTag(ctx, tagID, mediaID, "media"); err != nil {
+			return nil, err
+		}
+	}
+	return mediaDto, nil
 }

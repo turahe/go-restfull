@@ -1,18 +1,21 @@
 package media
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
-	"github.com/minio/minio-go/v7"
-	"go.uber.org/zap"
 	"webapi/config"
 	"webapi/internal/app/media"
 	"webapi/internal/db/model"
+	"webapi/internal/dto"
+	"webapi/internal/helper/utils"
 	"webapi/internal/http/requests"
 	"webapi/internal/http/response"
 	"webapi/internal/logger"
 	"webapi/pkg/exception"
 	internal_minio "webapi/pkg/minio"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
+	"go.uber.org/zap"
 )
 
 type MediaHttpHandler struct {
@@ -62,10 +65,13 @@ func (h *MediaHttpHandler) GetMediaId(c *fiber.Ctx) error {
 // @Failure 500 {object} response.CommonResponse
 // @Router /v1/media [post]
 func (h *MediaHttpHandler) CreateMedia(c *fiber.Ctx) error {
-
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("Error getting file")
+	}
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	fileContent, err := file.Open()
 	conf := config.GetConfig().Minio
@@ -73,22 +79,50 @@ func (h *MediaHttpHandler) CreateMedia(c *fiber.Ctx) error {
 	bucketName := conf.BucketName
 	contentType := file.Header.Get("Content-Type")
 
+	// Parse tags from form (as JSON array or comma-separated string)
+	tags := []string{}
+	tagsStr := c.FormValue("tags")
+	if tagsStr != "" {
+		if tagsStr[0] == '[' {
+			// JSON array
+			if err := c.BodyParser(&tags); err != nil {
+				tags = []string{}
+			}
+		} else {
+			// Comma-separated
+			tags = append(tags, tagsStr)
+		}
+	}
+	tagIDs := make([]uuid.UUID, 0, len(tags))
+	for _, tagStr := range tags {
+		tagID, err := uuid.Parse(tagStr)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid tag ID: " + tagStr})
+		}
+		tagIDs = append(tagIDs, tagID)
+	}
+
 	minioClient := internal_minio.GetMinio()
 	uploadInfo, err := minioClient.PutObject(c.Context(), bucketName, objectName, fileContent, file.Size, minio.PutObjectOptions{ContentType: contentType})
-	//logger.Log.Error(uploadInfo, "File uploaded successfully")
-
 	if err != nil {
 		logger.Log.Error("File uploaded successfully", zap.Error(err))
 		return err
 	}
 
-	mediaDto, err := h.app.CreateMedia(c.Context(), model.Media{
-		FileName: objectName,
-		Hash:     uploadInfo.ChecksumSHA256,
-		//ParentID: req.ParentID,
-		Size:     file.Size,
-		MimeType: file.Header.Get("Content-Type"),
-	})
+	mediaModel := model.Media{
+		FileName:  objectName,
+		Hash:      uploadInfo.ChecksumSHA256,
+		Size:      file.Size,
+		MimeType:  file.Header.Get("Content-Type"),
+		CreatedBy: userID.String(),
+		UpdatedBy: userID.String(),
+	}
+	var mediaDto *dto.GetMediaDTO
+	if len(tagIDs) > 0 {
+		mediaDto, err = h.app.CreateMediaWithTags(c.Context(), mediaModel, tagIDs)
+	} else {
+		mediaDto, err = h.app.CreateMedia(c.Context(), mediaModel)
+	}
 	if err != nil {
 		return err
 	}

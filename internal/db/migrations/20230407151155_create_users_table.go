@@ -22,9 +22,9 @@ var createUserTable = &Migration{
 			    "password" VARCHAR(255) NULL,
 			    "email_verified_at" BIGINT NULL,
 			    "phone_verified_at" BIGINT NULL,
-			    "created_at" BIGINT NULL,
-			    "updated_at" BIGINT NULL,
-			    "deleted_at" BIGINT NULL,
+			    "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			    "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			    "deleted_at" TIMESTAMP WITH TIME ZONE NULL,
 			    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 			);
 
