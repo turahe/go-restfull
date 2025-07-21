@@ -16,6 +16,7 @@ type PostRepository interface {
 	Update(ctx context.Context, post *model.Post) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error)
+	GetMaxRecordOrdering(ctx context.Context) (int64, error)
 }
 
 type PostRepositoryImpl struct {
@@ -171,6 +172,15 @@ func (r *PostRepositoryImpl) GetPostsWithPagination(ctx context.Context, input r
 		return nil, 0, err
 	}
 	return posts, total, nil
+}
+
+func (r *PostRepositoryImpl) GetMaxRecordOrdering(ctx context.Context) (int64, error) {
+	var max int64
+	err := r.pgxPool.QueryRow(ctx, "SELECT COALESCE(MAX(record_ordering), 0) FROM posts").Scan(&max)
+	if err != nil {
+		return 0, err
+	}
+	return max, nil
 }
 
 func (r *PostRepositoryImpl) getContentsForPost(ctx context.Context, postID uuid.UUID) ([]model.Content, error) {

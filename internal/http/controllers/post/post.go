@@ -70,6 +70,16 @@ func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 		UpdatedBy:   userID.String(),
 	}
 
+	recordOrdering := req.RecordOrdering
+	if recordOrdering == 0 {
+		// Fetch max record_ordering from repository
+		maxOrdering, err := h.app.GetMaxPostRecordOrdering(c.Context())
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get max record ordering"})
+		}
+		recordOrdering = maxOrdering + 1
+	}
+
 	post := &model.Post{
 		ID:             uuid.New(),
 		Slug:           slug,
@@ -81,7 +91,7 @@ func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 		PublishedAt:    req.PublishedAt,
 		Language:       req.Language,
 		Layout:         req.Layout,
-		RecordOrdering: req.RecordOrdering,
+		RecordOrdering: recordOrdering,
 		CreatedBy:      &userID,
 		UpdatedBy:      &userID,
 		Contents:       []model.Content{content},
@@ -129,8 +139,35 @@ func (h *PostHttpHandler) UpdatePost(c *fiber.Ctx) error {
 		}
 		tagIDs = append(tagIDs, tagID)
 	}
+
+	slug := req.Slug
+	if slug == "" {
+		slug = utils.Slugify(req.Title)
+	}
+
+	contentHTML := string(markdown.ToHTML([]byte(req.Content), nil, nil))
+	content := model.Content{
+		ID:          uuid.New().String(),
+		ModelType:   "post",
+		ModelID:     id.String(),
+		ContentRaw:  req.Content,
+		ContentHTML: contentHTML,
+		CreatedBy:   userID.String(),
+		UpdatedBy:   userID.String(),
+	}
+
+	recordOrdering := req.RecordOrdering
+	if recordOrdering == 0 {
+		maxOrdering, err := h.app.GetMaxPostRecordOrdering(c.Context())
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get max record ordering"})
+		}
+		recordOrdering = maxOrdering + 1
+	}
+
 	post := &model.Post{
 		ID:             id,
+		Slug:           slug,
 		Title:          req.Title,
 		Subtitle:       req.Subtitle,
 		Description:    req.Description,
@@ -139,8 +176,9 @@ func (h *PostHttpHandler) UpdatePost(c *fiber.Ctx) error {
 		PublishedAt:    req.PublishedAt,
 		Language:       req.Language,
 		Layout:         req.Layout,
-		RecordOrdering: req.RecordOrdering,
+		RecordOrdering: recordOrdering,
 		UpdatedBy:      &userID,
+		Contents:       []model.Content{content},
 	}
 	if err := h.app.UpdatePostWithTags(c.Context(), post, tagIDs); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

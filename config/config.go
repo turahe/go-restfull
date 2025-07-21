@@ -104,3 +104,11 @@ type Email struct {
 	FromAddress string `yaml:"fromAddress"`
 	FromName    string `yaml:"fromName"`
 }
+
+func GetConfig() *Config {
+	return config
+}
+
+func SetConfig(cfg *Config) {
+	config = cfg
+}

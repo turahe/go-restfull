@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"webapi/config"
+	"webapi/internal/logger"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
-	"webapi/config"
-	"webapi/internal/logger"
 )
 
 var pgxPool *pgxpool.Pool
@@ -40,7 +41,7 @@ func InitPgConnectionPool(postgresConfig config.Postgres) error {
 	}
 
 	// Set maximum number of connections
-	connConfig.MaxConns = postgresConfig.MaxConnections
+	connConfig.MaxConns = int32(postgresConfig.MaxConnections)
 	// connConfig.MaxConnIdleTime = time.Duration(postgresConfig.MaxConnIdleTime) * time.Minute
 
 	pgxPool, err = pgxpool.NewWithConfig(context.Background(), connConfig)

@@ -16,6 +16,7 @@ type CreatePostRequest struct {
 }
 
 type UpdatePostRequest struct {
+	Slug           string   `json:"slug" validate:"omitempty,min=3,max=100"`
 	Title          string   `json:"title" validate:"required,min=3,max=255"`
 	Subtitle       string   `json:"subtitle" validate:"max=255"`
 	Description    string   `json:"description" validate:"max=1000"`

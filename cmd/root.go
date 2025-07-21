@@ -8,13 +8,15 @@ import (
 	"time"
 	internal_minio "webapi/pkg/minio"
 
-	"github.com/getsentry/sentry-go"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 	"webapi/config"
 	"webapi/internal/db/pgx"
 	"webapi/internal/db/rdb"
 	"webapi/internal/logger"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const defaultConfigFile = "config/config.yaml"
@@ -60,7 +62,17 @@ func setUpConfig() {
 	}
 
 	log.Default().Printf("Using config file: %s", configFile)
-	config.SetConfig(configFile)
+	viper.SetConfigFile(configFile)
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalf("Error getting config file, %s", err)
+	}
+	var cfg config.Config
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		log.Fatalf("Unable to decode into struct, %v", err)
+	}
+	config.SetConfig(&cfg)
 }
 
 func setUpLogger() {

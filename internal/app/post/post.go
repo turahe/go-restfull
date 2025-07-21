@@ -18,6 +18,7 @@ type PostApp interface {
 	CreatePostWithTags(ctx context.Context, post *model.Post, tagIDs []uuid.UUID) error
 	UpdatePostWithTags(ctx context.Context, post *model.Post, tagIDs []uuid.UUID) error
 	GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error)
+	GetMaxPostRecordOrdering(ctx context.Context) (int64, error)
 }
 
 type postApp struct {
@@ -88,4 +89,8 @@ func (a *postApp) UpdatePostWithTags(ctx context.Context, post *model.Post, tagI
 
 func (a *postApp) GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error) {
 	return a.repo.Post.GetPostsWithPagination(ctx, input)
+}
+
+func (a *postApp) GetMaxPostRecordOrdering(ctx context.Context) (int64, error) {
+	return a.repo.Post.GetMaxRecordOrdering(ctx)
 }
