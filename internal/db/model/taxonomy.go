@@ -9,8 +9,8 @@ import (
 // Taxonomy represents a taxonomy entity
 type Taxonomy struct {
 	ID          uuid.UUID  `json:"id" db:"id"`
-	Name        string     `json:"name" db:"name"`
-	Description string     `json:"description" db:"description"`
+	Name        string     `json:"name" db:"name" validate:"required"`
+	Description string     `json:"description" db:"description" validate:"required"`
 	RecordLeft  uint64     `json:"recordLeft"`
 	RecordRight uint64     `json:"recordRight"`
 	RecordDepth uint64     `json:"recordDepth"`

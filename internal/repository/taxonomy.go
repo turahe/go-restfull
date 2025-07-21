@@ -26,6 +26,7 @@ type TaxonomyRepository interface {
 	GetAncestors(ctx context.Context, id uuid.UUID) ([]*model.Taxonomy, error)
 	GetSiblings(ctx context.Context, id uuid.UUID) ([]*model.Taxonomy, error)
 	GetRootNodes(ctx context.Context) ([]*model.Taxonomy, error)
+	GetPaginated(ctx context.Context, query string, limit, page int) ([]*model.Taxonomy, int, error)
 }
 
 type TaxonomyRepositoryImpl struct {
@@ -477,4 +478,48 @@ func (r *TaxonomyRepositoryImpl) GetRootNodes(ctx context.Context) ([]*model.Tax
 	}
 
 	return taxonomies, nil
+}
+
+func (r *TaxonomyRepositoryImpl) GetPaginated(ctx context.Context, query string, limit, page int) ([]*model.Taxonomy, int, error) {
+	var where string
+	var args []interface{}
+	if query != "" {
+		where = "WHERE name ILIKE $1 OR description ILIKE $1"
+		args = append(args, "%"+query+"%")
+	}
+	countQuery := "SELECT COUNT(*) FROM taxonomies " + where
+	var total int
+	if err := r.pgxPool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
+	listQuery := "SELECT id, name, description, parent_id, record_left, record_right, record_depth, created_at, updated_at FROM taxonomies " + where + " ORDER BY record_left LIMIT $2 OFFSET $3"
+	args = append(args, limit, offset)
+	rows, err := r.pgxPool.Query(ctx, listQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*model.Taxonomy
+	for rows.Next() {
+		taxonomy := &model.Taxonomy{}
+		err := rows.Scan(
+			&taxonomy.ID,
+			&taxonomy.Name,
+			&taxonomy.Description,
+			&taxonomy.ParentID,
+			&taxonomy.RecordLeft,
+			&taxonomy.RecordRight,
+			&taxonomy.RecordDepth,
+			&taxonomy.CreatedAt,
+			&taxonomy.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+	return taxonomies, total, nil
 }

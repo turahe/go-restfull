@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 	"webapi/config"
 	"webapi/internal/db/migrations"
 	"webapi/internal/db/pgx"
 	"webapi/internal/logger"
+
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -41,6 +43,11 @@ var migrateCommand = &cobra.Command{
 			logger.Log.Info("No migrations found")
 			os.Exit(0)
 		}
+
+		// Sort migrations by Name (timestamp) to ensure correct order
+		sort.Slice(migrations.Migrations, func(i, j int) bool {
+			return migrations.Migrations[i].Name < migrations.Migrations[j].Name
+		})
 
 		// Initiate context
 		ctx := context.Background()

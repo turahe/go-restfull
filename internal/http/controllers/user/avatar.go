@@ -44,7 +44,7 @@ func (h *UserHTTPHandler) UploadAvatar(c *fiber.Ctx) error {
 		}
 	}
 
-	user, err := h.app.GetUserByID(c.Context(), requests.GetUserIdRequest{ID: userID})
+	user, err := h.app.GetUserByID(c.Context(), userID)
 	if err != nil {
 		return exception.DataNotFoundError
 	}

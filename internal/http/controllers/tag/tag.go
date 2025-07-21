@@ -23,8 +23,8 @@ func NewTagHttpHandler(app tag.TagApp) *TagHttpHandler {
 // @Accept json
 // @Produce json
 // @Param tag body model.Tag true "Tag info"
-// @Success 200 {object} model.Tag
-// @Failure 400 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/tags [post]
 func (h *TagHttpHandler) CreateTag(c *fiber.Ctx) error {
 	tag := new(model.Tag)
@@ -49,8 +49,8 @@ func (h *TagHttpHandler) CreateTag(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Tag UUID"
-// @Success 200 {object} model.Tag
-// @Failure 404 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 404 {object} response.CommonResponse
 // @Router /v1/tags/{id} [get]
 func (h *TagHttpHandler) GetTagByID(c *fiber.Ctx) error {
 	idParam := c.Params("id")
@@ -87,8 +87,8 @@ func (h *TagHttpHandler) GetAllTags(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Tag UUID"
 // @Param tag body model.Tag true "Tag info"
-// @Success 200 {object} model.Tag
-// @Failure 400 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/tags/{id} [put]
 func (h *TagHttpHandler) UpdateTag(c *fiber.Ctx) error {
 	idParam := c.Params("id")
@@ -118,8 +118,8 @@ func (h *TagHttpHandler) UpdateTag(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Tag UUID"
-// @Success 200 {object} fiber.Map
-// @Failure 400 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/tags/{id} [delete]
 func (h *TagHttpHandler) DeleteTag(c *fiber.Ctx) error {
 	idParam := c.Params("id")

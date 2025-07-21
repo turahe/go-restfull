@@ -32,7 +32,7 @@ var createCommentTable = &Migration{
 				"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 				CONSTRAINT "comments_pkey" PRIMARY KEY ("id"),
 				CONSTRAINT "comments_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-				CONSTRAINT "comments_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "comments_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION
 			)
 		`)
 

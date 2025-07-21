@@ -20,6 +20,7 @@ import (
 	httpPost "webapi/internal/http/controllers/post"
 	httpQueue "webapi/internal/http/controllers/queue"
 	httpSetting "webapi/internal/http/controllers/setting"
+	httpTaxonomy "webapi/internal/http/controllers/taxonomy"
 	httpUser "webapi/internal/http/controllers/user"
 )
 
@@ -114,6 +115,15 @@ func RegisterRoute(r *fiber.App) {
 	postAPI.Get("/:id", postHandler.GetPostByID)
 	postAPI.Put("/:id", postHandler.UpdatePost)
 	postAPI.Delete("/:id", postHandler.DeletePost)
+
+	// Taxonomy API (protected)
+	taxonomyHandler := httpTaxonomy.NewTaxonomyHandler(repo.Taxonomy)
+	taxonomyAPI := protected.Group("/taxonomies")
+	taxonomyAPI.Post("/", taxonomyHandler.CreateTaxonomy)
+	taxonomyAPI.Get("/", taxonomyHandler.GetAllTaxonomies)
+	taxonomyAPI.Get("/:id", taxonomyHandler.GetTaxonomyByID)
+	taxonomyAPI.Put("/:id", taxonomyHandler.UpdateTaxonomy)
+	taxonomyAPI.Delete("/:id", taxonomyHandler.DeleteTaxonomy)
 
 	// Error Case Handler
 	miscellaneousHandler := httpMiscellaneous.NewMiscellaneousHTTPHandler()

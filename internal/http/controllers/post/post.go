@@ -24,7 +24,7 @@ func NewPostHttpHandler(app post.PostApp) *PostHttpHandler {
 // @Produce json
 // @Param post body model.Post true "Post info"
 // @Success 201 {object} model.Post
-// @Failure 400 {object} fiber.Map
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/posts [post]
 func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 	var req requests.CreatePostRequest
@@ -79,8 +79,8 @@ func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Post UUID"
 // @Param post body model.Post true "Post info"
-// @Success 200 {object} model.Post
-// @Failure 400 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/posts/{id} [put]
 func (h *PostHttpHandler) UpdatePost(c *fiber.Ctx) error {
 	idParam := c.Params("id")
@@ -134,8 +134,8 @@ func (h *PostHttpHandler) UpdatePost(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Post UUID"
-// @Success 200 {object} fiber.Map
-// @Failure 400 {object} fiber.Map
+// @Success 200 {object} response.CommonResponse
+// @Failure 400 {object} response.CommonResponse
 // @Router /v1/posts/{id} [delete]
 func (h *PostHttpHandler) DeletePost(c *fiber.Ctx) error {
 	idParam := c.Params("id")
@@ -156,7 +156,7 @@ func (h *PostHttpHandler) DeletePost(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Post UUID"
 // @Success 200 {object} model.Post
-// @Failure 404 {object} fiber.Map
+// @Failure 404 {object} response.CommonResponse
 // @Router /v1/posts/{id} [get]
 func (h *PostHttpHandler) GetPostByID(c *fiber.Ctx) error {
 	idParam := c.Params("id")

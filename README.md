@@ -36,6 +36,22 @@ This boilerplate is intended to be used as a starting point for a go application
     ```sh
     go run main.go migrate
     ```
+    
+    # Migration Management
+    # Apply all migrations (creates tables, etc.)
+    go run main.go migrate
+    
+    # Roll back the last migration (drops the most recently created table(s))
+    go run main.go migrate:down
+    
+    # Roll back multiple migrations (replace N with the number of steps)
+    go run main.go migrate:down --step N
+    
+    # Drop all tables and reset the schema (use with caution!)
+    go run main.go migrate:flush
+    ```
+    
+    - `migrate:down` only rolls back the most recent migration(s) by calling their Down functions, which typically drop the table(s) created by that migration. To drop all tables, use `migrate:flush` or run `migrate:down` with a large enough step value to cover all applied migrations.
 6. Run the application
     ```sh
     # Run normally

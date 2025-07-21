@@ -26,14 +26,14 @@ var createTagsTable = &Migration{
 				"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 				CONSTRAINT "tags_pkey" PRIMARY KEY ("id"),
 				CONSTRAINT "tags_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-				CONSTRAINT "tags_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "tags_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION
 			);
 			CREATE TABLE IF NOT EXISTS taggables (
 				"id" UUID NOT NULL,
 				"tag_id" UUID NOT NULL,
 				"taggable_id" UUID NOT NULL,
 				"taggable_type" varchar(255) NOT NULL,
-				"created_at" BIGINT NULL,
+				"created_at" BIGINT NULL
 			);
 		`)
 

@@ -72,6 +72,81 @@ definitions:
     - ERROR_TYPE_JOB_ERROR
     - ERROR_TYPE_EXTERNAL_SERVICE_ERROR
     - ERROR_TYPE_DATASOURCE_ERROR
+  model.Content:
+    properties:
+      content_html:
+        type: string
+      content_raw:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      model_id:
+        type: string
+      model_type:
+        type: string
+      updated_by:
+        type: string
+    type: object
+  model.Post:
+    properties:
+      contents:
+        items:
+          $ref: '#/definitions/model.Content'
+        type: array
+      created_at:
+        type: string
+      created_by:
+        type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_sticky:
+        type: boolean
+      language:
+        type: string
+      layout:
+        type: string
+      published_at:
+        type: integer
+      record_ordering:
+        type: integer
+      slug:
+        type: string
+      subtitle:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+    type: object
+  model.Tag:
+    properties:
+      created_by:
+        type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      updated_by:
+        type: string
+    type: object
   requests.AuthLoginRequest:
     properties:
       password:
@@ -148,11 +223,15 @@ definitions:
     type: object
   requests.CreateSettingRequest:
     properties:
+      created_by:
+        type: string
       key:
         type: string
       modelId:
         type: string
       modelType:
+        type: string
+      updated_by:
         type: string
       value:
         type: string
@@ -178,6 +257,8 @@ definitions:
     properties:
       key:
         type: string
+      updated_by:
+        type: string
       value:
         type: string
     required:
@@ -189,6 +270,8 @@ definitions:
       email:
         type: string
       phone:
+        type: string
+      updated_by:
         type: string
       username:
         maxLength: 32
@@ -585,6 +668,122 @@ paths:
       summary: Get media by ID
       tags:
       - media
+  /v1/posts:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Post'
+            type: array
+      summary: Get all posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Post info
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/model.Post'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Post'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Create a new post
+      tags:
+      - posts
+  /v1/posts/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Post UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Delete a post
+      tags:
+      - posts
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Post UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Post'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Get post by ID
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Post UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Post info
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/model.Post'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Update a post
+      tags:
+      - posts
   /v1/queues:
     get:
       consumes:
@@ -769,6 +968,122 @@ paths:
       summary: Update setting
       tags:
       - settings
+  /v1/tags:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Tag'
+            type: array
+      summary: Get all tags
+      tags:
+      - tags
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tag info
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Create a new tag
+      tags:
+      - tags
+  /v1/tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tag UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Delete a tag
+      tags:
+      - tags
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tag UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Get tag by ID
+      tags:
+      - tags
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tag UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tag info
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Update a tag
+      tags:
+      - tags
   /v1/users:
     get:
       consumes:
