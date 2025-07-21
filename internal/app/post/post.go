@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"webapi/internal/db/model"
+	"webapi/internal/http/requests"
 	"webapi/internal/repository"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ type PostApp interface {
 	DeletePost(ctx context.Context, id uuid.UUID) error
 	CreatePostWithTags(ctx context.Context, post *model.Post, tagIDs []uuid.UUID) error
 	UpdatePostWithTags(ctx context.Context, post *model.Post, tagIDs []uuid.UUID) error
+	GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error)
 }
 
 type postApp struct {
@@ -82,4 +84,8 @@ func (a *postApp) UpdatePostWithTags(ctx context.Context, post *model.Post, tagI
 		}
 	}
 	return nil
+}
+
+func (a *postApp) GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error) {
+	return a.repo.Post.GetPostsWithPagination(ctx, input)
 }

@@ -3,9 +3,12 @@ package post
 import (
 	"webapi/internal/app/post"
 	"webapi/internal/db/model"
+	"webapi/internal/helper/utils"
 	"webapi/internal/http/requests"
+	"webapi/internal/http/response"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gomarkdown/markdown"
 	"github.com/google/uuid"
 )
 
@@ -51,9 +54,25 @@ func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 		tagIDs = append(tagIDs, tagID)
 	}
 
+	slug := req.Slug
+	if slug == "" {
+		slug = utils.Slugify(req.Title)
+	}
+
+	contentHTML := string(markdown.ToHTML([]byte(req.Content), nil, nil))
+	content := model.Content{
+		ID:          uuid.New().String(),
+		ModelType:   "post",
+		ModelID:     "", // will be set in repo to post.ID
+		ContentRaw:  req.Content,
+		ContentHTML: contentHTML,
+		CreatedBy:   userID.String(),
+		UpdatedBy:   userID.String(),
+	}
+
 	post := &model.Post{
 		ID:             uuid.New(),
-		Slug:           req.Slug,
+		Slug:           slug,
 		Title:          req.Title,
 		Subtitle:       req.Subtitle,
 		Description:    req.Description,
@@ -65,6 +84,7 @@ func (h *PostHttpHandler) CreatePost(c *fiber.Ctx) error {
 		RecordOrdering: req.RecordOrdering,
 		CreatedBy:      &userID,
 		UpdatedBy:      &userID,
+		Contents:       []model.Content{content},
 	}
 	if err := h.app.CreatePostWithTags(c.Context(), post, tagIDs); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -179,9 +199,33 @@ func (h *PostHttpHandler) GetPostByID(c *fiber.Ctx) error {
 // @Success 200 {array} model.Post
 // @Router /v1/posts [get]
 func (h *PostHttpHandler) GetAllPosts(c *fiber.Ctx) error {
-	posts, err := h.app.GetAllPostsWithContents(c.Context())
+	limit := c.QueryInt("limit", 10)
+	page := c.QueryInt("page", 1)
+	query := c.Query("query", "")
+
+	offset := (page - 1) * limit
+	req := requests.DataWithPaginationRequest{
+		Query: query,
+		Limit: limit,
+		Page:  offset,
+	}
+	posts, total, err := h.app.GetPostsWithPagination(c.Context(), req)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(posts)
+	totalPage := 1
+	if limit > 0 {
+		totalPage = (total + limit - 1) / limit
+	}
+	return c.JSON(response.PaginationResponse{
+		TotalCount:   total,
+		TotalPage:    totalPage,
+		CurrentPage:  page,
+		LastPage:     totalPage,
+		PerPage:      limit,
+		NextPage:     page + 1,
+		PreviousPage: page - 1,
+		Data:         posts,
+		Path:         c.Path(),
+	})
 }

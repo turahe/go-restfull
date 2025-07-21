@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"webapi/internal/db/model"
+	"webapi/internal/http/requests"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +15,7 @@ type PostRepository interface {
 	Create(ctx context.Context, post *model.Post) error
 	Update(ctx context.Context, post *model.Post) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error)
 }
 
 type PostRepositoryImpl struct {
@@ -137,6 +139,38 @@ func (r *PostRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func (r *PostRepositoryImpl) GetPostsWithPagination(ctx context.Context, input requests.DataWithPaginationRequest) ([]*model.Post, int, error) {
+	var posts []*model.Post
+	var total int
+	query := `SELECT id, slug, title, subtitle, description, type, is_sticky, published_at, language, layout, record_ordering, created_by, updated_by, deleted_by, deleted_at, created_at, updated_at FROM posts WHERE title ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	rows, err := r.pgxPool.Query(ctx, query, input.Query, input.Limit, input.Page*input.Limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		post := &model.Post{}
+		err := rows.Scan(
+			&post.ID, &post.Slug, &post.Title, &post.Subtitle, &post.Description, &post.Type, &post.IsSticky, &post.PublishedAt, &post.Language, &post.Layout, &post.RecordOrdering, &post.CreatedBy, &post.UpdatedBy, &post.DeletedBy, &post.DeletedAt, &post.CreatedAt, &post.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		contents, err := r.getContentsForPost(ctx, post.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		post.Contents = contents
+		posts = append(posts, post)
+	}
+	totalQuery := `SELECT COUNT(*) FROM posts WHERE title ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%';`
+	err = r.pgxPool.QueryRow(ctx, totalQuery, input.Query).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+	return posts, total, nil
 }
 
 func (r *PostRepositoryImpl) getContentsForPost(ctx context.Context, postID uuid.UUID) ([]model.Content, error) {

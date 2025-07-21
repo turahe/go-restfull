@@ -3,15 +3,16 @@ package repository
 import (
 	"context"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 	"time"
 	"webapi/internal/db/model"
 	"webapi/internal/dto"
 	"webapi/internal/helper/cache"
 	"webapi/internal/http/requests"
+
+	"github.com/bytedance/sonic"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 type UserRepository interface {
@@ -198,7 +199,7 @@ func (u *UserRepositoryImpl) AddUser(ctx context.Context, user model.User) (mode
 
 	for key, value := range settings {
 		// Insert default settings for the new user
-		_, err = tx.Exec(ctx, "INSERT INTO settings (id, model_type, model_id, key, value) VALUES ($1, $2, $3, $4, $5)", uuid.New(), "user", user.ID, key, value)
+		_, err = tx.Exec(ctx, "INSERT INTO settings (id, model_type, model_id, key, value, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7)", uuid.New(), "user", user.ID, key, value, user.ID, user.ID)
 		if err != nil {
 			return model.User{}, err
 		}

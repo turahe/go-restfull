@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -23,7 +24,7 @@ type CommentRepositoryInterface interface {
 // Minimal DB interface for mocking and production
 // (In production, use pgxpool.Pool which implements this)
 type DBIface interface {
-	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgx.CommandTag, error)
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
 	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
 	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
 }

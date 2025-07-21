@@ -5,9 +5,10 @@ import (
 	"math/rand"
 	"time"
 
+	"webapi/config"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"webapi/config"
 )
 
 type TokenClaims struct {
@@ -27,14 +28,18 @@ type TokenPair struct {
 // GenerateAccessToken generates a JWT access token
 func GenerateAccessToken(userID uuid.UUID, username, email string) (string, error) {
 	cfg := config.GetConfig()
-	
+	expiration := 15 * time.Minute
+	if cfg.App.AccessTokenExpiration > 0 {
+		expiration = time.Duration(cfg.App.AccessTokenExpiration) * time.Hour
+	}
+
 	claims := TokenClaims{
 		UserID:   userID,
 		Username: username,
 		Email:    email,
 		Type:     "access",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // 15 minutes
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    cfg.App.Name,
@@ -50,7 +55,7 @@ func GenerateAccessToken(userID uuid.UUID, username, email string) (string, erro
 // GenerateRefreshToken generates a JWT refresh token
 func GenerateRefreshToken(userID uuid.UUID, username, email string) (string, error) {
 	cfg := config.GetConfig()
-	
+
 	claims := TokenClaims{
 		UserID:   userID,
 		Username: username,
@@ -72,6 +77,7 @@ func GenerateRefreshToken(userID uuid.UUID, username, email string) (string, err
 
 // GenerateTokenPair generates both access and refresh tokens
 func GenerateTokenPair(userID uuid.UUID, username, email string) (*TokenPair, error) {
+	cfg := config.GetConfig()
 	accessToken, err := GenerateAccessToken(userID, username, email)
 	if err != nil {
 		return nil, err
@@ -82,17 +88,23 @@ func GenerateTokenPair(userID uuid.UUID, username, email string) (*TokenPair, er
 		return nil, err
 	}
 
+	expiration := 15 * time.Minute
+	if cfg.App.AccessTokenExpiration > 0 {
+		expiration = time.Duration(cfg.App.AccessTokenExpiration) * time.Hour
+	}
+	expiresAt := time.Now().Add(expiration).Unix()
+
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    15 * 60, // 15 minutes in seconds
+		ExpiresIn:    expiresAt,
 	}, nil
 }
 
 // ValidateToken validates a JWT token and returns the claims
 func ValidateToken(tokenString string) (*TokenClaims, error) {
 	cfg := config.GetConfig()
-	
+
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")

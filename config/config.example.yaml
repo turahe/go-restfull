@@ -4,6 +4,7 @@ app:
   name: "My App"
   nameSlug: "my-app"
   jwtSecret: "your-super-secret-jwt-key-here-make-it-long-and-secure"
+  accessTokenExpiration: 24
 
 httpServer:
   port: 8000

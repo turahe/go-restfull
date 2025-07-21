@@ -110,7 +110,20 @@ func (h *AuthHttpHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Send welcome email after successful registration
-	h.emailService.SendEmail(req.Email, "Welcome to Our Platform", "Thank you for registering with us!")
+	templateData := struct {
+		Name  string
+		Email string
+	}{
+		Name:  req.UserName,
+		Email: req.Email,
+	}
+	h.emailService.SendEmailTemplate(
+		req.Email,
+		"Welcome to Our Platform",
+		"pkg/template/email/welcome.html",
+		templateData,
+		true,
+	)
 
 	return c.Status(http.StatusCreated).JSON(response.CommonResponse{
 		ResponseCode:    http.StatusCreated,
