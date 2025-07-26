@@ -166,18 +166,31 @@ func (s *OTPService) GenerateAndStoreResetLink(ctx context.Context, identity str
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(expiration),
 	}
-	// send email link
 
-	// Store in Redis with expiration
+	// Store in Redis with expiration (marshal to JSON)
 	key := s.generateResetLinkKey(identity)
-	err := cache.Set(ctx, key, resetData, expiration)
+	resetDataBytes, err := json.Marshal(resetData)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal reset link data: %w", err)
+	}
+	err = cache.Set(ctx, key, string(resetDataBytes), expiration)
 	if err != nil {
 		return "", fmt.Errorf("failed to store reset link in Redis: %w", err)
 	}
 
 	// send email link to email
 	emailService := email.NewEmailService()
-	emailService.SendEmail(identity, "Reset Password", "Click the link to reset your password: "+token)
+	templateData := struct {
+		ResetLink string
+		Token     string
+	}{
+		ResetLink: "https://yourdomain.com/reset-password?token=" + token,
+		Token:     token,
+	}
+	err = emailService.SendEmailTemplate(identity, "Reset Password", "pkg/template/email/reset_password.html", templateData, true)
+	if err != nil {
+		fmt.Printf("Failed to send reset password email: %v\n", err)
+	}
 
 	return token, nil
 }
@@ -213,10 +226,13 @@ func (s *OTPService) ValidateResetLink(ctx context.Context, identity, token stri
 		return false, fmt.Errorf("Reset link not found or expired: %w", err)
 	}
 
-	// Parse reset link data (for now, we'll just compare the token string directly)
-	// In a real implementation, you might want to unmarshal the JSON
-	if resetDataStr == token {
-		// Remove reset link from Redis after successful validation
+	var resetData ResetLinkData
+	err = json.Unmarshal([]byte(resetDataStr), &resetData)
+	if err != nil {
+		return false, fmt.Errorf("failed to unmarshal reset link data: %w", err)
+	}
+
+	if resetData.Token == token {
 		_ = cache.Remove(ctx, key)
 		return true, nil
 	}
@@ -253,15 +269,15 @@ func (s *OTPService) GetResetLink(ctx context.Context, identity string) (*ResetL
 		return nil, fmt.Errorf("Reset link not found or expired: %w", err)
 	}
 
+	var resetData ResetLinkData
+	err = json.Unmarshal([]byte(resetDataStr), &resetData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal reset link data: %w", err)
+	}
+
 	// For simplicity, we'll return a basic ResetLinkData structure
 	// In a real implementation, you would unmarshal the JSON
-	return &ResetLinkData{
-		Token:     resetDataStr,
-		Identity:  identity,
-		Type:      "email",
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(DefaultResetLinkExpiration),
-	}, nil
+	return &resetData, nil
 }
 
 // RemoveOTP removes an OTP from Redis

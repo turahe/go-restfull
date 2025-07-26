@@ -3,6 +3,7 @@ package email
 import (
 	"bytes"
 	"fmt"
+	htmltemplate "html/template"
 	"text/template"
 	"webapi/config"
 
@@ -10,27 +11,39 @@ import (
 )
 
 // EmailService provides email sending functionality
-type EmailService struct {
-	config *config.Email
+type Email struct {
+	SMTPHost    string
+	SMTPPort    int
+	Username    string
+	Password    string
+	FromAddress string
+	FromName    string
 }
 
 // NewEmailService creates a new email service instance
-func NewEmailService() *EmailService {
+func NewEmailService() *Email {
 	cfg := config.GetConfig()
-	return &EmailService{config: &cfg.Email}
+	return &Email{
+		SMTPHost:    cfg.Email.SMTPHost,
+		SMTPPort:    cfg.Email.SMTPPort,
+		Username:    cfg.Email.Username,
+		Password:    cfg.Email.Password,
+		FromAddress: cfg.Email.FromAddress,
+		FromName:    cfg.Email.FromName,
+	}
 }
 
 // SendEmail sends an email using gomail
-func (e *EmailService) SendEmail(to, subject, body string) error {
+func (e *Email) SendEmail(to, subject, body string) error {
 	m := gomail.NewMessage()
 
-	m.SetHeader("From", m.FormatAddress(e.config.FromAddress, e.config.FromName))
+	m.SetHeader("From", m.FormatAddress(e.FromAddress, e.FromName))
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 
 	// Uncomment the lines below to actually send emails
-	d := gomail.NewDialer(e.config.SMTPHost, e.config.SMTPPort, e.config.Username, e.config.Password)
+	d := gomail.NewDialer(e.SMTPHost, e.SMTPPort, e.Username, e.Password)
 	if err := d.DialAndSend(m); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
@@ -39,10 +52,10 @@ func (e *EmailService) SendEmail(to, subject, body string) error {
 }
 
 // SendEmailTemplate sends an email using a Go template file and data
-func (e *EmailService) SendEmailTemplate(to, subject, templatePath string, data interface{}, isHTML bool) error {
+func (e *Email) SendEmailTemplate(to, subject, templatePath string, data interface{}, isHTML bool) error {
 	var body bytes.Buffer
 	if isHTML {
-		tmpl, err := template.New("email").ParseFiles(templatePath)
+		tmpl, err := htmltemplate.ParseFiles(templatePath)
 		if err != nil {
 			return fmt.Errorf("failed to parse HTML template: %w", err)
 		}
@@ -51,7 +64,7 @@ func (e *EmailService) SendEmailTemplate(to, subject, templatePath string, data 
 			return fmt.Errorf("failed to execute HTML template: %w", err)
 		}
 	} else {
-		tmpl, err := template.New("email").ParseFiles(templatePath)
+		tmpl, err := template.ParseFiles(templatePath)
 		if err != nil {
 			return fmt.Errorf("failed to parse text template: %w", err)
 		}
@@ -62,7 +75,7 @@ func (e *EmailService) SendEmailTemplate(to, subject, templatePath string, data 
 	}
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", m.FormatAddress(e.config.FromAddress, e.config.FromName))
+	m.SetHeader("From", m.FormatAddress(e.FromAddress, e.FromName))
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	if isHTML {
@@ -71,7 +84,7 @@ func (e *EmailService) SendEmailTemplate(to, subject, templatePath string, data 
 		m.SetBody("text/plain", body.String())
 	}
 
-	d := gomail.NewDialer(e.config.SMTPHost, e.config.SMTPPort, e.config.Username, e.config.Password)
+	d := gomail.NewDialer(e.SMTPHost, e.SMTPPort, e.Username, e.Password)
 	if err := d.DialAndSend(m); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
