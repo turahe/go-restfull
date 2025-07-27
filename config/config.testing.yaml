@@ -7,6 +7,7 @@ app:
 
 httpServer:
   port: 8000
+  swaggerURL: "http://localhost:8000/swagger/"
 
 log:
   level: "debug"
@@ -33,6 +34,16 @@ Redis:
     port: 6379
     password: ""
     db: 0
+
+casbin:
+  model: "config/rbac_model.conf"
+  policy: "config/rbac_policy.csv"
+  redis:
+    host: "localhost"
+    port: 6379
+    password: ""
+    db: 1
+    key: "casbin_policy"
 
 minio:
   enable: false

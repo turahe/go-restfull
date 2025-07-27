@@ -24,6 +24,336 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/forget-password": {
+            "post": {
+                "description": "Send a password reset email with OTP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Password reset request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ForgetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticate a user with username and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User login",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout user (client should discard tokens)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User logout",
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Refresh an access token using a refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh token request",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.TokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Register a new user account with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration request",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - User already exists",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset password using email and OTP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password with OTP",
+                "parameters": [
+                    {
+                        "description": "Password reset with OTP request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid OTP",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "description": "Check if the API is running and healthy",
@@ -47,303 +377,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/auth/forget-password": {
-            "post": {
-                "description": "Send an OTP to phone or reset link to email for password reset",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Forget password (send OTP or reset link)",
-                "parameters": [
-                    {
-                        "description": "Identity (email or phone)",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ForgetPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/login": {
-            "post": {
-                "description": "Authenticate user with username and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "User login",
-                "parameters": [
-                    {
-                        "description": "Login credentials",
-                        "name": "credentials",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.AuthLoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/utils.TokenPair"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/logout": {
-            "post": {
+        "/media": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout user (client should discard tokens)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "User logout",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/refresh": {
-            "post": {
-                "description": "Get a new access token using a refresh token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Refresh access token",
-                "parameters": [
-                    {
-                        "description": "Refresh token",
-                        "name": "refresh_token",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.RefreshTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/utils.TokenPair"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/register": {
-            "post": {
-                "description": "Register a new user account",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "User registration",
-                "parameters": [
-                    {
-                        "description": "User registration information",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.AuthRegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/validate-otp": {
-            "post": {
-                "description": "Validate the OTP sent to phone or reset link sent to email",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Validate OTP or reset link",
-                "parameters": [
-                    {
-                        "description": "Validation data (OTP for phone or token for email)",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ValidateOTPRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/media": {
-            "get": {
-                "description": "Retrieve a paginated list of media files with optional search query",
+                "description": "Retrieve a list of all media files with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -353,42 +394,60 @@ const docTemplate = `{
                 "tags": [
                     "media"
                 ],
-                "summary": "Get all media files with pagination",
+                "summary": "Get all media",
                 "parameters": [
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Number of items per page (default: 10)",
+                        "default": 10,
+                        "description": "Number of media items to return (default: 10, max: 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
+                        "default": 0,
+                        "description": "Number of media items to skip (default: 0)",
+                        "name": "offset",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Search query for filtering media",
+                        "description": "Search query to filter media by name or filename",
                         "name": "query",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of media files",
                         "schema": {
-                            "$ref": "#/definitions/response.PaginationResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid parameters",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -396,6 +455,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Upload a new media file to the system",
                 "consumes": [
                     "multipart/form-data"
@@ -406,7 +470,7 @@ const docTemplate = `{
                 "tags": [
                     "media"
                 ],
-                "summary": "Upload media file",
+                "summary": "Upload media",
                 "parameters": [
                     {
                         "type": "file",
@@ -414,23 +478,60 @@ const docTemplate = `{
                         "name": "file",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Custom name for the media file",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description of the media file",
+                        "name": "description",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Media uploaded successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid file or parameters",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "413": {
+                        "description": "Payload too large - File size exceeds limit",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -438,9 +539,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/media/{id}": {
+        "/media/{id}": {
             "get": {
-                "description": "Retrieve a specific media file by its UUID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific media file by its unique identifier",
                 "consumes": [
                     "application/json"
                 ],
@@ -454,7 +560,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Media UUID",
+                        "format": "uuid",
+                        "description": "Media ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -462,27 +569,51 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Media file details",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid media ID",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Media does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     }
                 }
             },
-            "delete": {
-                "description": "Delete a media file by its UUID",
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update media file metadata (name, description, etc.)",
                 "consumes": [
                     "application/json"
                 ],
@@ -492,11 +623,88 @@ const docTemplate = `{
                 "tags": [
                     "media"
                 ],
-                "summary": "Delete media file",
+                "summary": "Update media",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Media UUID",
+                        "format": "uuid",
+                        "description": "Media ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Media update request",
+                        "name": "media",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Media updated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Media does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a media file from the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "media"
+                ],
+                "summary": "Delete media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Media ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -504,19 +712,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Media deleted successfully",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid media ID",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Media does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -524,8 +738,885 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/posts": {
+        "/menus": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of menus with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get all menus",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of menus to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of menus to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "true",
+                            "false"
+                        ],
+                        "type": "string",
+                        "description": "Filter by active status (true/false)",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "true",
+                            "false"
+                        ],
+                        "type": "string",
+                        "description": "Filter by visible status (true/false)",
+                        "name": "visible",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of menus",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new menu item with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Create a new menu",
+                "parameters": [
+                    {
+                        "description": "Menu creation request",
+                        "name": "menu",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Menu created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Menu with same slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/hierarchy": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the complete menu hierarchy with nested structure",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get menu hierarchy",
+                "responses": {
+                    "200": {
+                        "description": "Menu hierarchy",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/root": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all root-level menus (top-level menu items)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get root menus",
+                "responses": {
+                    "200": {
+                        "description": "List of root menus",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search menus by name or description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Search menus",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of menus to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of menus to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of matching menus",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Search query is required",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/slug/{slug}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a menu by its URL-friendly slug",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get menu by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Menu slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Slug is required",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific menu by its unique identifier",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get menu by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing menu's information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Update menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Menu update request",
+                        "name": "menu",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu updated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a menu item (soft delete)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Delete menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/{id}/activate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activate a deactivated menu item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Activate menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu activated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/{id}/deactivate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deactivate an active menu item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Deactivate menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu deactivated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/{id}/hide": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Make a visible menu item hidden",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Hide menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu hidden successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/menus/{id}/show": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Make a hidden menu item visible",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Show menu",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu shown successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid menu ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Menu does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts": {
+            "get": {
+                "description": "Retrieve a paginated list of posts with optional search and status filtering",
                 "consumes": [
                     "application/json"
                 ],
@@ -536,19 +1627,85 @@ const docTemplate = `{
                     "posts"
                 ],
                 "summary": "Get all posts",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of posts to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of posts to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query to filter posts by title or content",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "published",
+                            "draft",
+                            "archived"
+                        ],
+                        "type": "string",
+                        "description": "Filter posts by status (published, draft, etc.)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of posts",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Post"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/responses.PostResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new blog post with the provided information",
                 "consumes": [
                     "application/json"
                 ],
@@ -561,33 +1718,203 @@ const docTemplate = `{
                 "summary": "Create a new post",
                 "parameters": [
                     {
-                        "description": "Post info",
+                        "description": "Post creation request",
                         "name": "post",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.Post"
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.CreatePostRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Post created successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.Post"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Post with same slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/v1/posts/{id}": {
+        "/posts/author/{authorID}": {
             "get": {
+                "description": "Retrieve all posts written by a specific author",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Get posts by author",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Author ID",
+                        "name": "authorID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of posts to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of posts to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of posts by author",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/responses.PostResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid author ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Author does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/slug/{slug}": {
+            "get": {
+                "description": "Retrieve a post by its URL-friendly slug",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Get post by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Post found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Slug is required",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Post does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}": {
+            "get": {
+                "description": "Retrieve a post by its unique identifier",
                 "consumes": [
                     "application/json"
                 ],
@@ -601,7 +1928,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Post UUID",
+                        "format": "uuid",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -609,20 +1937,50 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Post found",
                         "schema": {
-                            "$ref": "#/definitions/model.Post"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Post does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing post's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -632,41 +1990,72 @@ const docTemplate = `{
                 "tags": [
                     "posts"
                 ],
-                "summary": "Update a post",
+                "summary": "Update post",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Post UUID",
+                        "format": "uuid",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Post info",
+                        "description": "Post update request",
                         "name": "post",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.Post"
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.UpdatePostRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Post updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Post does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a post (soft delete)",
                 "consumes": [
                     "application/json"
                 ],
@@ -676,11 +2065,12 @@ const docTemplate = `{
                 "tags": [
                     "posts"
                 ],
-                "summary": "Delete a post",
+                "summary": "Delete post",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Post UUID",
+                        "format": "uuid",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -688,52 +2078,40 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Post deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.SuccessResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid post ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
-                    }
-                }
-            }
-        },
-        "/v1/queues": {
-            "get": {
-                "description": "Retrieve a list of all available queues",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "queues"
-                ],
-                "summary": "Get all queues",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "404": {
+                        "description": "Not found - Post does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/v1/settings": {
-            "get": {
-                "description": "Retrieve a list of all settings",
+        "/posts/{id}/publish": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Publish a draft post to make it publicly visible",
                 "consumes": [
                     "application/json"
                 ],
@@ -741,12 +2119,177 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "settings"
+                    "posts"
                 ],
-                "summary": "Get all settings",
+                "summary": "Publish post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Post published successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Post does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/unpublish": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unpublish a post to make it a draft (not publicly visible)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Unpublish post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Post unpublished successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/responses.PostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Post does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of roles with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get all roles",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of roles to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of roles to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "true",
+                            "false"
+                        ],
+                        "type": "string",
+                        "description": "Filter by active status (true/false)",
+                        "name": "active",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of roles",
                         "schema": {
                             "allOf": [
                                 {
@@ -757,17 +2300,21 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dto.SettingDTO"
-                                            }
+                                            "items": {}
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Bad request - Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -775,7 +2322,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new setting with the provided information",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new role with the provided information",
                 "consumes": [
                     "application/json"
                 ],
@@ -783,23 +2335,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "settings"
+                    "roles"
                 ],
-                "summary": "Create a new setting",
+                "summary": "Create a new role",
                 "parameters": [
                     {
-                        "description": "Setting information",
-                        "name": "setting",
+                        "description": "Role creation request",
+                        "name": "role",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requests.CreateSettingRequest"
+                            "type": "object"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Role created successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -809,7 +2361,8 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.SettingDTO"
+                                            "type": "object",
+                                            "additionalProperties": true
                                         }
                                     }
                                 }
@@ -817,13 +2370,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "409": {
+                        "description": "Conflict - Role with same slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -831,9 +2390,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/settings/{key}": {
+        "/roles/search": {
             "get": {
-                "description": "Retrieve a specific setting by its key",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search roles by name or description",
                 "consumes": [
                     "application/json"
                 ],
@@ -841,21 +2405,38 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "settings"
+                    "roles"
                 ],
-                "summary": "Get setting by key",
+                "summary": "Search roles",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Setting key",
-                        "name": "key",
-                        "in": "path",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query",
                         "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of roles to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of roles to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of matching roles",
                         "schema": {
                             "allOf": [
                                 {
@@ -865,7 +2446,8 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.SettingDTO"
+                                            "type": "array",
+                                            "items": {}
                                         }
                                     }
                                 }
@@ -873,13 +2455,150 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/slug/{slug}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a role by its URL-friendly slug",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get role by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Slug is required",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Role does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific role by its unique identifier",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get role by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid role ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Role does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -887,7 +2606,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update an existing setting by key",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing role's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -895,30 +2619,31 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "settings"
+                    "roles"
                 ],
-                "summary": "Update setting",
+                "summary": "Update role",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Setting key",
-                        "name": "key",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated setting information",
-                        "name": "setting",
+                        "description": "Role update request",
+                        "name": "role",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requests.UpdateSettingRequest"
+                            "type": "object"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role updated successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -928,7 +2653,8 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.SettingDTO"
+                                            "type": "object",
+                                            "additionalProperties": true
                                         }
                                     }
                                 }
@@ -936,19 +2662,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Role does not exist",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -956,7 +2682,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete a setting by its key",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a role (soft delete)",
                 "consumes": [
                     "application/json"
                 ],
@@ -964,118 +2695,14 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "settings"
+                    "roles"
                 ],
-                "summary": "Delete setting",
+                "summary": "Delete role",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Setting key",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/tags": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tags"
-                ],
-                "summary": "Get all tags",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Tag"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tags"
-                ],
-                "summary": "Create a new tag",
-                "parameters": [
-                    {
-                        "description": "Tag info",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.Tag"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/tags/{id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tags"
-                ],
-                "summary": "Get tag by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Tag UUID",
+                        "format": "uuid",
+                        "description": "Role ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1083,20 +2710,40 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid role ID",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - Role does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     }
                 }
-            },
+            }
+        },
+        "/roles/{id}/activate": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activate a deactivated role",
                 "consumes": [
                     "application/json"
                 ],
@@ -1104,57 +2751,14 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "tags"
+                    "roles"
                 ],
-                "summary": "Update a tag",
+                "summary": "Activate role",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Tag UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Tag info",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.Tag"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tags"
-                ],
-                "summary": "Delete a tag",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Tag UUID",
+                        "format": "uuid",
+                        "description": "Role ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1162,13 +2766,38 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role activated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid role ID",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Not found - Role does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -1176,9 +2805,83 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users": {
+        "/roles/{id}/deactivate": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deactivate an active role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Deactivate role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role deactivated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid role ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Role does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
             "get": {
-                "description": "Retrieve a paginated list of users with optional search query",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of users with optional search and filtering",
                 "consumes": [
                     "application/json"
                 ],
@@ -1188,34 +2891,39 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Get all users with pagination",
+                "summary": "Get all users",
                 "parameters": [
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Number of items per page (default: 10)",
+                        "default": 10,
+                        "description": "Number of users to return (default: 10, max: 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
+                        "default": 0,
+                        "description": "Number of users to skip (default: 0)",
+                        "name": "offset",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Search query for filtering users",
+                        "description": "Search query to filter users by username, email, or phone",
                         "name": "query",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of users",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.PaginationResponse"
+                                    "$ref": "#/definitions/responses.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1223,7 +2931,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.GetUserDTO"
+                                                "$ref": "#/definitions/responses.UserResponse"
                                             }
                                         }
                                     }
@@ -1232,21 +2940,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "post": {
-                "description": "Create a new user with the provided information",
+                "description": "Create a new user account with the provided information",
                 "consumes": [
                     "application/json"
                 ],
@@ -1259,28 +2967,28 @@ const docTemplate = `{
                 "summary": "Create a new user",
                 "parameters": [
                     {
-                        "description": "User information",
+                        "description": "User creation request",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requests.UpdateUserRequest"
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.CreateUserRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "User created successfully",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
+                                            "$ref": "#/definitions/responses.UserResponse"
                                         }
                                     }
                                 }
@@ -1288,307 +2996,34 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "409": {
+                        "description": "Conflict - User already exists",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/v1/users/change-email": {
-            "post": {
-                "description": "Change the email address for a specific user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Change user email",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Email change information",
-                        "name": "email",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ChangeEmailRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/change-password": {
-            "post": {
-                "description": "Change the password for a specific user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Change user password",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Password change information",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ChangePasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/change-phone": {
-            "post": {
-                "description": "Change the phone number for a specific user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Change user phone number",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Phone change information",
-                        "name": "phone",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ChangePhoneRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/change-username": {
-            "post": {
-                "description": "Change the username for a specific user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Change user username",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Username change information",
-                        "name": "username",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ChangeUserNameRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.CommonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/{id}": {
+        "/users/{id}": {
             "get": {
-                "description": "Retrieve a specific user by their UUID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a user by their unique identifier",
                 "consumes": [
                     "application/json"
                 ],
@@ -1602,7 +3037,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User UUID",
+                        "format": "uuid",
+                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1610,17 +3046,17 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User found",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
+                                            "$ref": "#/definitions/responses.UserResponse"
                                         }
                                     }
                                 }
@@ -1628,21 +3064,32 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid user ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - User does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update an existing user's information by ID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing user's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -1652,38 +3099,39 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Update user information",
+                "summary": "Update user",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User UUID",
+                        "format": "uuid",
+                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated user information",
+                        "description": "User update request",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requests.UpdateUserRequest"
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.UpdateUserRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User updated successfully",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.GetUserDTO"
+                                            "$ref": "#/definitions/responses.UserResponse"
                                         }
                                     }
                                 }
@@ -1691,27 +3139,32 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not found - User does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete a user by their UUID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a user account (soft delete)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1725,7 +3178,253 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User UUID",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - User does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change a user's password with old password verification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Password change request",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password changed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid old password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - User does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user_id}/menus": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all menus accessible to a specific user based on their roles",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get user menus",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user menus",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - User does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/taxonomies": {
+            "get": {
+                "description": "Get all taxonomies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Get all taxonomies",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new taxonomy",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Create taxonomy",
+                "parameters": [
+                    {
+                        "description": "Taxonomy info",
+                        "name": "taxonomy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Taxonomy"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/taxonomies/{id}": {
+            "get": {
+                "description": "Get a taxonomy by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Get taxonomy by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Taxonomy UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1738,8 +3437,80 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.CommonResponse"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a taxonomy by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Update taxonomy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Taxonomy UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Taxonomy info",
+                        "name": "taxonomy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Taxonomy"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a taxonomy by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Delete taxonomy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Taxonomy UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.CommonResponse"
                         }
@@ -1755,55 +3526,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.GetUserDTO": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.SettingDTO": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "modelId": {
-                    "type": "string"
-                },
-                "modelType": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
         "exception.ExceptionError": {
             "type": "object",
             "properties": {
@@ -1858,40 +3580,11 @@ const docTemplate = `{
                 "ERROR_TYPE_DATASOURCE_ERROR"
             ]
         },
-        "model.Content": {
+        "model.Taxonomy": {
             "type": "object",
             "properties": {
-                "content_html": {
+                "code": {
                     "type": "string"
-                },
-                "content_raw": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "model_id": {
-                    "type": "string"
-                },
-                "model_type": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.Post": {
-            "type": "object",
-            "properties": {
-                "contents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.Content"
-                    }
                 },
                 "created_at": {
                     "type": "string"
@@ -1911,31 +3604,22 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_sticky": {
-                    "type": "boolean"
-                },
-                "language": {
+                "name": {
                     "type": "string"
                 },
-                "layout": {
+                "parent_id": {
                     "type": "string"
                 },
-                "published_at": {
+                "record_depth": {
                     "type": "integer"
                 },
-                "record_ordering": {
+                "record_left": {
+                    "type": "integer"
+                },
+                "record_right": {
                     "type": "integer"
                 },
                 "slug": {
-                    "type": "string"
-                },
-                "subtitle": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1946,49 +3630,18 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Tag": {
+        "requests.LoginRequest": {
             "type": "object",
-            "properties": {
-                "created_by": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "deleted_by": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.AuthLoginRequest": {
-            "type": "object",
-            "required": [
-                "username"
-            ],
             "properties": {
                 "password": {
                     "type": "string"
                 },
                 "username": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 3
+                    "type": "string"
                 }
             }
         },
-        "requests.AuthRegisterRequest": {
+        "requests.RegisterRequest": {
             "type": "object",
             "required": [
                 "confirm_password",
@@ -2019,172 +3672,6 @@ const docTemplate = `{
                 }
             }
         },
-        "requests.ChangeEmailRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.ChangePasswordRequest": {
-            "type": "object",
-            "required": [
-                "confirm_password",
-                "new_password",
-                "old_password"
-            ],
-            "properties": {
-                "confirm_password": {
-                    "type": "string"
-                },
-                "new_password": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 8
-                },
-                "old_password": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 8
-                }
-            }
-        },
-        "requests.ChangePhoneRequest": {
-            "type": "object",
-            "required": [
-                "phone"
-            ],
-            "properties": {
-                "phone": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.ChangeUserNameRequest": {
-            "type": "object",
-            "required": [
-                "username"
-            ],
-            "properties": {
-                "username": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 3
-                }
-            }
-        },
-        "requests.CreateSettingRequest": {
-            "type": "object",
-            "required": [
-                "key",
-                "value"
-            ],
-            "properties": {
-                "created_by": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "modelId": {
-                    "type": "string"
-                },
-                "modelType": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.ForgetPasswordRequest": {
-            "type": "object",
-            "required": [
-                "identity"
-            ],
-            "properties": {
-                "identity": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.RefreshTokenRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.UpdateSettingRequest": {
-            "type": "object",
-            "required": [
-                "key",
-                "value"
-            ],
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "requests.UpdateUserRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "phone",
-                "username"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 3
-                }
-            }
-        },
-        "requests.ValidateOTPRequest": {
-            "type": "object",
-            "required": [
-                "identity"
-            ],
-            "properties": {
-                "identity": {
-                    "type": "string"
-                },
-                "otp": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
         "response.CommonResponse": {
             "type": "object",
             "properties": {
@@ -2206,37 +3693,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.PaginationResponse": {
-            "type": "object",
-            "properties": {
-                "current_page": {
-                    "type": "integer"
-                },
-                "data": {},
-                "last_page": {
-                    "type": "integer"
-                },
-                "next_page": {
-                    "type": "integer"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "per_page": {
-                    "type": "integer"
-                },
-                "previous_page": {
-                    "type": "integer"
-                },
-                "total_count": {
-                    "type": "integer"
-                },
-                "total_page": {
-                    "type": "integer"
-                }
-            }
-        },
-        "utils.TokenPair": {
+        "responses.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -2246,6 +3703,236 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "refresh_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/responses.UserResponse"
+                }
+            }
+        },
+        "responses.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.PostResponse": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "email_verified_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "phone_verified_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.ChangePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "new_password": {
+                    "type": "string"
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.CreatePostRequest": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.CreateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.ForgetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "email",
+                "otp",
+                "password"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 8
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.UpdatePostRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "webapi_internal_interfaces_http_requests.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -2267,8 +3954,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8000",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "Go RESTful API",
-	Description:      "A comprehensive RESTful API built with Go, Fiber, and PostgreSQL",
+	Title:            "Go RESTful API - Hexagonal Architecture",
+	Description:      "A comprehensive RESTful API built with Go, Fiber, and PostgreSQL using Hexagonal Architecture",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

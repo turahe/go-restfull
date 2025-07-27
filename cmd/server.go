@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/cobra"
 	"webapi/config"
 	"webapi/internal/http/validation"
 	"webapi/internal/logger"
 	"webapi/internal/router"
+
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -28,7 +29,7 @@ var serveAPICmd = &cobra.Command{
 	GroupID: "serve",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Setup all the required dependencies
-		setupAll()
+		SetupAll()
 
 		// Create controllers router
 		r := router.NewFiberRouter()
@@ -48,6 +49,13 @@ var serveAPICmd = &cobra.Command{
 			logger.Log.Info(fmt.Sprintf("Starting server on port %d", port))
 			logger.Log.Info(fmt.Sprintf("Local: http://localhost:%d", port))
 			logger.Log.Info(fmt.Sprintf("Network: http://%s:%d", localIP, port))
+
+			// Log Swagger URL if configured
+			swaggerURL := config.GetConfig().HttpServer.SwaggerURL
+			if swaggerURL != "" {
+				logger.Log.Info(fmt.Sprintf("Swagger Documentation: %s", swaggerURL))
+			}
+
 			logger.Log.Info("waiting for requests...")
 
 			if err := r.Listen(fmt.Sprintf(":%d", port)); err != nil && !errors.Is(err, http.ErrServerClosed) {

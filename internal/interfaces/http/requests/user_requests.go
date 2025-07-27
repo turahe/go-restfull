@@ -99,4 +99,4 @@ func (r *LoginRequest) Validate() error {
 	}
 
 	return nil
-} 
+}

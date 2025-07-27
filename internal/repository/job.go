@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
+	"webapi/internal/db/model"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"webapi/internal/db/model"
+	"github.com/redis/go-redis/v9"
 )
 
 type JobRepository interface {
@@ -22,12 +24,14 @@ type JobRepository interface {
 }
 
 type JobRepositoryImpl struct {
-	pgxPool *pgxpool.Pool
+	pgxPool     *pgxpool.Pool
+	redisClient redis.Cmdable
 }
 
-func NewJobRepository(pgxPool *pgxpool.Pool) JobRepository {
+func NewJobRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) JobRepository {
 	return &JobRepositoryImpl{
-		pgxPool: pgxPool,
+		pgxPool:     pgxPool,
+		redisClient: redisClient,
 	}
 }
 

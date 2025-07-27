@@ -61,8 +61,8 @@ services:
     ports:
       - '3000:3000/tcp'
     volumes:
-      - './.sessions:/app/.sessions'
-      - './.media:/app/.media'
+      - './db_data/.sessions:/app/.sessions'
+      - './db_data/.media:/app/.media'
     environment:
       - WAHA_DASHBOARD_USERNAME=admin
       - WAHA_DASHBOARD_PASSWORD=admin

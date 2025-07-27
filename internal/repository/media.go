@@ -6,6 +6,7 @@ import (
 	"time"
 	"webapi/internal/db/model"
 	"webapi/internal/dto"
+	"webapi/internal/helper/cache"
 	"webapi/internal/http/requests"
 
 	"github.com/google/uuid"
@@ -42,8 +43,16 @@ func NewMediaRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MediaR
 		redisClient: redisClient,
 	}
 }
+
 func (m *MediaRepositoryImpl) GetMedia(ctx context.Context) ([]*model.Media, error) {
 	var media []*model.Media
+
+	// Try to get from cache first
+	err := cache.GetJSON(ctx, cache.KEY_MEDIA_ALL, &media)
+	if err == nil {
+		return media, nil
+	}
+
 	rows, err := m.pgxPool.Query(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media ORDER BY record_left")
 	if err != nil {
 		return nil, err
@@ -61,11 +70,24 @@ func (m *MediaRepositoryImpl) GetMedia(ctx context.Context) ([]*model.Media, err
 		}
 		media = append(media, &mediaModel)
 	}
+
+	// Cache the result
+	cache.SetJSON(ctx, cache.KEY_MEDIA_ALL, media, cache.DefaultCacheDuration)
+
 	return media, nil
 }
+
 func (m *MediaRepositoryImpl) GetMediaByID(ctx context.Context, id uuid.UUID) (*model.Media, error) {
 	var mediaModel model.Media
-	err := m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE id = $1", id).Scan(
+
+	// Try to get from cache first
+	cacheKey := fmt.Sprintf(cache.KEY_MEDIA_BY_ID, id.String())
+	err := cache.GetJSON(ctx, cacheKey, &mediaModel)
+	if err == nil {
+		return &mediaModel, nil
+	}
+
+	err = m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE id = $1", id).Scan(
 		&mediaModel.ID,
 		&mediaModel.Name,
 		&mediaModel.Hash,
@@ -83,11 +105,24 @@ func (m *MediaRepositoryImpl) GetMediaByID(ctx context.Context, id uuid.UUID) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Cache the result
+	cache.SetJSON(ctx, cacheKey, &mediaModel, cache.DefaultCacheDuration)
+
 	return &mediaModel, nil
 }
+
 func (m *MediaRepositoryImpl) GetMediaByHash(ctx context.Context, hash string) (*model.Media, error) {
 	var mediaModel model.Media
-	err := m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE hash = $1", hash).Scan(
+
+	// Try to get from cache first
+	cacheKey := fmt.Sprintf(cache.KEY_MEDIA_BY_HASH, hash)
+	err := cache.GetJSON(ctx, cacheKey, &mediaModel)
+	if err == nil {
+		return &mediaModel, nil
+	}
+
+	err = m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE hash = $1", hash).Scan(
 		&mediaModel.ID,
 		&mediaModel.Name,
 		&mediaModel.Hash,
@@ -105,12 +140,24 @@ func (m *MediaRepositoryImpl) GetMediaByHash(ctx context.Context, hash string) (
 	if err != nil {
 		return nil, err
 	}
+
+	// Cache the result
+	cache.SetJSON(ctx, cacheKey, &mediaModel, cache.DefaultCacheDuration)
+
 	return &mediaModel, nil
 }
 
 func (m *MediaRepositoryImpl) GetMediaByFileName(ctx context.Context, fileName string) (*model.Media, error) {
 	var mediaModel model.Media
-	err := m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE file_name = $1", fileName).Scan(
+
+	// Try to get from cache first
+	cacheKey := fmt.Sprintf(cache.KEY_MEDIA_BY_FILENAME, fileName)
+	err := cache.GetJSON(ctx, cacheKey, &mediaModel)
+	if err == nil {
+		return &mediaModel, nil
+	}
+
+	err = m.pgxPool.QueryRow(ctx, "SELECT id, name, hash, file_name, disk, size, mime_type, custom_attributes, record_left, record_right, record_depth, parent_id, created_at, updated_at FROM media WHERE file_name = $1", fileName).Scan(
 		&mediaModel.ID,
 		&mediaModel.Name,
 		&mediaModel.Hash,
@@ -128,6 +175,10 @@ func (m *MediaRepositoryImpl) GetMediaByFileName(ctx context.Context, fileName s
 	if err != nil {
 		return nil, err
 	}
+
+	// Cache the result
+	cache.SetJSON(ctx, cacheKey, &mediaModel, cache.DefaultCacheDuration)
+
 	return &mediaModel, nil
 }
 
@@ -157,6 +208,9 @@ func (m *MediaRepositoryImpl) UpdateMedia(ctx context.Context, media model.Media
 	if err != nil {
 		return nil, err
 	}
+
+	// Invalidate media cache
+	cache.InvalidatePattern(ctx, cache.PATTERN_MEDIA_CACHE)
 
 	return &media, nil
 }
@@ -220,12 +274,10 @@ func (m *MediaRepositoryImpl) GetMediaWithPagination(ctx context.Context, input 
 	var mediaDto []interface{}
 	for _, u := range media {
 		mediaDto = append(mediaDto, dto.GetMediaDTO{
-			ID:        u.ID,
-			FileName:  u.FileName,
-			Name:      u.Name,
-			Size:      u.Size,
-			CreatedAt: u.CreatedAt,
-			UpdatedAt: u.UpdatedAt,
+			ID:       u.ID,
+			FileName: u.FileName,
+			Name:     u.Name,
+			Size:     u.Size,
 		})
 	}
 	// Calculate pagination details
@@ -375,6 +427,9 @@ func (m *MediaRepositoryImpl) CreateMedia(ctx context.Context, media model.Media
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	// Invalidate media cache
+	cache.InvalidatePattern(ctx, cache.PATTERN_MEDIA_CACHE)
+
 	return &media, nil
 }
 func (m *MediaRepositoryImpl) DeleteMedia(ctx context.Context, media model.Media) (bool, error) {
@@ -393,6 +448,9 @@ func (m *MediaRepositoryImpl) DeleteMedia(ctx context.Context, media model.Media
 	if err != nil {
 		return false, err
 	}
+
+	// Invalidate media cache
+	cache.InvalidatePattern(ctx, cache.PATTERN_MEDIA_CACHE)
 
 	return true, nil
 }

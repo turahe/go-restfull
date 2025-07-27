@@ -1,37 +1,5 @@
 basePath: /api
 definitions:
-  dto.GetUserDTO:
-    properties:
-      createdAt:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      phone:
-        type: string
-      updatedAt:
-        type: string
-      username:
-        type: string
-    type: object
-  dto.SettingDTO:
-    properties:
-      createdAt:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      modelId:
-        type: string
-      modelType:
-        type: string
-      updatedAt:
-        type: string
-      value:
-        type: string
-    type: object
   exception.ExceptionError:
     properties:
       error_subcode:
@@ -72,29 +40,10 @@ definitions:
     - ERROR_TYPE_JOB_ERROR
     - ERROR_TYPE_EXTERNAL_SERVICE_ERROR
     - ERROR_TYPE_DATASOURCE_ERROR
-  model.Content:
+  model.Taxonomy:
     properties:
-      content_html:
+      code:
         type: string
-      content_raw:
-        type: string
-      created_by:
-        type: string
-      id:
-        type: string
-      model_id:
-        type: string
-      model_type:
-        type: string
-      updated_by:
-        type: string
-    type: object
-  model.Post:
-    properties:
-      contents:
-        items:
-          $ref: '#/definitions/model.Content'
-        type: array
       created_at:
         type: string
       created_by:
@@ -107,58 +56,31 @@ definitions:
         type: string
       id:
         type: string
-      is_sticky:
-        type: boolean
-      language:
+      name:
         type: string
-      layout:
+      parent_id:
         type: string
-      published_at:
+      record_depth:
         type: integer
-      record_ordering:
+      record_left:
+        type: integer
+      record_right:
         type: integer
       slug:
-        type: string
-      subtitle:
-        type: string
-      title:
-        type: string
-      type:
         type: string
       updated_at:
         type: string
       updated_by:
         type: string
     type: object
-  model.Tag:
-    properties:
-      created_by:
-        type: string
-      deleted_at:
-        type: string
-      deleted_by:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      slug:
-        type: string
-      updated_by:
-        type: string
-    type: object
-  requests.AuthLoginRequest:
+  requests.LoginRequest:
     properties:
       password:
         type: string
       username:
-        maxLength: 32
-        minLength: 3
         type: string
-    required:
-    - username
     type: object
-  requests.AuthRegisterRequest:
+  requests.RegisterRequest:
     properties:
       confirm_password:
         type: string
@@ -181,118 +103,6 @@ definitions:
     - phone
     - username
     type: object
-  requests.ChangeEmailRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  requests.ChangePasswordRequest:
-    properties:
-      confirm_password:
-        type: string
-      new_password:
-        maxLength: 32
-        minLength: 8
-        type: string
-      old_password:
-        maxLength: 32
-        minLength: 8
-        type: string
-    required:
-    - confirm_password
-    - new_password
-    - old_password
-    type: object
-  requests.ChangePhoneRequest:
-    properties:
-      phone:
-        type: string
-    required:
-    - phone
-    type: object
-  requests.ChangeUserNameRequest:
-    properties:
-      username:
-        maxLength: 32
-        minLength: 3
-        type: string
-    required:
-    - username
-    type: object
-  requests.CreateSettingRequest:
-    properties:
-      created_by:
-        type: string
-      key:
-        type: string
-      modelId:
-        type: string
-      modelType:
-        type: string
-      updated_by:
-        type: string
-      value:
-        type: string
-    required:
-    - key
-    - value
-    type: object
-  requests.ForgetPasswordRequest:
-    properties:
-      identity:
-        type: string
-    required:
-    - identity
-    type: object
-  requests.RefreshTokenRequest:
-    properties:
-      refresh_token:
-        type: string
-    required:
-    - refresh_token
-    type: object
-  requests.UpdateSettingRequest:
-    properties:
-      key:
-        type: string
-      updated_by:
-        type: string
-      value:
-        type: string
-    required:
-    - key
-    - value
-    type: object
-  requests.UpdateUserRequest:
-    properties:
-      email:
-        type: string
-      phone:
-        type: string
-      updated_by:
-        type: string
-      username:
-        maxLength: 32
-        minLength: 3
-        type: string
-    required:
-    - email
-    - phone
-    - username
-    type: object
-  requests.ValidateOTPRequest:
-    properties:
-      identity:
-        type: string
-      otp:
-        type: string
-      token:
-        type: string
-    required:
-    - identity
-    type: object
   response.CommonResponse:
     properties:
       code:
@@ -307,33 +117,164 @@ definitions:
       request_id:
         type: string
     type: object
-  response.PaginationResponse:
-    properties:
-      current_page:
-        type: integer
-      data: {}
-      last_page:
-        type: integer
-      next_page:
-        type: integer
-      path:
-        type: string
-      per_page:
-        type: integer
-      previous_page:
-        type: integer
-      total_count:
-        type: integer
-      total_page:
-        type: integer
-    type: object
-  utils.TokenPair:
+  responses.AuthResponse:
     properties:
       access_token:
         type: string
       expires_in:
         type: integer
       refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/responses.UserResponse'
+    type: object
+  responses.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  responses.PostResponse:
+    properties:
+      author_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  responses.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  responses.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  responses.UserResponse:
+    properties:
+      email:
+        type: string
+      email_verified_at:
+        type: string
+      id:
+        type: string
+      phone:
+        type: string
+      phone_verified_at:
+        type: string
+      username:
+        type: string
+    type: object
+  webapi_internal_interfaces_http_requests.ChangePasswordRequest:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
+  webapi_internal_interfaces_http_requests.CreatePostRequest:
+    properties:
+      author_id:
+        type: string
+      content:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  webapi_internal_interfaces_http_requests.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      username:
+        type: string
+    type: object
+  webapi_internal_interfaces_http_requests.ForgetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  webapi_internal_interfaces_http_requests.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  webapi_internal_interfaces_http_requests.ResetPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      otp:
+        type: string
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
+    required:
+    - confirm_password
+    - email
+    - otp
+    - password
+    type: object
+  webapi_internal_interfaces_http_requests.UpdatePostRequest:
+    properties:
+      content:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  webapi_internal_interfaces_http_requests.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      phone:
+        type: string
+      username:
         type: string
     type: object
 host: localhost:8000
@@ -342,14 +283,221 @@ info:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: A comprehensive RESTful API built with Go, Fiber, and PostgreSQL
+  description: A comprehensive RESTful API built with Go, Fiber, and PostgreSQL using
+    Hexagonal Architecture
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Go RESTful API
+  title: Go RESTful API - Hexagonal Architecture
   version: "1.0"
 paths:
+  /auth/forget-password:
+    post:
+      consumes:
+      - application/json
+      description: Send a password reset email with OTP
+      parameters:
+      - description: Password reset request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ForgetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user with username and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/requests.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.AuthResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Unauthorized - Invalid credentials
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: User login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user (client should discard tokens)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh an access token using a refresh token
+      parameters:
+      - description: Refresh token request
+        in: body
+        name: token
+        required: true
+        schema:
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.TokenResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Unauthorized - Invalid refresh token
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account with the provided information
+      parameters:
+      - description: User registration request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/requests.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.AuthResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict - User already exists
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using email and OTP
+      parameters:
+      - description: Password reset with OTP request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Unauthorized - Invalid OTP
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Reset password with OTP
+      tags:
+      - auth
   /healthz:
     get:
       consumes:
@@ -365,203 +513,26 @@ paths:
       summary: Health check endpoint
       tags:
       - health
-  /v1/auth/forget-password:
-    post:
-      consumes:
-      - application/json
-      description: Send an OTP to phone or reset link to email for password reset
-      parameters:
-      - description: Identity (email or phone)
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/requests.ForgetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Forget password (send OTP or reset link)
-      tags:
-      - auth
-  /v1/auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticate user with username and password
-      parameters:
-      - description: Login credentials
-        in: body
-        name: credentials
-        required: true
-        schema:
-          $ref: '#/definitions/requests.AuthLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/utils.TokenPair'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: User login
-      tags:
-      - auth
-  /v1/auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: Logout user (client should discard tokens)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      security:
-      - BearerAuth: []
-      summary: User logout
-      tags:
-      - auth
-  /v1/auth/refresh:
-    post:
-      consumes:
-      - application/json
-      description: Get a new access token using a refresh token
-      parameters:
-      - description: Refresh token
-        in: body
-        name: refresh_token
-        required: true
-        schema:
-          $ref: '#/definitions/requests.RefreshTokenRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/utils.TokenPair'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Refresh access token
-      tags:
-      - auth
-  /v1/auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user account
-      parameters:
-      - description: User registration information
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/requests.AuthRegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.GetUserDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: User registration
-      tags:
-      - auth
-  /v1/auth/validate-otp:
-    post:
-      consumes:
-      - application/json
-      description: Validate the OTP sent to phone or reset link sent to email
-      parameters:
-      - description: Validation data (OTP for phone or token for email)
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/requests.ValidateOTPRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Validate OTP or reset link
-      tags:
-      - auth
-  /v1/media:
+  /media:
     get:
       consumes:
       - application/json
-      description: Retrieve a paginated list of media files with optional search query
+      description: Retrieve a list of all media files with pagination
       parameters:
-      - description: 'Number of items per page (default: 10)'
+      - default: 10
+        description: 'Number of media items to return (default: 10, max: 100)'
         in: query
+        maximum: 100
+        minimum: 1
         name: limit
         type: integer
-      - description: 'Page number (default: 1)'
+      - default: 0
+        description: 'Number of media items to skip (default: 0)'
         in: query
-        name: page
+        minimum: 0
+        name: offset
         type: integer
-      - description: Search query for filtering media
+      - description: Search query to filter media by name or filename
         in: query
         name: query
         type: string
@@ -569,18 +540,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: List of media files
           schema:
-            $ref: '#/definitions/response.PaginationResponse'
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid parameters
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Get all media files with pagination
+      security:
+      - BearerAuth: []
+      summary: Get all media
       tags:
       - media
     post:
@@ -593,31 +572,56 @@ paths:
         name: file
         required: true
         type: file
+      - description: Custom name for the media file
+        in: formData
+        name: name
+        type: string
+      - description: Description of the media file
+        in: formData
+        name: description
+        type: string
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Media uploaded successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid file or parameters
           schema:
             $ref: '#/definitions/response.CommonResponse'
-        "400":
-          description: Bad Request
+        "413":
+          description: Payload too large - File size exceeds limit
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "415":
+          description: Unsupported media type
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Upload media file
+      security:
+      - BearerAuth: []
+      summary: Upload media
       tags:
       - media
-  /v1/media/{id}:
+  /media/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a media file by its UUID
+      description: Delete a media file from the system
       parameters:
-      - description: Media UUID
+      - description: Media ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -626,26 +630,33 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Media deleted successfully
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "400":
-          description: Bad Request
+          description: Bad request - Invalid media ID
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
-          description: Not Found
+          description: Not found - Media does not exist
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Delete media file
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete media
       tags:
       - media
     get:
       consumes:
       - application/json
-      description: Retrieve a specific media file by its UUID
+      description: Retrieve a specific media file by its unique identifier
       parameters:
-      - description: Media UUID
+      - description: Media ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -654,66 +665,721 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Media file details
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid media ID
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
-          description: Not Found
+          description: Not found - Media does not exist
           schema:
             $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
       summary: Get media by ID
       tags:
       - media
-  /v1/posts:
-    get:
+    put:
       consumes:
       - application/json
+      description: Update media file metadata (name, description, etc.)
+      parameters:
+      - description: Media ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media update request
+        in: body
+        name: media
+        required: true
+        schema:
+          type: object
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Media updated successfully
           schema:
-            items:
-              $ref: '#/definitions/model.Post'
-            type: array
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Media does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Update media
+      tags:
+      - media
+  /menus:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of menus with optional filtering
+      parameters:
+      - default: 10
+        description: 'Number of menus to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of menus to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Filter by active status (true/false)
+        enum:
+        - "true"
+        - "false"
+        in: query
+        name: active
+        type: string
+      - description: Filter by visible status (true/false)
+        enum:
+        - "true"
+        - "false"
+        in: query
+        name: visible
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of menus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all menus
+      tags:
+      - menus
+    post:
+      consumes:
+      - application/json
+      description: Create a new menu item with the provided information
+      parameters:
+      - description: Menu creation request
+        in: body
+        name: menu
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Menu created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "409":
+          description: Conflict - Menu with same slug already exists
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new menu
+      tags:
+      - menus
+  /menus/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a menu item (soft delete)
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu deleted successfully
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete menu
+      tags:
+      - menus
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific menu by its unique identifier
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get menu by ID
+      tags:
+      - menus
+    put:
+      consumes:
+      - application/json
+      description: Update an existing menu's information
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Menu update request
+        in: body
+        name: menu
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Update menu
+      tags:
+      - menus
+  /menus/{id}/activate:
+    patch:
+      consumes:
+      - application/json
+      description: Activate a deactivated menu item
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu activated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate menu
+      tags:
+      - menus
+  /menus/{id}/deactivate:
+    patch:
+      consumes:
+      - application/json
+      description: Deactivate an active menu item
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu deactivated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate menu
+      tags:
+      - menus
+  /menus/{id}/hide:
+    patch:
+      consumes:
+      - application/json
+      description: Make a visible menu item hidden
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu hidden successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Hide menu
+      tags:
+      - menus
+  /menus/{id}/show:
+    patch:
+      consumes:
+      - application/json
+      description: Make a hidden menu item visible
+      parameters:
+      - description: Menu ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu shown successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid menu ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Show menu
+      tags:
+      - menus
+  /menus/hierarchy:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the complete menu hierarchy with nested structure
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu hierarchy
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get menu hierarchy
+      tags:
+      - menus
+  /menus/root:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all root-level menus (top-level menu items)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of root menus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get root menus
+      tags:
+      - menus
+  /menus/search:
+    get:
+      consumes:
+      - application/json
+      description: Search menus by name or description
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of menus to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of menus to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of matching menus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Search query is required
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Search menus
+      tags:
+      - menus
+  /menus/slug/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a menu by its URL-friendly slug
+      parameters:
+      - description: Menu slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Slug is required
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Menu does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get menu by slug
+      tags:
+      - menus
+  /posts:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of posts with optional search and status
+        filtering
+      parameters:
+      - default: 10
+        description: 'Number of posts to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of posts to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Search query to filter posts by title or content
+        in: query
+        name: query
+        type: string
+      - description: Filter posts by status (published, draft, etc.)
+        enum:
+        - published
+        - draft
+        - archived
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of posts
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/responses.PostResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
       summary: Get all posts
       tags:
       - posts
     post:
       consumes:
       - application/json
+      description: Create a new blog post with the provided information
       parameters:
-      - description: Post info
+      - description: Post creation request
         in: body
         name: post
         required: true
         schema:
-          $ref: '#/definitions/model.Post'
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.CreatePostRequest'
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Post created successfully
           schema:
-            $ref: '#/definitions/model.Post'
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict - Post with same slug already exists
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Create a new post
       tags:
       - posts
-  /v1/posts/{id}:
+  /posts/{id}:
     delete:
       consumes:
       - application/json
+      description: Delete a post (soft delete)
       parameters:
-      - description: Post UUID
+      - description: Post ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -722,21 +1388,33 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Post deleted successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.SuccessResponse'
         "400":
-          description: Bad Request
+          description: Bad request - Invalid post ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Delete a post
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Post does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete post
       tags:
       - posts
     get:
       consumes:
       - application/json
+      description: Retrieve a post by its unique identifier
       parameters:
-      - description: Post UUID
+      - description: Post ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -745,360 +1423,661 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Post found
           schema:
-            $ref: '#/definitions/model.Post'
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid post ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
-          description: Not Found
+          description: Not found - Post does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
       summary: Get post by ID
       tags:
       - posts
     put:
       consumes:
       - application/json
+      description: Update an existing post's information
       parameters:
-      - description: Post UUID
+      - description: Post ID
+        format: uuid
         in: path
         name: id
         required: true
         type: string
-      - description: Post info
+      - description: Post update request
         in: body
         name: post
         required: true
         schema:
-          $ref: '#/definitions/model.Post'
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.UpdatePostRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Post updated successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Update a post
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Post does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update post
       tags:
       - posts
-  /v1/queues:
-    get:
+  /posts/{id}/publish:
+    put:
       consumes:
       - application/json
-      description: Retrieve a list of all available queues
+      description: Publish a draft post to make it publicly visible
+      parameters:
+      - description: Post ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Post published successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid post ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Post does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Get all queues
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish post
       tags:
-      - queues
-  /v1/settings:
-    get:
+      - posts
+  /posts/{id}/unpublish:
+    put:
       consumes:
       - application/json
-      description: Retrieve a list of all settings
+      description: Unpublish a post to make it a draft (not publicly visible)
+      parameters:
+      - description: Post ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Post unpublished successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
+        "400":
+          description: Bad request - Invalid post ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Post does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unpublish post
+      tags:
+      - posts
+  /posts/author/{authorID}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all posts written by a specific author
+      parameters:
+      - description: Author ID
+        format: uuid
+        in: path
+        name: authorID
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of posts to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of posts to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of posts by author
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/responses.PostResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid author ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Author does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get posts by author
+      tags:
+      - posts
+  /posts/slug/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a post by its URL-friendly slug
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/responses.PostResponse'
+              type: object
+        "400":
+          description: Bad request - Slug is required
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Post does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get post by slug
+      tags:
+      - posts
+  /roles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of roles with optional filtering
+      parameters:
+      - default: 10
+        description: 'Number of roles to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of roles to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Filter by active status (true/false)
+        enum:
+        - "true"
+        - "false"
+        in: query
+        name: active
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of roles
           schema:
             allOf:
             - $ref: '#/definitions/response.CommonResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/dto.SettingDTO'
+                  items: {}
                   type: array
               type: object
-        "500":
-          description: Internal Server Error
+        "400":
+          description: Bad request - Invalid parameters
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Get all settings
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all roles
       tags:
-      - settings
+      - roles
     post:
       consumes:
       - application/json
-      description: Create a new setting with the provided information
+      description: Create a new role with the provided information
       parameters:
-      - description: Setting information
+      - description: Role creation request
         in: body
-        name: setting
+        name: role
         required: true
         schema:
-          $ref: '#/definitions/requests.CreateSettingRequest'
+          type: object
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Role created successfully
           schema:
             allOf:
             - $ref: '#/definitions/response.CommonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.SettingDTO'
+                  additionalProperties: true
+                  type: object
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
             $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+        "409":
+          description: Conflict - Role with same slug already exists
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Create a new setting
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new role
       tags:
-      - settings
-  /v1/settings/{key}:
+      - roles
+  /roles/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a setting by its key
+      description: Delete a role (soft delete)
       parameters:
-      - description: Setting key
+      - description: Role ID
+        format: uuid
         in: path
-        name: key
+        name: id
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role deleted successfully
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "400":
-          description: Bad Request
+          description: Bad request - Invalid role ID
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
-          description: Not Found
+          description: Not found - Role does not exist
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Delete setting
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete role
       tags:
-      - settings
+      - roles
     get:
       consumes:
       - application/json
-      description: Retrieve a specific setting by its key
+      description: Retrieve a specific role by its unique identifier
       parameters:
-      - description: Setting key
+      - description: Role ID
+        format: uuid
         in: path
-        name: key
+        name: id
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role details
           schema:
             allOf:
             - $ref: '#/definitions/response.CommonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.SettingDTO'
+                  additionalProperties: true
+                  type: object
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid role ID
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
-          description: Not Found
+          description: Not found - Role does not exist
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Get setting by key
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get role by ID
       tags:
-      - settings
+      - roles
     put:
       consumes:
       - application/json
-      description: Update an existing setting by key
+      description: Update an existing role's information
       parameters:
-      - description: Setting key
+      - description: Role ID
+        format: uuid
         in: path
-        name: key
+        name: id
         required: true
         type: string
-      - description: Updated setting information
+      - description: Role update request
         in: body
-        name: setting
+        name: role
         required: true
         schema:
-          $ref: '#/definitions/requests.UpdateSettingRequest'
+          type: object
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role updated successfully
           schema:
             allOf:
             - $ref: '#/definitions/response.CommonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.SettingDTO'
+                  additionalProperties: true
+                  type: object
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
-          description: Not Found
+          description: Not found - Role does not exist
           schema:
             $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+        "500":
+          description: Internal server error
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Update setting
+      security:
+      - BearerAuth: []
+      summary: Update role
       tags:
-      - settings
-  /v1/tags:
-    get:
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.Tag'
-            type: array
-      summary: Get all tags
-      tags:
-      - tags
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tag info
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/model.Tag'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Create a new tag
-      tags:
-      - tags
-  /v1/tags/{id}:
-    delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tag UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Delete a tag
-      tags:
-      - tags
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tag UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Get tag by ID
-      tags:
-      - tags
+      - roles
+  /roles/{id}/activate:
     put:
       consumes:
       - application/json
+      description: Activate a deactivated role
       parameters:
-      - description: Tag UUID
+      - description: Role ID
+        format: uuid
         in: path
         name: id
         required: true
         type: string
-      - description: Tag info
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/model.Tag'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role activated successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid role ID
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Update a tag
+        "404":
+          description: Not found - Role does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate role
       tags:
-      - tags
-  /v1/users:
+      - roles
+  /roles/{id}/deactivate:
+    put:
+      consumes:
+      - application/json
+      description: Deactivate an active role
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role deactivated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid role ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Role does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate role
+      tags:
+      - roles
+  /roles/search:
     get:
       consumes:
       - application/json
-      description: Retrieve a paginated list of users with optional search query
+      description: Search roles by name or description
       parameters:
-      - description: 'Number of items per page (default: 10)'
+      - description: Search query
         in: query
+        name: query
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of roles to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
         name: limit
         type: integer
-      - description: 'Page number (default: 1)'
+      - default: 0
+        description: 'Number of roles to skip (default: 0)'
         in: query
-        name: page
+        minimum: 0
+        name: offset
         type: integer
-      - description: Search query for filtering users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of matching roles
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Search roles
+      tags:
+      - roles
+  /roles/slug/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a role by its URL-friendly slug
+      parameters:
+      - description: Role slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Slug is required
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - Role does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get role by slug
+      tags:
+      - roles
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of users with optional search and filtering
+      parameters:
+      - default: 10
+        description: 'Number of users to return (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of users to skip (default: 0)'
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Search query to filter users by username, email, or phone
         in: query
         name: query
         type: string
@@ -1106,68 +2085,75 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: List of users
           schema:
             allOf:
-            - $ref: '#/definitions/response.PaginationResponse'
+            - $ref: '#/definitions/responses.SuccessResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dto.GetUserDTO'
+                    $ref: '#/definitions/responses.UserResponse'
                   type: array
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Get all users with pagination
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all users
       tags:
       - users
     post:
       consumes:
       - application/json
-      description: Create a new user with the provided information
+      description: Create a new user account with the provided information
       parameters:
-      - description: User information
+      - description: User creation request
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/requests.UpdateUserRequest'
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: User created successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.GetUserDTO'
+                  $ref: '#/definitions/responses.UserResponse'
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict - User already exists
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
       summary: Create a new user
       tags:
       - users
-  /v1/users/{id}:
+  /users/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a user by their UUID
+      description: Delete a user account (soft delete)
       parameters:
-      - description: User UUID
+      - description: User ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -1176,26 +2162,33 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User deleted successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.SuccessResponse'
         "400":
-          description: Bad Request
+          description: Bad request - Invalid user ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
-          description: Not Found
+          description: Not found - User does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete user
       tags:
       - users
     get:
       consumes:
       - application/json
-      description: Retrieve a specific user by their UUID
+      description: Retrieve a user by their unique identifier
       parameters:
-      - description: User UUID
+      - description: User ID
+        format: uuid
         in: path
         name: id
         required: true
@@ -1204,244 +2197,279 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User found
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.GetUserDTO'
+                  $ref: '#/definitions/responses.UserResponse'
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid user ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
-          description: Not Found
+          description: Not found - User does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get user by ID
       tags:
       - users
     put:
       consumes:
       - application/json
-      description: Update an existing user's information by ID
+      description: Update an existing user's information
       parameters:
-      - description: User UUID
+      - description: User ID
+        format: uuid
         in: path
         name: id
         required: true
         type: string
-      - description: Updated user information
+      - description: User update request
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/requests.UpdateUserRequest'
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User updated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.GetUserDTO'
+                  $ref: '#/definitions/responses.UserResponse'
               type: object
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
-          description: Not Found
+          description: Not found - User does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Update user information
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user
       tags:
       - users
-  /v1/users/change-email:
-    post:
+  /users/{id}/password:
+    put:
       consumes:
       - application/json
-      description: Change the email address for a specific user
+      description: Change a user's password with old password verification
       parameters:
-      - description: User UUID
+      - description: User ID
+        format: uuid
         in: path
         name: id
         required: true
         type: string
-      - description: Email change information
-        in: body
-        name: email
-        required: true
-        schema:
-          $ref: '#/definitions/requests.ChangeEmailRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.GetUserDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Change user email
-      tags:
-      - users
-  /v1/users/change-password:
-    post:
-      consumes:
-      - application/json
-      description: Change the password for a specific user
-      parameters:
-      - description: User UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Password change information
+      - description: Password change request
         in: body
         name: password
         required: true
         schema:
-          $ref: '#/definitions/requests.ChangePasswordRequest'
+          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ChangePasswordRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Password changed successfully
           schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.GetUserDTO'
-              type: object
+            $ref: '#/definitions/responses.SuccessResponse'
         "400":
-          description: Bad Request
+          description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Unauthorized - Invalid old password
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "404":
-          description: Not Found
+          description: Not found - User does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Change user password
       tags:
       - users
-  /v1/users/change-phone:
-    post:
+  /users/{user_id}/menus:
+    get:
       consumes:
       - application/json
-      description: Change the phone number for a specific user
+      description: Retrieve all menus accessible to a specific user based on their
+        roles
       parameters:
-      - description: User UUID
+      - description: User ID
+        format: uuid
         in: path
-        name: id
+        name: user_id
         required: true
         type: string
-      - description: Phone change information
-        in: body
-        name: phone
-        required: true
-        schema:
-          $ref: '#/definitions/requests.ChangePhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user menus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.CommonResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid user ID
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not found - User does not exist
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user menus
+      tags:
+      - menus
+  /v1/taxonomies:
+    get:
+      description: Get all taxonomies
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.GetUserDTO'
-              type: object
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Get all taxonomies
+      tags:
+      - taxonomies
+    post:
+      consumes:
+      - application/json
+      description: Create a new taxonomy
+      parameters:
+      - description: Taxonomy info
+        in: body
+        name: taxonomy
+        required: true
+        schema:
+          $ref: '#/definitions/model.Taxonomy'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/response.CommonResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Change user phone number
+      summary: Create taxonomy
       tags:
-      - users
-  /v1/users/change-username:
-    post:
-      consumes:
-      - application/json
-      description: Change the username for a specific user
+      - taxonomies
+  /v1/taxonomies/{id}:
+    delete:
+      description: Delete a taxonomy by its ID
       parameters:
-      - description: User UUID
+      - description: Taxonomy UUID
         in: path
         name: id
         required: true
         type: string
-      - description: Username change information
-        in: body
-        name: username
-        required: true
-        schema:
-          $ref: '#/definitions/requests.ChangeUserNameRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/response.CommonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.GetUserDTO'
-              type: object
-        "400":
-          description: Bad Request
+            $ref: '#/definitions/response.CommonResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Delete taxonomy
+      tags:
+      - taxonomies
+    get:
+      description: Get a taxonomy by its ID
+      parameters:
+      - description: Taxonomy UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
           schema:
             $ref: '#/definitions/response.CommonResponse'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/response.CommonResponse'
-        "422":
-          description: Unprocessable Entity
+      summary: Get taxonomy by ID
+      tags:
+      - taxonomies
+    put:
+      consumes:
+      - application/json
+      description: Update a taxonomy by its ID
+      parameters:
+      - description: Taxonomy UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Taxonomy info
+        in: body
+        name: taxonomy
+        required: true
+        schema:
+          $ref: '#/definitions/model.Taxonomy'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
           schema:
             $ref: '#/definitions/response.CommonResponse'
-      summary: Change user username
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.CommonResponse'
+      summary: Update taxonomy
       tags:
-      - users
+      - taxonomies
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

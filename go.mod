@@ -1,8 +1,6 @@
 module webapi
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.24.5
 
 require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
@@ -18,7 +16,6 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/swagger v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/jedib0t/go-pretty/v6 v6.6.7
@@ -38,7 +35,11 @@ require (
 
 require (
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
+	github.com/casbin/casbin/v2 v2.110.0 // indirect
+	github.com/casbin/govaluate v1.3.0 // indirect
+	github.com/casbin/redis-adapter/v2 v2.4.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
@@ -46,6 +47,7 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect

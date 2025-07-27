@@ -3,11 +3,12 @@ package cmd
 import (
 	"os"
 
+	"webapi/config"
+	"webapi/internal/scheduler"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/lnquy/cron"
 	"github.com/spf13/cobra"
-	"webapi/config"
-	"webapi/internal/scheduler"
 )
 
 func init() {
@@ -24,7 +25,7 @@ var startScheduleCommand = &cobra.Command{
 	GroupID: "schedule",
 	Run: func(_ *cobra.Command, _ []string) {
 		// Setup all the required dependencies
-		setupAll()
+		SetupAll()
 
 		printScheduleList()
 		scheduler.Start()

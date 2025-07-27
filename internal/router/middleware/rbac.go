@@ -1,0 +1,171 @@
+package middleware
+
+import (
+	"strings"
+
+	"webapi/internal/domain/services"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+// RBACMiddleware creates a middleware that checks RBAC permissions
+func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get user from context (set by JWT middleware)
+		userID := c.Locals("user_id")
+		if userID == nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "User not authenticated",
+			})
+		}
+
+		// Get user roles from context or fetch from service
+		userRoles := c.Locals("user_roles")
+		if userRoles == nil {
+			// Fetch roles from RBAC service
+			roles, err := rbacService.GetRolesForUser(userID.(string))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Failed to get user roles",
+					"error":   err.Error(),
+				})
+			}
+			userRoles = roles
+			c.Locals("user_roles", roles)
+		}
+
+		// Get request path and method
+		path := c.Path()
+		method := c.Method()
+
+		// Check if any role has permission
+		hasPermission := false
+		roles := userRoles.([]string)
+
+		for _, role := range roles {
+			allowed, err := rbacService.CheckPermission(role, path, method)
+			if err != nil {
+				continue // Skip this role if there's an error
+			}
+			if allowed {
+				hasPermission = true
+				break
+			}
+		}
+
+		if !hasPermission {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"message": "Access denied",
+				"path":    path,
+				"method":  method,
+				"roles":   roles,
+			})
+		}
+
+		return c.Next()
+	}
+}
+
+// OptionalRBACMiddleware creates a middleware that checks RBAC permissions but doesn't fail if no user is authenticated
+func OptionalRBACMiddleware(rbacService services.RBACService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get user from context (set by JWT middleware)
+		userID := c.Locals("user_id")
+		if userID == nil {
+			// No user authenticated, continue without RBAC check
+			return c.Next()
+		}
+
+		// Get user roles from context or fetch from service
+		userRoles := c.Locals("user_roles")
+		if userRoles == nil {
+			// Fetch roles from RBAC service
+			roles, err := rbacService.GetRolesForUser(userID.(string))
+			if err != nil {
+				// Continue without RBAC check if there's an error
+				return c.Next()
+			}
+			userRoles = roles
+			c.Locals("user_roles", roles)
+		}
+
+		// Get request path and method
+		path := c.Path()
+		method := c.Method()
+
+		// Check if any role has permission
+		hasPermission := false
+		roles := userRoles.([]string)
+
+		for _, role := range roles {
+			allowed, err := rbacService.CheckPermission(role, path, method)
+			if err != nil {
+				continue // Skip this role if there's an error
+			}
+			if allowed {
+				hasPermission = true
+				break
+			}
+		}
+
+		if !hasPermission {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"message": "Access denied",
+				"path":    path,
+				"method":  method,
+				"roles":   roles,
+			})
+		}
+
+		return c.Next()
+	}
+}
+
+// RequireRole creates a middleware that requires a specific role
+func RequireRole(rbacService services.RBACService, requiredRole string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get user from context (set by JWT middleware)
+		userID := c.Locals("user_id")
+		if userID == nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "User not authenticated",
+			})
+		}
+
+		// Get user roles from context or fetch from service
+		userRoles := c.Locals("user_roles")
+		if userRoles == nil {
+			// Fetch roles from RBAC service
+			roles, err := rbacService.GetRolesForUser(userID.(string))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Failed to get user roles",
+					"error":   err.Error(),
+				})
+			}
+			userRoles = roles
+			c.Locals("user_roles", roles)
+		}
+
+		// Check if user has the required role
+		roles := userRoles.([]string)
+		hasRole := false
+
+		for _, role := range roles {
+			if strings.EqualFold(role, requiredRole) {
+				hasRole = true
+				break
+			}
+		}
+
+		if !hasRole {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"message":       "Insufficient permissions",
+				"required_role": requiredRole,
+				"user_roles":    roles,
+			})
+		}
+
+		return c.Next()
+	}
+}

@@ -36,7 +36,9 @@ func InitPgConnectionPool(postgresConfig config.Postgres) error {
 
 	connConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
-		logger.Log.Error("Failed to parse config:", zap.Error(err))
+		if logger.Log != nil {
+			logger.Log.Error("Failed to parse config:", zap.Error(err))
+		}
 		return err
 	}
 
@@ -57,12 +59,19 @@ func GetPgxPool() *pgxpool.Pool {
 		m.Lock()
 		defer m.Unlock()
 
-		logger.Log.Info("Initializing pgxPool again")
+		if logger.Log != nil {
+			logger.Log.Info("Initializing pgxPool again")
+		}
 		err := InitPgConnectionPool(config.GetConfig().Postgres)
 		if err != nil {
-			logger.Log.Error("Failed to initialize pgxPool", zap.Error(err))
+			if logger.Log != nil {
+				logger.Log.Error("Failed to initialize pgxPool", zap.Error(err))
+			}
+			return nil
 		}
-		logger.Log.Info("pgxPool initialized")
+		if logger.Log != nil {
+			logger.Log.Info("pgxPool initialized")
+		}
 	}
 
 	return pgxPool

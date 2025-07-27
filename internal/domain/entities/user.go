@@ -16,6 +16,7 @@ type User struct {
 	Password        string     `json:"-"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	PhoneVerifiedAt *time.Time `json:"phone_verified_at,omitempty"`
+	Roles           []*Role    `json:"roles,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`

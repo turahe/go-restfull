@@ -1,0 +1,24 @@
+p, admin, /api/*, *
+p, admin, /swagger/*, *
+p, admin, /healthz, GET
+
+p, user, /api/auth/*, *
+p, user, /api/users/profile, GET
+p, user, /api/users/profile, PUT
+p, user, /api/posts, GET
+p, user, /api/posts/*, GET
+p, user, /api/comments, GET
+p, user, /api/comments/*, GET
+
+p, moderator, /api/*, GET
+p, moderator, /api/posts, POST
+p, moderator, /api/posts/*, PUT
+p, moderator, /api/posts/*, DELETE
+p, moderator, /api/comments, POST
+p, moderator, /api/comments/*, PUT
+p, moderator, /api/comments/*, DELETE
+p, moderator, /api/users, GET
+p, moderator, /api/users/*, GET
+
+g, admin, moderator
+g, moderator, user 

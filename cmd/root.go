@@ -39,7 +39,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default is %s)", defaultConfigFile))
 }
 
-func setupAll() {
+func SetupAll() {
 	setUpConfig()
 	setUpLogger()
 	setUpPostgres()

@@ -2,19 +2,23 @@ package model
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
-// Taxonomy represents a taxonomy entity
+// Taxonomy represents a taxonomy database model
 type Taxonomy struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	Name        string     `json:"name" db:"name" validate:"required"`
-	Description string     `json:"description" db:"description" validate:"required"`
-	RecordLeft  uint64     `json:"recordLeft"`
-	RecordRight uint64     `json:"recordRight"`
-	RecordDepth uint64     `json:"recordDepth"`
-	ParentID    *uuid.UUID `json:"parent_id" db:"parent_id"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Slug        string     `json:"slug"`
+	Code        string     `json:"code"`
+	Description string     `json:"description"`
+	ParentID    *string    `json:"parent_id"`
+	RecordLeft  int64      `json:"record_left"`
+	RecordRight int64      `json:"record_right"`
+	RecordDepth int64      `json:"record_depth"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
+	CreatedBy   string     `json:"created_by"`
+	UpdatedBy   string     `json:"updated_by"`
+	DeletedBy   string     `json:"deleted_by"`
 }

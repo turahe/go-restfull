@@ -19,10 +19,12 @@ type Config struct {
 	Redis      []Redis    `yaml:"redis"`
 	Sentry     Sentry     `yaml:"sentry"`
 	Email      Email      `yaml:"email"`
+	Casbin     Casbin     `yaml:"casbin"`
 }
 
 type HttpServer struct {
-	Port int `yaml:"port"`
+	Port       int    `yaml:"port"`
+	SwaggerURL string `yaml:"swaggerURL"`
 }
 
 type Log struct {
@@ -103,6 +105,20 @@ type Email struct {
 	Password    string `yaml:"password"`
 	FromAddress string `yaml:"fromAddress"`
 	FromName    string `yaml:"fromName"`
+}
+
+type Casbin struct {
+	Model  string      `yaml:"model"`
+	Policy string      `yaml:"policy"`
+	Redis  CasbinRedis `yaml:"redis"`
+}
+
+type CasbinRedis struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	Database int    `yaml:"db"`
+	Key      string `yaml:"key"`
 }
 
 func GetConfig() *Config {
