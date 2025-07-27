@@ -1,0 +1,165 @@
+package controllers
+
+import (
+	"webapi/internal/application/ports"
+	"webapi/internal/http/response"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+)
+
+type JobController struct {
+	jobService ports.JobService
+}
+
+func NewJobController(jobService ports.JobService) *JobController {
+	return &JobController{
+		jobService: jobService,
+	}
+}
+
+// GetJobs retrieves all jobs
+func (c *JobController) GetJobs(ctx *fiber.Ctx) error {
+	jobs, err := c.jobService.GetJobs(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to retrieve jobs",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Jobs retrieved successfully",
+		Data:            jobs,
+	})
+}
+
+// GetJob retrieves a specific job by ID
+func (c *JobController) GetJob(ctx *fiber.Ctx) error {
+	jobID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    int(response.BAD_REQUEST),
+			ResponseMessage: "Invalid job ID",
+		})
+	}
+
+	job, err := c.jobService.GetJob(ctx.Context(), jobID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to retrieve job",
+		})
+	}
+
+	if job == nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+			ResponseCode:    int(response.NOT_FOUND),
+			ResponseMessage: "Job not found",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Job retrieved successfully",
+		Data:            job,
+	})
+}
+
+// GetFailedJobs retrieves all failed jobs
+func (c *JobController) GetFailedJobs(ctx *fiber.Ctx) error {
+	failedJobs, err := c.jobService.GetFailedJobs(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to retrieve failed jobs",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Failed jobs retrieved successfully",
+		Data:            failedJobs,
+	})
+}
+
+// RetryFailedJob retries a failed job
+func (c *JobController) RetryFailedJob(ctx *fiber.Ctx) error {
+	jobID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    int(response.BAD_REQUEST),
+			ResponseMessage: "Invalid job ID",
+		})
+	}
+
+	err = c.jobService.RetryFailedJob(ctx.Context(), jobID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to retry job",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Job retried successfully",
+	})
+}
+
+// RemoveFailedJob removes a failed job
+func (c *JobController) RemoveFailedJob(ctx *fiber.Ctx) error {
+	jobID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    int(response.BAD_REQUEST),
+			ResponseMessage: "Invalid job ID",
+		})
+	}
+
+	err = c.jobService.RemoveFailedJob(ctx.Context(), jobID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to remove failed job",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Failed job removed successfully",
+	})
+}
+
+// ProcessJobs processes pending jobs
+func (c *JobController) ProcessJobs(ctx *fiber.Ctx) error {
+	err := c.jobService.ProcessJobs(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to process jobs",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Jobs processed successfully",
+	})
+}
+
+// ResetProcessingJobs resets all processing jobs to pending
+func (c *JobController) ResetProcessingJobs(ctx *fiber.Ctx) error {
+	err := c.jobService.ResetProcessingJobs(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    int(response.INTERNAL_SERVER_ERROR),
+			ResponseMessage: "Failed to reset processing jobs",
+		})
+	}
+
+	return ctx.JSON(response.CommonResponse{
+		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
+		ResponseMessage: "Processing jobs reset successfully",
+	})
+}

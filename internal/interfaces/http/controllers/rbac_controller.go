@@ -1,9 +1,10 @@
 package controllers
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"webapi/internal/domain/services"
 	"webapi/internal/http/response"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type RBACController struct {
