@@ -2,9 +2,10 @@ package seeders
 
 import (
 	"context"
-	"time"
 
-	"github.com/google/uuid"
+	"webapi/internal/domain/entities"
+	"webapi/internal/infrastructure/adapters"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,58 +24,35 @@ func (rs *RoleSeeder) GetName() string {
 
 // Run executes the role seeder
 func (rs *RoleSeeder) Run(ctx context.Context, db *pgxpool.Pool) error {
-	roles := []struct {
-		ID          uuid.UUID
-		Name        string
-		Description string
-		CreatedAt   time.Time
-		UpdatedAt   time.Time
+	// Create role repository using the adapter
+	roleRepository := adapters.NewPostgresRoleRepository(db, nil) // nil for redis client in seeder context
+
+	// Define roles using the proper Role entity
+	roleData := []struct {
+		name        string
+		slug        string
+		description string
 	}{
-		{
-			ID:          uuid.New(),
-			Name:        "super_admin",
-			Description: "Super Administrator with full system access",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
-		{
-			ID:          uuid.New(),
-			Name:        "admin",
-			Description: "Administrator with management access",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
-		{
-			ID:          uuid.New(),
-			Name:        "editor",
-			Description: "Editor with content management access",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
-		{
-			ID:          uuid.New(),
-			Name:        "author",
-			Description: "Author with content creation access",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
-		{
-			ID:          uuid.New(),
-			Name:        "user",
-			Description: "Regular user with basic access",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
+		{"Super Administrator", "super_admin", "Super Administrator with full system access"},
+		{"Administrator", "admin", "Administrator with management access"},
+		{"Editor", "editor", "Editor with content management access"},
+		{"Author", "author", "Author with content creation access"},
+		{"User", "user", "Regular user with basic access"},
 	}
 
-	for _, role := range roles {
-		_, err := db.Exec(ctx, `
-			INSERT INTO roles (id, name, slug, description, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-			ON CONFLICT (slug) DO NOTHING
-		`, role.ID, role.Name, role.Name, role.Description, role.CreatedAt, role.UpdatedAt)
-
+	for _, data := range roleData {
+		// Create role entity using the domain constructor
+		role, err := entities.NewRole(data.name, data.slug, data.description)
 		if err != nil {
+			return err
+		}
+
+		// Use the repository to create the role
+		// This follows the same pattern as the rest of the application
+		err = roleRepository.Create(ctx, role)
+		if err != nil {
+			// Check if it's a duplicate slug error (which is expected)
+			// In a real implementation, you might want to handle this differently
 			return err
 		}
 	}

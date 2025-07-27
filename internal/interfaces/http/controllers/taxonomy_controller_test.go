@@ -1,4 +1,4 @@
-package taxonomy
+package controllers_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"webapi/internal/db/model"
+	"webapi/internal/interfaces/http/controllers"
 	"webapi/internal/repository"
 
 	"github.com/gofiber/fiber/v2"
@@ -55,7 +56,7 @@ func (m *MockTaxonomyRepo) Search(ctx context.Context, query string, limit, offs
 func TestCreateTaxonomy_Success(t *testing.T) {
 	app := fiber.New()
 	mockRepo := new(MockTaxonomyRepo)
-	h := NewTaxonomyHandler(mockRepo)
+	h := controllers.NewTaxonomyHandler(mockRepo)
 	app.Post("/taxonomies", h.CreateTaxonomy)
 
 	tax := &model.Taxonomy{ID: uuid.New().String(), Name: "Test", Description: "desc"}
@@ -71,7 +72,7 @@ func TestCreateTaxonomy_Success(t *testing.T) {
 func TestGetTaxonomyByID_NotFound(t *testing.T) {
 	app := fiber.New()
 	mockRepo := new(MockTaxonomyRepo)
-	h := NewTaxonomyHandler(mockRepo)
+	h := controllers.NewTaxonomyHandler(mockRepo)
 	app.Get("/taxonomies/:id", h.GetTaxonomyByID)
 
 	mockRepo.On("GetByID", mock.Anything, mock.Anything).Return(&model.Taxonomy{}, errors.New("not found"))
@@ -85,7 +86,7 @@ func TestGetTaxonomyByID_NotFound(t *testing.T) {
 func TestGetAllTaxonomies_Success(t *testing.T) {
 	app := fiber.New()
 	mockRepo := new(MockTaxonomyRepo)
-	h := NewTaxonomyHandler(mockRepo)
+	h := controllers.NewTaxonomyHandler(mockRepo)
 	app.Get("/taxonomies", h.GetAllTaxonomies)
 
 	mockRepo.On("GetAll", mock.Anything, mock.Anything, mock.Anything).Return([]*model.Taxonomy{}, nil)
@@ -99,7 +100,7 @@ func TestGetAllTaxonomies_Success(t *testing.T) {
 func TestUpdateTaxonomy_Success(t *testing.T) {
 	app := fiber.New()
 	mockRepo := new(MockTaxonomyRepo)
-	h := NewTaxonomyHandler(mockRepo)
+	h := controllers.NewTaxonomyHandler(mockRepo)
 	app.Put("/taxonomies/:id", h.UpdateTaxonomy)
 
 	existingTax := &model.Taxonomy{ID: uuid.New().String(), Name: "Existing", Description: "existing"}
@@ -118,7 +119,7 @@ func TestUpdateTaxonomy_Success(t *testing.T) {
 func TestDeleteTaxonomy_Success(t *testing.T) {
 	app := fiber.New()
 	mockRepo := new(MockTaxonomyRepo)
-	h := NewTaxonomyHandler(mockRepo)
+	h := controllers.NewTaxonomyHandler(mockRepo)
 	app.Delete("/taxonomies/:id", h.DeleteTaxonomy)
 
 	mockRepo.On("Delete", mock.Anything, mock.Anything).Return(nil)
@@ -127,4 +128,4 @@ func TestDeleteTaxonomy_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodDelete, "/taxonomies/"+id, nil)
 	resp, _ := app.Test(req)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-}
+} 

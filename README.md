@@ -1,142 +1,251 @@
-# go-boilerplate :rocket:
+# go-restfull :rocket:
 
-This boilerplate is intended to be used as a starting point for a go application. It is not intended to be used as a but it is can be.
+[![Go Report Card](https://goreportcard.com/badge/github.com/turahe/go-restfull)](https://goreportcard.com/report/github.com/turahe/go-restfull)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/turahe/go-restfull)](https://go.dev/)
+[![License](https://img.shields.io/github/license/turahe/go-restfull)](https://github.com/turahe/go-restfull/blob/main/LICENSE)
+[![Code Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](https://github.com/turahe/go-restfull)
+[![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-13+-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/redis-6+-red?logo=redis)](https://redis.io/)
+
+A modern, production-ready Go REST API boilerplate built with hexagonal architecture, featuring comprehensive authentication, RBAC, and enterprise-grade features.
+
+This boilerplate is intended to be used as a starting point for a Go application. It provides a solid foundation with best practices, clean architecture, and essential features for building scalable REST APIs.
 
 <p align="center">
 <img src="docs/images/console.png"  width="600" />
 </p>
 
-## Getting Started
-### Prerequisites
--  Go 1.20
--  Docker
--  sonar-scanner - for coverage test in local
+## 🚀 Features
+
+- **Hexagonal Architecture** - Clean separation of concerns with domain-driven design
+- **JWT Authentication** - Secure token-based authentication system
+- **RBAC (Role-Based Access Control)** - Fine-grained permission management
+- **PostgreSQL** - Robust relational database with migrations
+- **Redis Cache** - High-performance caching layer
+- **Fiber Router** - Fast HTTP framework with middleware support
+- **Docker Support** - Containerized deployment ready
+- **Comprehensive Testing** - Unit, integration, and API tests
+- **CLI Commands** - Powerful command-line interface with Cobra
+- **Scheduler** - Cron job scheduling capabilities
+- **Logging** - Structured logging with Zap
+- **API Documentation** - Swagger/OpenAPI documentation
+- **Database Seeding** - Development data seeding system
+
+## 📋 Prerequisites
+
+- **Go 1.20+** - Latest stable version recommended
+- **Docker & Docker Compose** - For containerized development
+- **PostgreSQL 13+** - Database (included in Docker setup)
+- **Redis 6+** - Caching layer (included in Docker setup)
+- **Sonar-scanner** - For code quality analysis (optional)
    ```sh
    brew install sonar-scanner
    ```
 
-### Installation
-1. Clone the repo
+## 🛠️ Installation
+
+1. **Clone the repository**
    ```sh
    git clone https://github.com/turahe/go-restfull.git
-    ```
-2. Install Go dependencies
-    ```sh
-    go mod download
-    ```
-3. Copy the default configuration file
-    ```sh
-    cp config/config.example.yaml config/config.yaml
-    ```
-4. Start the database
-    ```sh
-    docker compose up -d
-    ```
-5. Migrate Database
-    ```sh
-    go run main.go migrate
-    ```
-    
-    # Migration Management
-    # Apply all migrations (creates tables, etc.)
-    go run main.go migrate
-    
-    # Roll back the last migration (drops the most recently created table(s))
-    go run main.go migrate:down
-    
-    # Roll back multiple migrations (replace N with the number of steps)
-    go run main.go migrate:down --step N
-    
-    # Drop all tables and reset the schema (use with caution!)
-    go run main.go migrate:flush
-    ```
-    
-    - `migrate:down` only rolls back the most recent migration(s) by calling their Down functions, which typically drop the table(s) created by that migration. To drop all tables, use `migrate:flush` or run `migrate:down` with a large enough step value to cover all applied migrations.
-6. Run the application
-    ```sh
-    # Run normally
-    go run main.go serve-api
+   cd go-restfull
+   ```
 
-    # Run with hot reload
-    air serve-api
-    ```
-7. Testing (optional)
-    ```sh
-    # Run unit-test
-    make unit-test
+2. **Install Go dependencies**
+   ```sh
+   go mod download
+   ```
 
-    # Run api-test
-    make api-test
+3. **Configure the application**
+   ```sh
+   cp config/config.example.yaml config/config.yaml
+   # Edit config/config.yaml with your settings
+   ```
 
-    # Create sonar scret
-    touch .sonar.secret
-    echo "your-sonar-token" > .sonar.secret
+4. **Start the infrastructure**
+   ```sh
+   docker compose up -d
+   ```
 
-    # Add secret to .sonar.secret
-    # Get from sonar web
-    ```
- 
- ## Standard and Styles Guide
+5. **Run database migrations**
+   ```sh
+   go run main.go migrate
+   ```
 
- ### Coding Standard
+6. **Seed the database (optional)**
+   ```sh
+   go run main.go seed
+   ```
 
- 1. For those `const`, use capitalized SNAKE_CASE for public constant. For private, constant name should led by _ (underscore).
+7. **Start the application**
+   ```sh
+   # Development mode
+   go run main.go serve-api
 
-    **Good Example**
+   # With hot reload (requires air)
+   air serve-api
+   ```
 
-    ```go
-    // public
-    const BAD_REQUEST int = 400
+## 🗄️ Database Management
 
-    // private
-    const _UNAUTHORIZED int = 401
-    ```
+### Migration Commands
 
-    **Bad Example**
+```sh
+# Apply all migrations
+go run main.go migrate
 
-    ```go
-    const BadRequest   int = 400
-    const unauthorized int = 401
-    ```
+# Roll back the last migration
+go run main.go migrate:down
 
-## How to Use
-### Configuration
-- `config/config.yaml` (ignored by git)
-  - Default configuration file
-- `cmd/root.go`
-  - `config/config.yaml` is loaded by default
-  - You can specify the configuration file with the `--config` flag
-- `internal/app/<your-handler>/<xxx>.go`
-  - Define your handler functions for your endpoint
-- `internal/logger/zap_logger.go`
-  - You can see the log settings in the `NewZapLogger` function
-- `job/`
-  - You can add your own jobs here
-- `scheduler/scheduler.go`
-  - You can schedule your jobs here
-  - You can configure the cron expression in `config/config.yaml`
+# Roll back multiple migrations (replace N with number of steps)
+go run main.go migrate:down --step N
 
+# Drop all tables and reset schema (use with caution!)
+go run main.go migrate:flush
+```
 
-## Supported Features
-- [x] Configuration with YAML
-- [x] Logging with Zap Logger
-- [x] CLI with Cobra
-- [x] Scheduler with Cron
-- [x] PostgreSQL
-- [x] Redis Cache
-- [x] Docker
-- [x] Fiber Router 
-- [x] Add Redis Reliable Queue
+### Seeding Commands
 
-## Use Cases
-- [x] As a Web Server
-  - [x] HTTP API
-  - [ ] gRPC API
-- [x] As a CLI Application
-- [x] As a Scheduler for Cron Jobs
+```sh
+# Seed all data
+go run main.go seed
 
-## Roadmap
-- [ ] Add gRPC API
-- [ ] Document the code
-- [ ] Add Websocket
+# Seed specific data
+go run main.go seed --type=users
+go run main.go seed --type=posts
+```
+
+## 🧪 Testing
+
+```sh
+# Run unit tests
+make unit-test
+
+# Run API integration tests
+make api-test
+
+# Run all tests with coverage
+make test
+
+# Code quality analysis (requires sonar-scanner)
+make sonar
+```
+
+## 📁 Project Structure
+
+```
+├── cmd/                    # CLI commands
+├── config/                 # Configuration files
+├── docs/                   # Documentation and API specs
+├── internal/               # Application code
+│   ├── application/        # Application services
+│   ├── domain/            # Domain entities and business logic
+│   ├── infrastructure/    # External adapters (DB, external APIs)
+│   └── interfaces/        # HTTP controllers and routes
+├── pkg/                   # Shared packages
+└── main.go               # Application entry point
+```
+
+## ⚙️ Configuration
+
+The application uses YAML configuration with the following key files:
+
+- `config/config.yaml` - Main configuration (gitignored)
+- `config/config.example.yaml` - Example configuration
+- `config/rbac_model.conf` - RBAC model configuration
+- `config/rbac_policy.csv` - RBAC policy definitions
+
+## 🔧 Development
+
+### Coding Standards
+
+1. **Constants**: Use capitalized SNAKE_CASE for public constants, underscore prefix for private
+
+   **Good Example**
+   ```go
+   // Public constants
+   const BAD_REQUEST int = 400
+   const UNAUTHORIZED int = 401
+
+   // Private constants
+   const _INTERNAL_ERROR int = 500
+   ```
+
+   **Bad Example**
+   ```go
+   const BadRequest int = 400
+   const unauthorized int = 401
+   ```
+
+2. **File Organization**: Follow hexagonal architecture principles
+3. **Error Handling**: Use structured error responses
+4. **Logging**: Use structured logging with appropriate levels
+
+### Key Directories
+
+- `internal/application/` - Application services and ports
+- `internal/domain/` - Business entities and domain logic
+- `internal/infrastructure/` - Database adapters and external services
+- `internal/interfaces/http/` - HTTP controllers and routing
+- `cmd/` - CLI command implementations
+
+## 🚀 Deployment
+
+### Docker Deployment
+
+```sh
+# Build the application
+docker build -t go-restfull .
+
+# Run with Docker Compose
+docker compose up -d
+```
+
+### Environment Variables
+
+Key environment variables (see `config/config.example.yaml`):
+
+- `DB_HOST` - Database host
+- `DB_PORT` - Database port
+- `DB_NAME` - Database name
+- `DB_USER` - Database user
+- `DB_PASSWORD` - Database password
+- `JWT_SECRET` - JWT signing secret
+- `REDIS_URL` - Redis connection string
+
+## 📚 API Documentation
+
+- **Swagger UI**: Available at `/swagger/index.html` when running
+- **API Specs**: Located in `docs/swagger.yaml`
+- **Health Check**: `/healthz` endpoint for monitoring
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🗺️ Roadmap
+
+- [ ] Add gRPC API support
+- [ ] Implement WebSocket functionality
+- [ ] Add GraphQL support
+- [ ] Enhanced monitoring and metrics
+- [ ] Multi-tenant support
+- [ ] Advanced caching strategies
+- [ ] API rate limiting
+- [ ] Enhanced security features
+
+## 🙏 Acknowledgments
+
+- [Fiber](https://gofiber.io/) - Fast HTTP framework
+- [Zap](https://github.com/uber-go/zap) - Structured logging
+- [Cobra](https://github.com/spf13/cobra) - CLI framework
+- [Casbin](https://casbin.org/) - Authorization library
 

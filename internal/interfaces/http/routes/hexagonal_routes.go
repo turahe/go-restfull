@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"webapi/internal/http/controllers/healthz"
 	"webapi/internal/infrastructure/container"
 	"webapi/internal/router/middleware"
 
@@ -13,13 +14,9 @@ func RegisterHexagonalRoutes(app *fiber.App, container *container.Container) {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	// Health check
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status":  "healthy",
-			"message": "Server is running",
-		})
-	})
+	// Comprehensive health check endpoint
+	healthzHandler := healthz.NewHealthzHTTPHandler()
+	app.Get("/healthz", healthzHandler.Healthz)
 
 	// Public routes (no authentication required)
 	public := v1.Group("/")

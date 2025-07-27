@@ -42,7 +42,11 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/golang-migrate/migrate/v4 v4.18.3 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect

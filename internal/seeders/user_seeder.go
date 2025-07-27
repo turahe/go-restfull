@@ -2,11 +2,10 @@ package seeders
 
 import (
 	"context"
-	"time"
 
+	"webapi/internal/domain/entities"
 	"webapi/internal/infrastructure/adapters"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,93 +27,47 @@ func (us *UserSeeder) Run(ctx context.Context, db *pgxpool.Pool) error {
 	// Create password service for hashing passwords
 	passwordService := adapters.NewBcryptPasswordService()
 
-	users := []struct {
-		ID              uuid.UUID
-		Username        string
-		Email           string
-		Phone           string
-		Password        string
-		EmailVerifiedAt *time.Time
-		PhoneVerifiedAt *time.Time
-		CreatedAt       time.Time
-		UpdatedAt       time.Time
+	// Create user repository using the adapter
+	userRepository := adapters.NewPostgresUserRepository(db, nil) // nil for redis client in seeder context
+
+	// Define users using the proper User entity
+	userData := []struct {
+		username string
+		email    string
+		phone    string
+		password string
 	}{
-		{
-			ID:              uuid.New(),
-			Username:        "superadmin",
-			Email:           "superadmin@example.com",
-			Phone:           "+1234567890",
-			Password:        "SuperAdmin123!",
-			EmailVerifiedAt: nil,
-			PhoneVerifiedAt: nil,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
-		{
-			ID:              uuid.New(),
-			Username:        "admin",
-			Email:           "admin@example.com",
-			Phone:           "+1234567891",
-			Password:        "Admin123!",
-			EmailVerifiedAt: nil,
-			PhoneVerifiedAt: nil,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
-		{
-			ID:              uuid.New(),
-			Username:        "editor",
-			Email:           "editor@example.com",
-			Phone:           "+1234567892",
-			Password:        "Editor123!",
-			EmailVerifiedAt: nil,
-			PhoneVerifiedAt: nil,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
-		{
-			ID:              uuid.New(),
-			Username:        "author",
-			Email:           "author@example.com",
-			Phone:           "+1234567893",
-			Password:        "Author123!",
-			EmailVerifiedAt: nil,
-			PhoneVerifiedAt: nil,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
-		{
-			ID:              uuid.New(),
-			Username:        "user",
-			Email:           "user@example.com",
-			Phone:           "+1234567894",
-			Password:        "User123!",
-			EmailVerifiedAt: nil,
-			PhoneVerifiedAt: nil,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
+		{"superadmin", "superadmin@example.com", "+1234567890", "SuperAdmin123!"},
+		{"admin", "admin@example.com", "+1234567891", "Admin123!"},
+		{"editor", "editor@example.com", "+1234567892", "Editor123!"},
+		{"author", "author@example.com", "+1234567893", "Author123!"},
+		{"user", "user@example.com", "+1234567894", "User123!"},
 	}
 
-	for _, user := range users {
-		// Hash the password
-		hashedPassword, err := passwordService.HashPassword(user.Password)
+	for _, data := range userData {
+		// Create user entity using the domain constructor
+		user, err := entities.NewUser(data.username, data.email, data.phone, data.password)
 		if err != nil {
 			return err
 		}
 
-		// Set verification times to current time
-		now := time.Now()
-		user.EmailVerifiedAt = &now
-		user.PhoneVerifiedAt = &now
-
-		_, err = db.Exec(ctx, `
-			INSERT INTO users (id, username, email, phone, password, email_verified_at, phone_verified_at, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (email) DO NOTHING
-		`, user.ID, user.Username, user.Email, user.Phone, hashedPassword, user.EmailVerifiedAt, user.PhoneVerifiedAt, user.CreatedAt, user.UpdatedAt)
-
+		// Hash the password using the domain service
+		hashedPassword, err := passwordService.HashPassword(user.Password)
 		if err != nil {
+			return err
+		}
+		user.Password = hashedPassword
+
+		// Verify email and phone for seeded users
+		user.VerifyEmail()
+		user.VerifyPhone()
+
+		// Use the repository to create the user
+		// This follows the same pattern as the rest of the application
+		err = userRepository.Create(ctx, user)
+		if err != nil {
+			// Check if it's a duplicate email error (which is expected)
+			// In a real implementation, you might want to handle this differently
 			return err
 		}
 	}

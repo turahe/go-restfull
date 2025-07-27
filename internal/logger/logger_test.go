@@ -3,15 +3,11 @@ package logger_test
 import (
 	"testing"
 
-	"go.uber.org/zap/zapcore"
 	"webapi/config"
 	. "webapi/internal/logger"
-)
 
-func init() {
-	configFile := "../../config/config.testing.yaml"
-	config.SetConfig(configFile)
-}
+	"go.uber.org/zap/zapcore"
+)
 
 func TestInitLogger(t *testing.T) {
 	tests := []struct {
