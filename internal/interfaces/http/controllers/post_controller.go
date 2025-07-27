@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
 	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
+	"webapi/internal/http/response"
 	"webapi/internal/interfaces/http/requests"
 	"webapi/internal/interfaces/http/responses"
+	"webapi/internal/router/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -170,36 +170,18 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 // @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Router /posts [get]
 func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
-	limitStr := ctx.Query("limit", "10")
-	offsetStr := ctx.Query("offset", "0")
-	query := ctx.Query("query", "")
+	// Get pagination parameters from middleware
+	pagination := middleware.GetPaginationParams(ctx)
+
+	// Get additional filters
 	status := ctx.Query("status", "")
 
-	limit, err := strconv.Atoi(limitStr)
+	// Use the service layer pagination method
+	posts, total, err := c.postService.GetPostsWithPagination(ctx.Context(), pagination.Page, pagination.PerPage, pagination.Search, status)
 	if err != nil {
-		limit = 10
-	}
-
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil {
-		offset = 0
-	}
-
-	var posts []*entities.Post
-	var err2 error
-
-	if query != "" {
-		posts, err2 = c.postService.SearchPosts(ctx.Context(), query, limit, offset)
-	} else if status == "published" {
-		posts, err2 = c.postService.GetPublishedPosts(ctx.Context(), limit, offset)
-	} else {
-		posts, err2 = c.postService.GetAllPosts(ctx.Context(), limit, offset)
-	}
-
-	if err2 != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: err2.Error(),
+			Message: err.Error(),
 		})
 	}
 
@@ -209,9 +191,12 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 		postResponses[i] = *responses.NewPostResponse(post)
 	}
 
+	// Create paginated response using helper
+	paginatedResult := response.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   postResponses,
+		Data:   paginatedResult,
 	})
 }
 
@@ -239,20 +224,11 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 		})
 	}
 
-	limitStr := ctx.Query("limit", "10")
-	offsetStr := ctx.Query("offset", "0")
+	// Get pagination parameters from middleware
+	pagination := middleware.GetPaginationParams(ctx)
+	offset := middleware.GetOffset(ctx)
 
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		limit = 10
-	}
-
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil {
-		offset = 0
-	}
-
-	posts, err := c.postService.GetPostsByAuthor(ctx.Context(), authorID, limit, offset)
+	posts, err := c.postService.GetPostsByAuthor(ctx.Context(), authorID, pagination.PerPage, offset)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -266,9 +242,15 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 		postResponses[i] = *responses.NewPostResponse(post)
 	}
 
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(posts))
+
+	// Create paginated response using helper
+	paginatedResult := response.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   postResponses,
+		Data:   paginatedResult,
 	})
 }
 

@@ -5,7 +5,6 @@ go 1.24.5
 require (
 	github.com/bytedance/sonic v1.13.2
 	github.com/casbin/casbin/v2 v2.110.0
-	github.com/casbin/redis-adapter/v2 v2.4.0
 	github.com/getsentry/sentry-go v0.33.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-co-op/gocron/v2 v2.16.2
@@ -43,7 +42,6 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect

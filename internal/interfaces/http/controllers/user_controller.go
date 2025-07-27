@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
 	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
+	domainservices "webapi/internal/domain/services"
 	"webapi/internal/interfaces/http/requests"
 	"webapi/internal/interfaces/http/responses"
+	"webapi/internal/router/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -29,13 +29,15 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 type UserController struct {
-	userService ports.UserService
+	userService       ports.UserService
+	paginationService domainservices.PaginationService
 }
 
 // NewUserController creates a new user controller
-func NewUserController(userService ports.UserService) *UserController {
+func NewUserController(userService ports.UserService, paginationService domainservices.PaginationService) *UserController {
 	return &UserController{
-		userService: userService,
+		userService:       userService,
+		paginationService: paginationService,
 	}
 }
 
@@ -135,33 +137,15 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /users [get]
 func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
-	limitStr := ctx.Query("limit", "10")
-	offsetStr := ctx.Query("offset", "0")
-	query := ctx.Query("query", "")
+	// Get pagination parameters from middleware
+	pagination := middleware.GetPaginationParams(ctx)
 
-	limit, err := strconv.Atoi(limitStr)
+	// Use the service layer pagination method
+	users, total, err := c.userService.GetUsersWithPagination(ctx.Context(), pagination.Page, pagination.PerPage, pagination.Search)
 	if err != nil {
-		limit = 10
-	}
-
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil {
-		offset = 0
-	}
-
-	var users []*entities.User
-	var err2 error
-
-	if query != "" {
-		users, err2 = c.userService.SearchUsers(ctx.Context(), query, limit, offset)
-	} else {
-		users, err2 = c.userService.GetAllUsers(ctx.Context(), limit, offset)
-	}
-
-	if err2 != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: err2.Error(),
+			Message: err.Error(),
 		})
 	}
 
@@ -171,9 +155,12 @@ func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
 		userResponses[i] = *responses.NewUserResponse(user)
 	}
 
+	// Create paginated response using pagination service
+	paginatedResult := c.paginationService.CreatePaginatedResponse(ctx.Context(), userResponses, total, nil)
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   userResponses,
+		Data:   paginatedResult,
 	})
 }
 

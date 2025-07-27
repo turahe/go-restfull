@@ -477,3 +477,79 @@ func (r *postgresPostRepository) CountPublished(ctx context.Context) (int64, err
 	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
 }
+
+// CountBySearch returns the total number of posts matching the search query
+func (r *postgresPostRepository) CountBySearch(ctx context.Context, query string) (int64, error) {
+	searchQuery := `
+		SELECT COUNT(*) FROM posts 
+		WHERE deleted_at IS NULL 
+		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+	`
+	var count int64
+	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
+	return count, err
+}
+
+// CountBySearchPublished returns the total number of published posts matching the search query
+func (r *postgresPostRepository) CountBySearchPublished(ctx context.Context, query string) (int64, error) {
+	searchQuery := `
+		SELECT COUNT(*) FROM posts 
+		WHERE status = 'published' AND deleted_at IS NULL 
+		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+	`
+	var count int64
+	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
+	return count, err
+}
+
+// SearchPublished searches published posts by query
+func (r *postgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
+	searchQuery := `
+		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		FROM posts
+		WHERE status = 'published' AND deleted_at IS NULL 
+		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, searchQuery, fmt.Sprintf("%%%s%%", query), limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []*entities.Post
+	for rows.Next() {
+		var post entities.Post
+		var publishedAt sql.NullTime
+		var deletedAt sql.NullTime
+
+		err := rows.Scan(
+			&post.ID,
+			&post.Title,
+			&post.Content,
+			&post.Slug,
+			&post.Status,
+			&post.AuthorID,
+			&publishedAt,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&deletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if publishedAt.Valid {
+			post.PublishedAt = &publishedAt.Time
+		}
+		if deletedAt.Valid {
+			post.DeletedAt = &deletedAt.Time
+		}
+
+		posts = append(posts, &post)
+	}
+
+	return posts, nil
+}

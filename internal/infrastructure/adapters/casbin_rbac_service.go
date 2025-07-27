@@ -9,7 +9,7 @@ import (
 
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
-	redisadapter "github.com/casbin/redis-adapter/v2"
+	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
 )
 
 // CasbinRBACService implements the RBACService interface using Casbin
@@ -21,11 +21,8 @@ type CasbinRBACService struct {
 func NewCasbinRBACService() (services.RBACService, error) {
 	cfg := config.GetConfig()
 
-	// Create Redis adapter
-	redisAdapter := redisadapter.NewAdapter(
-		fmt.Sprintf("%s:%d", cfg.Casbin.Redis.Host, cfg.Casbin.Redis.Port),
-		cfg.Casbin.Redis.Key,
-	)
+	// Create file adapter for now (temporary solution)
+	fileAdapter := fileadapter.NewAdapter(cfg.Casbin.Policy)
 
 	// Load model from file
 	model, err := model.NewModelFromFile(cfg.Casbin.Model)
@@ -34,25 +31,15 @@ func NewCasbinRBACService() (services.RBACService, error) {
 	}
 
 	// Create enforcer
-	enforcer, err := casbin.NewEnforcer(model, redisAdapter)
+	enforcer, err := casbin.NewEnforcer(model, fileAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Casbin enforcer: %w", err)
 	}
 
-	// Load initial policy if Redis is empty
-	hasPolicy, _ := enforcer.HasPolicy("admin", "/api/*", "*")
-	if !hasPolicy {
-		// Load initial policy from CSV file
-		err = enforcer.InitWithFile(cfg.Casbin.Model, cfg.Casbin.Policy)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load initial policy: %w", err)
-		}
-
-		// Save to Redis
-		err = enforcer.SavePolicy()
-		if err != nil {
-			return nil, fmt.Errorf("failed to save policy to Redis: %w", err)
-		}
+	// Load initial policy from file
+	err = enforcer.LoadPolicy()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load policy: %w", err)
 	}
 
 	return &CasbinRBACService{

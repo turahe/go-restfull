@@ -3,6 +3,7 @@ package controllers
 import (
 	"webapi/internal/application/ports"
 	"webapi/internal/http/response"
+	"webapi/internal/router/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -20,6 +21,9 @@ func NewJobController(jobService ports.JobService) *JobController {
 
 // GetJobs retrieves all jobs
 func (c *JobController) GetJobs(ctx *fiber.Ctx) error {
+	// Get pagination parameters from middleware
+	pagination := middleware.GetPaginationParams(ctx)
+
 	jobs, err := c.jobService.GetJobs(ctx.Context())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
@@ -28,10 +32,16 @@ func (c *JobController) GetJobs(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(jobs))
+
+	// Create paginated response using helper
+	paginatedResult := response.CreatePaginatedResult(jobs, pagination.Page, pagination.PerPage, total)
+
 	return ctx.JSON(response.CommonResponse{
 		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
 		ResponseMessage: "Jobs retrieved successfully",
-		Data:            jobs,
+		Data:            paginatedResult,
 	})
 }
 
@@ -69,6 +79,9 @@ func (c *JobController) GetJob(ctx *fiber.Ctx) error {
 
 // GetFailedJobs retrieves all failed jobs
 func (c *JobController) GetFailedJobs(ctx *fiber.Ctx) error {
+	// Get pagination parameters from middleware
+	pagination := middleware.GetPaginationParams(ctx)
+
 	failedJobs, err := c.jobService.GetFailedJobs(ctx.Context())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
@@ -77,10 +90,16 @@ func (c *JobController) GetFailedJobs(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(failedJobs))
+
+	// Create paginated response using helper
+	paginatedResult := response.CreatePaginatedResult(failedJobs, pagination.Page, pagination.PerPage, total)
+
 	return ctx.JSON(response.CommonResponse{
 		ResponseCode:    int(response.SYSTEM_OPERATION_SUCCESS),
 		ResponseMessage: "Failed jobs retrieved successfully",
-		Data:            failedJobs,
+		Data:            paginatedResult,
 	})
 }
 

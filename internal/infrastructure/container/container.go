@@ -46,9 +46,10 @@ type Container struct {
 	JobService      ports.JobService
 
 	// Domain Services
-	EmailService    domainservices.EmailService
-	PasswordService domainservices.PasswordService
-	RBACService     domainservices.RBACService
+	EmailService      domainservices.EmailService
+	PasswordService   domainservices.PasswordService
+	RBACService       domainservices.RBACService
+	PaginationService domainservices.PaginationService
 
 	// Controllers
 	UserController     *controllers.UserController
@@ -84,6 +85,9 @@ func NewContainer(db *pgxpool.Pool) *Container {
 		panic(err)
 	}
 	container.RBACService = rbacService
+
+	// Initialize pagination service
+	container.PaginationService = domainservices.NewPaginationService()
 
 	// Initialize repositories using existing adapters
 	container.UserRepository = adapters.NewPostgresUserRepository(db, redisClient)
@@ -124,7 +128,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.JobService = appservices.NewJobService(container.JobRepository)
 
 	// Initialize controllers
-	container.UserController = controllers.NewUserController(container.UserService)
+	container.UserController = controllers.NewUserController(container.UserService, container.PaginationService)
 	container.AuthController = controllers.NewAuthController(container.AuthService)
 	container.PostController = controllers.NewPostController(container.PostService)
 	container.MediaController = controllers.NewMediaController(container.MediaService)

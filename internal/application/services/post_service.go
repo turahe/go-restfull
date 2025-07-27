@@ -76,6 +76,50 @@ func (s *postService) SearchPosts(ctx context.Context, query string, limit, offs
 	return s.postRepo.Search(ctx, query, limit, offset)
 }
 
+// GetPostsWithPagination retrieves posts with pagination and returns total count
+func (s *postService) GetPostsWithPagination(ctx context.Context, page, perPage int, search, status string) ([]*entities.Post, int64, error) {
+	// Calculate offset
+	offset := (page - 1) * perPage
+
+	var posts []*entities.Post
+	var err error
+
+	// Get posts based on search and status parameters
+	if search != "" && status == "published" {
+		posts, err = s.postRepo.SearchPublished(ctx, search, perPage, offset)
+	} else if search != "" {
+		posts, err = s.postRepo.Search(ctx, search, perPage, offset)
+	} else if status == "published" {
+		posts, err = s.postRepo.GetPublished(ctx, perPage, offset)
+	} else {
+		posts, err = s.postRepo.GetAll(ctx, perPage, offset)
+	}
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	total, err := s.GetPostsCount(ctx, search, status)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, nil
+}
+
+// GetPostsCount returns total count of posts (for pagination)
+func (s *postService) GetPostsCount(ctx context.Context, search, status string) (int64, error) {
+	if search != "" && status == "published" {
+		return s.postRepo.CountBySearchPublished(ctx, search)
+	} else if search != "" {
+		return s.postRepo.CountBySearch(ctx, search)
+	} else if status == "published" {
+		return s.postRepo.CountPublished(ctx)
+	}
+	return s.postRepo.Count(ctx)
+}
+
 func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, content, slug, status string) (*entities.Post, error) {
 	// Get existing post
 	post, err := s.postRepo.GetByID(ctx, id)
@@ -136,4 +180,4 @@ func (s *postService) UnpublishPost(ctx context.Context, id uuid.UUID) error {
 
 	post.Unpublish()
 	return s.postRepo.Update(ctx, post)
-} 
+}

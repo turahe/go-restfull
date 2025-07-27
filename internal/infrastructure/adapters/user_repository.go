@@ -339,3 +339,14 @@ func (r *postgresUserRepository) Count(ctx context.Context) (int64, error) {
 	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
 }
+
+func (r *postgresUserRepository) CountBySearch(ctx context.Context, query string) (int64, error) {
+	searchQuery := `
+		SELECT COUNT(*) FROM users 
+		WHERE deleted_at IS NULL 
+		AND (username ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)
+	`
+	var count int64
+	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
+	return count, err
+}

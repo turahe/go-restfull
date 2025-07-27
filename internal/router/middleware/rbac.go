@@ -6,6 +6,7 @@ import (
 	"webapi/internal/domain/services"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // RBACMiddleware creates a middleware that checks RBAC permissions
@@ -19,11 +20,23 @@ func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
 			})
 		}
 
+		// Convert userID to string for RBAC service
+		var userIDStr string
+		if uuid, ok := userID.(uuid.UUID); ok {
+			userIDStr = uuid.String()
+		} else if str, ok := userID.(string); ok {
+			userIDStr = str
+		} else {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Invalid user ID format",
+			})
+		}
+
 		// Get user roles from context or fetch from service
 		userRoles := c.Locals("user_roles")
 		if userRoles == nil {
 			// Fetch roles from RBAC service
-			roles, err := rbacService.GetRolesForUser(userID.(string))
+			roles, err := rbacService.GetRolesForUser(userIDStr)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"message": "Failed to get user roles",
@@ -76,11 +89,22 @@ func OptionalRBACMiddleware(rbacService services.RBACService) fiber.Handler {
 			return c.Next()
 		}
 
+		// Convert userID to string for RBAC service
+		var userIDStr string
+		if uuid, ok := userID.(uuid.UUID); ok {
+			userIDStr = uuid.String()
+		} else if str, ok := userID.(string); ok {
+			userIDStr = str
+		} else {
+			// Continue without RBAC check if user ID format is invalid
+			return c.Next()
+		}
+
 		// Get user roles from context or fetch from service
 		userRoles := c.Locals("user_roles")
 		if userRoles == nil {
 			// Fetch roles from RBAC service
-			roles, err := rbacService.GetRolesForUser(userID.(string))
+			roles, err := rbacService.GetRolesForUser(userIDStr)
 			if err != nil {
 				// Continue without RBAC check if there's an error
 				return c.Next()
@@ -132,11 +156,23 @@ func RequireRole(rbacService services.RBACService, requiredRole string) fiber.Ha
 			})
 		}
 
+		// Convert userID to string for RBAC service
+		var userIDStr string
+		if uuid, ok := userID.(uuid.UUID); ok {
+			userIDStr = uuid.String()
+		} else if str, ok := userID.(string); ok {
+			userIDStr = str
+		} else {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Invalid user ID format",
+			})
+		}
+
 		// Get user roles from context or fetch from service
 		userRoles := c.Locals("user_roles")
 		if userRoles == nil {
 			// Fetch roles from RBAC service
-			roles, err := rbacService.GetRolesForUser(userID.(string))
+			roles, err := rbacService.GetRolesForUser(userIDStr)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"message": "Failed to get user roles",

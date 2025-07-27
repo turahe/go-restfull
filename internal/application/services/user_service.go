@@ -140,6 +140,42 @@ func (s *userService) SearchUsers(ctx context.Context, query string, limit, offs
 	return s.userRepo.Search(ctx, query, limit, offset)
 }
 
+// GetUsersWithPagination retrieves users with pagination and returns total count
+func (s *userService) GetUsersWithPagination(ctx context.Context, page, perPage int, search string) ([]*entities.User, int64, error) {
+	// Calculate offset
+	offset := (page - 1) * perPage
+
+	var users []*entities.User
+	var err error
+
+	// Get users based on search parameter
+	if search != "" {
+		users, err = s.userRepo.Search(ctx, search, perPage, offset)
+	} else {
+		users, err = s.userRepo.GetAll(ctx, perPage, offset)
+	}
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	total, err := s.GetUsersCount(ctx, search)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+// GetUsersCount returns total count of users (for pagination)
+func (s *userService) GetUsersCount(ctx context.Context, search string) (int64, error) {
+	if search != "" {
+		return s.userRepo.CountBySearch(ctx, search)
+	}
+	return s.userRepo.Count(ctx)
+}
+
 func (s *userService) UpdateUser(ctx context.Context, id uuid.UUID, username, email, phone string) (*entities.User, error) {
 	// Get existing user
 	user, err := s.userRepo.GetByID(ctx, id)
@@ -282,4 +318,4 @@ func (s *userService) AuthenticateUser(ctx context.Context, username, password s
 	}
 
 	return user, nil
-} 
+}
