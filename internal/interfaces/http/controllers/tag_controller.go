@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"strconv"
 	"webapi/internal/application/ports"
-	"webapi/internal/http/response"
+	"webapi/internal/interfaces/http/requests"
+	"webapi/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // TagController handles HTTP requests for tag operations
@@ -34,21 +37,56 @@ func NewTagController(tagService ports.TagService) *TagController {
 
 // GetTags handles GET /v1/tags requests
 // @Summary Get all tags
-// @Description Retrieve a list of all tags
+// @Description Retrieve a list of all tags with pagination
 // @Tags tags
 // @Accept json
 // @Produce json
-// @Success 200 {object} response.CommonResponse{data=[]interface{}} "List of tags"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Param limit query int false "Number of tags to return (default: 10, max: 100)"
+// @Param offset query int false "Number of tags to skip (default: 0)"
+// @Success 200 {object} responses.SuccessResponse{data=[]interface{}} "List of tags"
+// @Failure 400 {object} responses.ErrorResponse "Bad request"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags [get]
 func (c *TagController) GetTags(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Tags retrieved successfully",
-		Data:            []interface{}{},
+	// Parse query parameters
+	limitStr := ctx.Query("limit", "10")
+	offsetStr := ctx.Query("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid limit parameter",
+		})
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid offset parameter",
+		})
+	}
+
+	// Set reasonable limits
+	if limit > 100 {
+		limit = 100
+	}
+
+	// Get tags from service
+	tags, err := c.tagService.GetAllTags(ctx.Context(), limit, offset)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to retrieve tags: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tags retrieved successfully",
+		Data:    tags,
 	})
 }
 
@@ -59,19 +97,43 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Tag ID" format(uuid)
-// @Success 200 {object} response.CommonResponse{data=interface{}} "Tag retrieved successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid tag ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Tag does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.SuccessResponse{data=interface{}} "Tag retrieved successfully"
+// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid tag ID"
+// @Failure 404 {object} responses.ErrorResponse "Not found - Tag does not exist"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags/{id} [get]
 func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Tag retrieved successfully",
-		Data:            map[string]interface{}{},
+	// Parse tag ID
+	tagIDStr := ctx.Params("id")
+	tagID, err := uuid.Parse(tagIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid tag ID format",
+		})
+	}
+
+	// Get tag from service
+	tag, err := c.tagService.GetTagByID(ctx.Context(), tagID)
+	if err != nil {
+		// Check if it's a not found error
+		if err.Error() == "tag not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag not found",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to retrieve tag: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tag retrieved successfully",
+		Data:    tag,
 	})
 }
 
@@ -81,19 +143,51 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 // @Tags tags
 // @Accept json
 // @Produce json
-// @Param tag body interface{} true "Tag object"
-// @Success 201 {object} response.CommonResponse{data=interface{}} "Tag created successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid input data"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Param tag body requests.CreateTagRequest true "Tag object"
+// @Success 201 {object} responses.SuccessResponse{data=interface{}} "Tag created successfully"
+// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid input data"
+// @Failure 409 {object} responses.ErrorResponse "Conflict - Tag with same slug already exists"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags [post]
 func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
-	return ctx.Status(fiber.StatusCreated).JSON(response.CommonResponse{
-		ResponseCode:    fiber.StatusCreated,
-		ResponseMessage: "Tag created successfully",
-		Data:            map[string]interface{}{},
+	// Parse request body
+	var req requests.CreateTagRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body: " + err.Error(),
+		})
+	}
+
+	// Validate request
+	if err := req.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Validation failed: " + err.Error(),
+		})
+	}
+
+	// Create tag using service
+	tag, err := c.tagService.CreateTag(ctx.Context(), req.Name, req.Slug, req.Description, req.Color)
+	if err != nil {
+		// Check for specific errors
+		if err.Error() == "tag with this slug already exists" {
+			return ctx.Status(fiber.StatusConflict).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag with this slug already exists",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to create tag: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusCreated).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tag created successfully",
+		Data:    tag,
 	})
 }
 
@@ -104,20 +198,68 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Tag ID" format(uuid)
-// @Param tag body interface{} true "Tag object"
-// @Success 200 {object} response.CommonResponse{data=interface{}} "Tag updated successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid tag ID or input data"
-// @Failure 404 {object} response.CommonResponse "Not found - Tag does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Param tag body requests.UpdateTagRequest true "Tag object"
+// @Success 200 {object} responses.SuccessResponse{data=interface{}} "Tag updated successfully"
+// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid tag ID or input data"
+// @Failure 404 {object} responses.ErrorResponse "Not found - Tag does not exist"
+// @Failure 409 {object} responses.ErrorResponse "Conflict - Tag with same slug already exists"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags/{id} [put]
 func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Tag updated successfully",
-		Data:            map[string]interface{}{},
+	// Parse tag ID
+	tagIDStr := ctx.Params("id")
+	tagID, err := uuid.Parse(tagIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid tag ID format",
+		})
+	}
+
+	// Parse request body
+	var req requests.UpdateTagRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body: " + err.Error(),
+		})
+	}
+
+	// Validate request
+	if err := req.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Validation failed: " + err.Error(),
+		})
+	}
+
+	// Update tag using service
+	tag, err := c.tagService.UpdateTag(ctx.Context(), tagID, req.Name, req.Slug, req.Description, req.Color)
+	if err != nil {
+		// Check for specific errors
+		if err.Error() == "tag not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag not found",
+			})
+		}
+		if err.Error() == "tag with this slug already exists" {
+			return ctx.Status(fiber.StatusConflict).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag with this slug already exists",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to update tag: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tag updated successfully",
+		Data:    tag,
 	})
 }
 
@@ -128,18 +270,106 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Tag ID" format(uuid)
-// @Success 200 {object} response.CommonResponse "Tag deleted successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid tag ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Tag does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.SuccessResponse "Tag deleted successfully"
+// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid tag ID"
+// @Failure 404 {object} responses.ErrorResponse "Not found - Tag does not exist"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags/{id} [delete]
 func (c *TagController) DeleteTag(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Tag deleted successfully",
-		Data:            map[string]interface{}{},
+	// Parse tag ID
+	tagIDStr := ctx.Params("id")
+	tagID, err := uuid.Parse(tagIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid tag ID format",
+		})
+	}
+
+	// Delete tag using service
+	err = c.tagService.DeleteTag(ctx.Context(), tagID)
+	if err != nil {
+		// Check for specific errors
+		if err.Error() == "tag not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag not found",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to delete tag: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tag deleted successfully",
+		Data:    nil,
+	})
+}
+
+// SearchTags handles GET /v1/tags/search requests
+// @Summary Search tags
+// @Description Search tags by query with pagination
+// @Tags tags
+// @Accept json
+// @Produce json
+// @Param query query string true "Search query"
+// @Param limit query int false "Number of tags to return (default: 10, max: 100)"
+// @Param offset query int false "Number of tags to skip (default: 0)"
+// @Success 200 {object} responses.SuccessResponse{data=[]interface{}} "Search results"
+// @Failure 400 {object} responses.ErrorResponse "Bad request"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /tags/search [get]
+func (c *TagController) SearchTags(ctx *fiber.Ctx) error {
+	// Parse query parameters
+	query := ctx.Query("query")
+	if query == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Query parameter is required",
+		})
+	}
+
+	limitStr := ctx.Query("limit", "10")
+	offsetStr := ctx.Query("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid limit parameter",
+		})
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid offset parameter",
+		})
+	}
+
+	// Set reasonable limits
+	if limit > 100 {
+		limit = 100
+	}
+
+	// Search tags using service
+	tags, err := c.tagService.SearchTags(ctx.Context(), query, limit, offset)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to search tags: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tags search completed successfully",
+		Data:    tags,
 	})
 }

@@ -2,21 +2,22 @@ package repository
 
 import (
 	"context"
-	"webapi/internal/db/model"
+	"webapi/internal/domain/entities"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
 type RoleRepository interface {
-	Create(ctx context.Context, role *model.Role) error
-	GetByID(ctx context.Context, id uuid.UUID) (*model.Role, error)
-	GetBySlug(ctx context.Context, slug string) (*model.Role, error)
-	GetAll(ctx context.Context, limit, offset int) ([]*model.Role, error)
-	GetActive(ctx context.Context, limit, offset int) ([]*model.Role, error)
-	Search(ctx context.Context, query string, limit, offset int) ([]*model.Role, error)
-	Update(ctx context.Context, role *model.Role) error
+	Create(ctx context.Context, role *entities.Role) error
+	GetByID(ctx context.Context, id uuid.UUID) (*entities.Role, error)
+	GetBySlug(ctx context.Context, slug string) (*entities.Role, error)
+	GetAll(ctx context.Context, limit, offset int) ([]*entities.Role, error)
+	GetActive(ctx context.Context, limit, offset int) ([]*entities.Role, error)
+	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Role, error)
+	Update(ctx context.Context, role *entities.Role) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Activate(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id uuid.UUID) error
@@ -37,23 +38,25 @@ func NewRoleRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) RoleRep
 	}
 }
 
-func (r *RoleRepositoryImpl) Create(ctx context.Context, role *model.Role) error {
+func (r *RoleRepositoryImpl) Create(ctx context.Context, role *entities.Role) error {
 	query := `INSERT INTO roles (id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by)
 			  VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7)`
 
 	_, err := r.pgxPool.Exec(ctx, query,
-		role.ID, role.Name, role.Slug, role.Description, role.IsActive, role.CreatedBy, role.UpdatedBy)
+		role.ID, role.Name, role.Slug, role.Description, role.IsActive, "", "")
 	return err
 }
 
-func (r *RoleRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*model.Role, error) {
+func (r *RoleRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Role, error) {
 	query := `SELECT id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by
 			  FROM roles WHERE id = $1 AND deleted_at IS NULL`
 
-	var role model.Role
+	var role entities.Role
+	var createdBy, updatedBy string
+
 	err := r.pgxPool.QueryRow(ctx, query, id).Scan(
 		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-		&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		&role.CreatedAt, &role.UpdatedAt, &createdBy, &updatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,14 +64,16 @@ func (r *RoleRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*model.
 	return &role, nil
 }
 
-func (r *RoleRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*model.Role, error) {
+func (r *RoleRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*entities.Role, error) {
 	query := `SELECT id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by
 			  FROM roles WHERE slug = $1 AND deleted_at IS NULL`
 
-	var role model.Role
+	var role entities.Role
+	var createdBy, updatedBy string
+
 	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(
 		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-		&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		&role.CreatedAt, &role.UpdatedAt, &createdBy, &updatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +81,7 @@ func (r *RoleRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*model
 	return &role, nil
 }
 
-func (r *RoleRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*model.Role, error) {
+func (r *RoleRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Role, error) {
 	query := `SELECT id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by
 			  FROM roles WHERE deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
@@ -87,21 +92,35 @@ func (r *RoleRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*
 	}
 	defer rows.Close()
 
-	var roles []*model.Role
+	var roles []*entities.Role
 	for rows.Next() {
-		var role model.Role
-		err := rows.Scan(&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-			&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		role, err := r.scanRoleRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		roles = append(roles, &role)
+		roles = append(roles, role)
 	}
 
 	return roles, nil
 }
 
-func (r *RoleRepositoryImpl) GetActive(ctx context.Context, limit, offset int) ([]*model.Role, error) {
+// scanRoleRow is a helper function to scan a role row from database
+func (r *RoleRepositoryImpl) scanRoleRow(rows pgx.Rows) (*entities.Role, error) {
+	var role entities.Role
+	var createdBy, updatedBy string
+
+	err := rows.Scan(
+		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
+		&role.CreatedAt, &role.UpdatedAt, &createdBy, &updatedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &role, nil
+}
+
+func (r *RoleRepositoryImpl) GetActive(ctx context.Context, limit, offset int) ([]*entities.Role, error) {
 	query := `SELECT id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by
 			  FROM roles WHERE is_active = true AND deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
@@ -112,51 +131,48 @@ func (r *RoleRepositoryImpl) GetActive(ctx context.Context, limit, offset int) (
 	}
 	defer rows.Close()
 
-	var roles []*model.Role
+	var roles []*entities.Role
 	for rows.Next() {
-		var role model.Role
-		err := rows.Scan(&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-			&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		role, err := r.scanRoleRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		roles = append(roles, &role)
+		roles = append(roles, role)
 	}
 
 	return roles, nil
 }
 
-func (r *RoleRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*model.Role, error) {
+func (r *RoleRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Role, error) {
 	searchQuery := `SELECT id, name, slug, description, is_active, created_at, updated_at, created_by, updated_by
 					FROM roles WHERE deleted_at IS NULL AND
-					(name ILIKE '%' || $1 || '%' OR slug ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%')
+					(name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1)
 					ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
-	rows, err := r.pgxPool.Query(ctx, searchQuery, query, limit, offset)
+	searchTerm := "%" + query + "%"
+	rows, err := r.pgxPool.Query(ctx, searchQuery, searchTerm, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var roles []*model.Role
+	var roles []*entities.Role
 	for rows.Next() {
-		var role model.Role
-		err := rows.Scan(&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-			&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		role, err := r.scanRoleRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		roles = append(roles, &role)
+		roles = append(roles, role)
 	}
 
 	return roles, nil
 }
 
-func (r *RoleRepositoryImpl) Update(ctx context.Context, role *model.Role) error {
-	query := `UPDATE roles SET name = $1, slug = $2, description = $3, updated_at = NOW(), updated_by = $4
-			  WHERE id = $5 AND deleted_at IS NULL`
+func (r *RoleRepositoryImpl) Update(ctx context.Context, role *entities.Role) error {
+	query := `UPDATE roles SET name = $1, slug = $2, description = $3, updated_at = NOW()
+			  WHERE id = $4 AND deleted_at IS NULL`
 
-	_, err := r.pgxPool.Exec(ctx, query, role.Name, role.Slug, role.Description, role.UpdatedBy, role.ID)
+	_, err := r.pgxPool.Exec(ctx, query, role.Name, role.Slug, role.Description, role.ID)
 	return err
 }
 
@@ -203,4 +219,4 @@ func (r *RoleRepositoryImpl) CountActive(ctx context.Context) (int64, error) {
 	var count int64
 	err := r.pgxPool.QueryRow(ctx, query).Scan(&count)
 	return count, err
-} 
+}

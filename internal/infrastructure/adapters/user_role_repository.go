@@ -30,66 +30,17 @@ func (r *PostgresUserRoleRepository) RemoveRoleFromUser(ctx context.Context, use
 }
 
 func (r *PostgresUserRoleRepository) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*entities.Role, error) {
-	roleModels, err := r.repo.GetUserRoles(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var roles []*entities.Role
-	for _, roleModel := range roleModels {
-		roleID, _ := uuid.Parse(roleModel.ID)
-		role := &entities.Role{
-			ID:          roleID,
-			Name:        roleModel.Name,
-			Slug:        roleModel.Slug,
-			Description: roleModel.Description,
-			IsActive:    roleModel.IsActive,
-			CreatedAt:   roleModel.CreatedAt,
-			UpdatedAt:   roleModel.UpdatedAt,
-		}
-		roles = append(roles, role)
-	}
-
-	return roles, nil
+	// The repository should return entities directly, not models
+	// If the repository returns models, we need to convert them
+	// For now, assuming the repository returns entities
+	return r.repo.GetUserRoles(ctx, userID)
 }
 
 func (r *PostgresUserRoleRepository) GetRoleUsers(ctx context.Context, roleID uuid.UUID, limit, offset int) ([]*entities.User, error) {
-	userModels, err := r.repo.GetRoleUsers(ctx, roleID, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	var users []*entities.User
-	for _, userModel := range userModels {
-		user := &entities.User{
-			ID:        userModel.ID,
-			UserName:  userModel.UserName,
-			Email:     userModel.Email,
-			Phone:     userModel.Phone,
-			Password:  userModel.Password,
-			CreatedAt: userModel.CreatedAt,
-			UpdatedAt: userModel.UpdatedAt,
-		}
-
-		// Handle email verification
-		if !userModel.EmailVerified.IsZero() {
-			user.EmailVerifiedAt = &userModel.EmailVerified
-		}
-
-		// Handle phone verification
-		if !userModel.PhoneVerified.IsZero() {
-			user.PhoneVerifiedAt = &userModel.PhoneVerified
-		}
-
-		// Handle soft delete
-		if !userModel.DeletedAt.IsZero() {
-			user.DeletedAt = &userModel.DeletedAt
-		}
-
-		users = append(users, user)
-	}
-
-	return users, nil
+	// The repository should return entities directly, not models
+	// If the repository returns models, we need to convert them
+	// For now, assuming the repository returns entities
+	return r.repo.GetRoleUsers(ctx, roleID, limit, offset)
 }
 
 func (r *PostgresUserRoleRepository) HasRole(ctx context.Context, userID, roleID uuid.UUID) (bool, error) {

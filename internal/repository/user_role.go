@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
-	"webapi/internal/db/model"
+	"webapi/internal/domain/entities"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -12,8 +13,8 @@ import (
 type UserRoleRepository interface {
 	AssignRoleToUser(ctx context.Context, userID, roleID uuid.UUID) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uuid.UUID) error
-	GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*model.Role, error)
-	GetRoleUsers(ctx context.Context, roleID uuid.UUID, limit, offset int) ([]*model.User, error)
+	GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*entities.Role, error)
+	GetRoleUsers(ctx context.Context, roleID uuid.UUID, limit, offset int) ([]*entities.User, error)
 	HasRole(ctx context.Context, userID, roleID uuid.UUID) (bool, error)
 	HasAnyRole(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID) (bool, error)
 	GetUserRoleIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
@@ -48,7 +49,7 @@ func (r *UserRoleRepositoryImpl) RemoveRoleFromUser(ctx context.Context, userID,
 	return err
 }
 
-func (r *UserRoleRepositoryImpl) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*model.Role, error) {
+func (r *UserRoleRepositoryImpl) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*entities.Role, error) {
 	query := `SELECT r.id, r.name, r.slug, r.description, r.is_active, r.created_at, r.updated_at, r.created_by, r.updated_by
 			  FROM roles r
 			  INNER JOIN user_roles ur ON r.id = ur.role_id
@@ -61,22 +62,20 @@ func (r *UserRoleRepositoryImpl) GetUserRoles(ctx context.Context, userID uuid.U
 	}
 	defer rows.Close()
 
-	var roles []*model.Role
+	var roles []*entities.Role
 	for rows.Next() {
-		var role model.Role
-		err := rows.Scan(&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
-			&role.CreatedAt, &role.UpdatedAt, &role.CreatedBy, &role.UpdatedBy)
+		role, err := r.scanRoleRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		roles = append(roles, &role)
+		roles = append(roles, role)
 	}
 
 	return roles, nil
 }
 
-func (r *UserRoleRepositoryImpl) GetRoleUsers(ctx context.Context, roleID uuid.UUID, limit, offset int) ([]*model.User, error) {
-	query := `SELECT u.id, u.username, u.email, u.phone, u.password, u.email_verified, u.phone_verified, 
+func (r *UserRoleRepositoryImpl) GetRoleUsers(ctx context.Context, roleID uuid.UUID, limit, offset int) ([]*entities.User, error) {
+	query := `SELECT u.id, u.username, u.email, u.phone, u.password, u.email_verified_at, u.phone_verified_at, 
 			  u.created_at, u.updated_at, u.deleted_at, u.created_by, u.updated_by, u.deleted_by
 			  FROM users u
 			  INNER JOIN user_roles ur ON u.id = ur.user_id
@@ -89,19 +88,49 @@ func (r *UserRoleRepositoryImpl) GetRoleUsers(ctx context.Context, roleID uuid.U
 	}
 	defer rows.Close()
 
-	var users []*model.User
+	var users []*entities.User
 	for rows.Next() {
-		var user model.User
-		err := rows.Scan(&user.ID, &user.UserName, &user.Email, &user.Phone, &user.Password,
-			&user.EmailVerified, &user.PhoneVerified, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt,
-			&user.CreatedBy, &user.UpdatedBy, &user.DeletedBy)
+		user, err := r.scanUserRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, &user)
+		users = append(users, user)
 	}
 
 	return users, nil
+}
+
+// scanRoleRow is a helper function to scan a role row from database
+func (r *UserRoleRepositoryImpl) scanRoleRow(rows pgx.Rows) (*entities.Role, error) {
+	var role entities.Role
+	var createdBy, updatedBy string
+
+	err := rows.Scan(
+		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
+		&role.CreatedAt, &role.UpdatedAt, &createdBy, &updatedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &role, nil
+}
+
+// scanUserRow is a helper function to scan a user row from database
+func (r *UserRoleRepositoryImpl) scanUserRow(rows pgx.Rows) (*entities.User, error) {
+	var user entities.User
+	var createdBy, updatedBy, deletedBy string
+
+	err := rows.Scan(
+		&user.ID, &user.UserName, &user.Email, &user.Phone, &user.Password,
+		&user.EmailVerifiedAt, &user.PhoneVerifiedAt, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt,
+		&createdBy, &updatedBy, &deletedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *UserRoleRepositoryImpl) HasRole(ctx context.Context, userID, roleID uuid.UUID) (bool, error) {
@@ -167,4 +196,4 @@ func (r *UserRoleRepositoryImpl) CountUsersByRole(ctx context.Context, roleID uu
 	var count int64
 	err := r.pgxPool.QueryRow(ctx, query, roleID).Scan(&count)
 	return count, err
-} 
+}

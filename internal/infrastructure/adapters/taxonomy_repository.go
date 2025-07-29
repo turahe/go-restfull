@@ -2,231 +2,497 @@ package adapters
 
 import (
 	"context"
-	"webapi/internal/db/model"
 	"webapi/internal/domain/entities"
 	"webapi/internal/domain/repositories"
-	"webapi/internal/repository"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
 type PostgresTaxonomyRepository struct {
-	repo repository.TaxonomyRepository
+	pgxPool     *pgxpool.Pool
+	redisClient redis.Cmdable
 }
 
 func NewPostgresTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.TaxonomyRepository {
 	return &PostgresTaxonomyRepository{
-		repo: repository.NewTaxonomyRepository(db, redisClient),
+		pgxPool:     db,
+		redisClient: redisClient,
 	}
 }
 
 func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
-	taxonomyModel := &model.Taxonomy{
-		ID:          taxonomy.ID.String(),
-		Name:        taxonomy.Name,
-		Slug:        taxonomy.Slug,
-		Code:        taxonomy.Code,
-		Description: taxonomy.Description,
-		ParentID:    nil, // Will be set below
-		RecordLeft:  taxonomy.RecordLeft,
-		RecordRight: taxonomy.RecordRight,
-		RecordDepth: taxonomy.RecordDepth,
-		CreatedAt:   taxonomy.CreatedAt,
-		UpdatedAt:   taxonomy.UpdatedAt,
-		CreatedBy:   "",
-		UpdatedBy:   "",
+	tx, err := r.pgxPool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// If this is a root taxonomy (no parent)
+	if taxonomy.ParentID == nil {
+		// Get the maximum right value and add 1 for the new node
+		var maxRight int64
+		err = tx.QueryRow(ctx, `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies WHERE deleted_at IS NULL`).Scan(&maxRight)
+		if err != nil {
+			return err
+		}
+
+		taxonomy.RecordLeft = maxRight + 1
+		taxonomy.RecordRight = maxRight + 2
+		taxonomy.RecordDepth = 0
+	} else {
+		// Get the parent's right value
+		var parentRight int64
+		err = tx.QueryRow(ctx, `SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentRight)
+		if err != nil {
+			return err
+		}
+
+		// Make space for the new node by shifting all nodes to the right
+		_, err = tx.Exec(ctx, `
+			UPDATE taxonomies 
+			SET record_left = CASE 
+				WHEN record_left > $1 THEN record_left + 2 
+				ELSE record_left 
+			END,
+			record_right = CASE 
+				WHEN record_right >= $1 THEN record_right + 2 
+				ELSE record_right 
+			END
+			WHERE deleted_at IS NULL
+		`, parentRight)
+		if err != nil {
+			return err
+		}
+
+		taxonomy.RecordLeft = parentRight
+		taxonomy.RecordRight = parentRight + 1
+		taxonomy.RecordDepth = 0 // Will be calculated based on parent
 	}
 
-	// Handle parent ID
+	// Insert the new taxonomy
+	query := `
+		INSERT INTO taxonomies (id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, created_by, updated_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`
+
+	parentIDStr := ""
 	if taxonomy.ParentID != nil {
-		parentIDStr := taxonomy.ParentID.String()
-		taxonomyModel.ParentID = &parentIDStr
+		parentIDStr = taxonomy.ParentID.String()
 	}
 
-	// Handle deleted at
-	if taxonomy.DeletedAt != nil {
-		taxonomyModel.DeletedAt = taxonomy.DeletedAt
+	_, err = tx.Exec(ctx, query,
+		taxonomy.ID.String(), taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
+		parentIDStr, taxonomy.RecordLeft, taxonomy.RecordRight, taxonomy.RecordDepth,
+		taxonomy.CreatedAt, taxonomy.UpdatedAt, "", "", // created_by, updated_by
+	)
+
+	if err != nil {
+		return err
 	}
 
-	return r.repo.Create(ctx, taxonomyModel)
+	return tx.Commit(ctx)
 }
 
 func (r *PostgresTaxonomyRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error) {
-	taxonomyModel, err := r.repo.GetByID(ctx, id)
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	var taxonomy entities.Taxonomy
+	var parentIDStr *string
+	var createdBy, updatedBy, deletedBy string
+
+	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
+		&taxonomy.ID, &taxonomy.Name, &taxonomy.Slug, &taxonomy.Code, &taxonomy.Description,
+		&parentIDStr, &taxonomy.RecordLeft, &taxonomy.RecordRight, &taxonomy.RecordDepth,
+		&taxonomy.CreatedAt, &taxonomy.UpdatedAt, &taxonomy.DeletedAt, &createdBy, &updatedBy, &deletedBy,
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return r.convertModelToEntity(taxonomyModel), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error) {
-	taxonomyModel, err := r.repo.GetBySlug(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelToEntity(taxonomyModel), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetAll(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetRootTaxonomies(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetChildren(ctx, parentID)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetHierarchy(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetDescendants(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetDescendants(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetAncestors(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) GetSiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.GetSiblings(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
-	taxonomyModels, err := r.repo.Search(ctx, query, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.convertModelsToEntities(taxonomyModels), nil
-}
-
-func (r *PostgresTaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
-	taxonomyModel := &model.Taxonomy{
-		ID:          taxonomy.ID.String(),
-		Name:        taxonomy.Name,
-		Slug:        taxonomy.Slug,
-		Code:        taxonomy.Code,
-		Description: taxonomy.Description,
-		ParentID:    nil, // Will be set below
-		RecordLeft:  taxonomy.RecordLeft,
-		RecordRight: taxonomy.RecordRight,
-		RecordDepth: taxonomy.RecordDepth,
-		CreatedAt:   taxonomy.CreatedAt,
-		UpdatedAt:   taxonomy.UpdatedAt,
-		CreatedBy:   "",
-		UpdatedBy:   "",
-	}
-
-	// Handle parent ID
-	if taxonomy.ParentID != nil {
-		parentIDStr := taxonomy.ParentID.String()
-		taxonomyModel.ParentID = &parentIDStr
-	}
-
-	// Handle deleted at
-	if taxonomy.DeletedAt != nil {
-		taxonomyModel.DeletedAt = taxonomy.DeletedAt
-	}
-
-	return r.repo.Update(ctx, taxonomyModel)
-}
-
-func (r *PostgresTaxonomyRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.repo.Delete(ctx, id)
-}
-
-func (r *PostgresTaxonomyRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
-	return r.repo.ExistsBySlug(ctx, slug)
-}
-
-func (r *PostgresTaxonomyRepository) Count(ctx context.Context) (int64, error) {
-	return r.repo.Count(ctx)
-}
-
-// convertModelToEntity converts a taxonomy model to entity
-func (r *PostgresTaxonomyRepository) convertModelToEntity(taxonomyModel *model.Taxonomy) *entities.Taxonomy {
-	taxonomyID, _ := uuid.Parse(taxonomyModel.ID)
-
-	taxonomy := &entities.Taxonomy{
-		ID:          taxonomyID,
-		Name:        taxonomyModel.Name,
-		Slug:        taxonomyModel.Slug,
-		Code:        taxonomyModel.Code,
-		Description: taxonomyModel.Description,
-		ParentID:    nil, // Will be set below
-		RecordLeft:  taxonomyModel.RecordLeft,
-		RecordRight: taxonomyModel.RecordRight,
-		RecordDepth: taxonomyModel.RecordDepth,
-		CreatedAt:   taxonomyModel.CreatedAt,
-		UpdatedAt:   taxonomyModel.UpdatedAt,
-		Children:    []*entities.Taxonomy{},
-	}
-
-	// Handle parent ID
-	if taxonomyModel.ParentID != nil {
-		if parentID, err := uuid.Parse(*taxonomyModel.ParentID); err == nil {
+	// Convert parent ID string to UUID
+	if parentIDStr != nil {
+		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 			taxonomy.ParentID = &parentID
 		}
 	}
 
-	// Handle deleted at
-	if taxonomyModel.DeletedAt != nil {
-		taxonomy.DeletedAt = taxonomyModel.DeletedAt
-	}
-
-	return taxonomy
+	return &taxonomy, nil
 }
 
-// convertModelsToEntities converts taxonomy models to entities
-func (r *PostgresTaxonomyRepository) convertModelsToEntities(taxonomyModels []*model.Taxonomy) []*entities.Taxonomy {
-	var result []*entities.Taxonomy
+func (r *PostgresTaxonomyRepository) GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE slug = $1 AND deleted_at IS NULL
+	`
 
-	for _, taxonomyModel := range taxonomyModels {
-		result = append(result, r.convertModelToEntity(taxonomyModel))
+	var taxonomy entities.Taxonomy
+	var parentIDStr *string
+	var createdBy, updatedBy, deletedBy string
+
+	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(
+		&taxonomy.ID, &taxonomy.Name, &taxonomy.Slug, &taxonomy.Code, &taxonomy.Description,
+		&parentIDStr, &taxonomy.RecordLeft, &taxonomy.RecordRight, &taxonomy.RecordDepth,
+		&taxonomy.CreatedAt, &taxonomy.UpdatedAt, &taxonomy.DeletedAt, &createdBy, &updatedBy, &deletedBy,
+	)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return result
+	// Convert parent ID string to UUID
+	if parentIDStr != nil {
+		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
+			taxonomy.ParentID = &parentID
+		}
+	}
+
+	return &taxonomy, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE deleted_at IS NULL
+		ORDER BY record_left ASC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetAllWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+	var sqlQuery string
+	var args []interface{}
+
+	if query == "" {
+		// If no search query, return all taxonomies with pagination
+		sqlQuery = `
+			SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+			FROM taxonomies WHERE deleted_at IS NULL
+			ORDER BY record_left ASC
+			LIMIT $1 OFFSET $2
+		`
+		args = []interface{}{limit, offset}
+	} else {
+		// If search query provided, search with pagination
+		sqlQuery = `
+			SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+			FROM taxonomies 
+			WHERE (name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1 OR code ILIKE $1) AND deleted_at IS NULL
+			ORDER BY record_left ASC
+			LIMIT $2 OFFSET $3
+		`
+		searchTerm := "%" + query + "%"
+		args = []interface{}{searchTerm, limit, offset}
+	}
+
+	rows, err := r.pgxPool.Query(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE parent_id IS NULL AND deleted_at IS NULL
+		ORDER BY record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE parent_id = $1 AND deleted_at IS NULL
+		ORDER BY record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query, parentID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies WHERE deleted_at IS NULL
+		ORDER BY record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetDescendants(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies 
+		WHERE record_left > (SELECT record_left FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		AND record_right < (SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		AND deleted_at IS NULL
+		ORDER BY record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies 
+		WHERE record_left < (SELECT record_left FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		AND record_right > (SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		AND deleted_at IS NULL
+		ORDER BY record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) GetSiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	query := `
+		SELECT t1.id, t1.name, t1.slug, t1.code, t1.description, t1.parent_id, t1.record_left, t1.record_right, t1.record_depth, t1.created_at, t1.updated_at, t1.deleted_at, t1.created_by, t1.updated_by, t1.deleted_by
+		FROM taxonomies t1
+		JOIN taxonomies t2 ON t1.parent_id = t2.parent_id
+		WHERE t2.id = $1 AND t1.id != $1 AND t1.deleted_at IS NULL
+		ORDER BY t1.record_left ASC
+	`
+
+	rows, err := r.pgxPool.Query(ctx, query, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+	searchQuery := `
+		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
+		FROM taxonomies 
+		WHERE (name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1 OR code ILIKE $1) AND deleted_at IS NULL
+		ORDER BY record_left ASC
+		LIMIT $2 OFFSET $3
+	`
+
+	searchTerm := "%" + query + "%"
+	rows, err := r.pgxPool.Query(ctx, searchQuery, searchTerm, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var taxonomies []*entities.Taxonomy
+	for rows.Next() {
+		taxonomy, err := r.scanTaxonomyRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	return taxonomies, nil
+}
+
+func (r *PostgresTaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// For nested set, we need to handle parent changes carefully
+	// This is a simplified update that doesn't change the tree structure
+	query := `
+		UPDATE taxonomies 
+		SET name = $2, slug = $3, code = $4, description = $5, updated_at = $6
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	_, err := r.pgxPool.Exec(ctx, query,
+		taxonomy.ID.String(), taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
+		taxonomy.UpdatedAt,
+	)
+
+	return err
+}
+
+func (r *PostgresTaxonomyRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// Soft delete - mark as deleted
+	query := `
+		UPDATE taxonomies 
+		SET deleted_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	_, err := r.pgxPool.Exec(ctx, query, id.String())
+	return err
+}
+
+func (r *PostgresTaxonomyRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM taxonomies WHERE slug = $1 AND deleted_at IS NULL)`
+	var exists bool
+	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(&exists)
+	return exists, err
+}
+
+func (r *PostgresTaxonomyRepository) Count(ctx context.Context) (int64, error) {
+	query := `SELECT COUNT(*) FROM taxonomies WHERE deleted_at IS NULL`
+	var count int64
+	err := r.pgxPool.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+func (r *PostgresTaxonomyRepository) CountWithSearch(ctx context.Context, query string) (int64, error) {
+	var sqlQuery string
+	var args []interface{}
+
+	if query == "" {
+		sqlQuery = `SELECT COUNT(*) FROM taxonomies WHERE deleted_at IS NULL`
+	} else {
+		sqlQuery = `SELECT COUNT(*) FROM taxonomies WHERE (name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1 OR code ILIKE $1) AND deleted_at IS NULL`
+		searchTerm := "%" + query + "%"
+		args = []interface{}{searchTerm}
+	}
+
+	var count int64
+	err := r.pgxPool.QueryRow(ctx, sqlQuery, args...).Scan(&count)
+	return count, err
+}
+
+// scanTaxonomyRow is a helper function to scan a taxonomy row from database
+func (r *PostgresTaxonomyRepository) scanTaxonomyRow(rows pgx.Rows) (*entities.Taxonomy, error) {
+	var taxonomy entities.Taxonomy
+	var parentIDStr *string
+	var createdBy, updatedBy, deletedBy string
+
+	err := rows.Scan(
+		&taxonomy.ID, &taxonomy.Name, &taxonomy.Slug, &taxonomy.Code, &taxonomy.Description,
+		&parentIDStr, &taxonomy.RecordLeft, &taxonomy.RecordRight, &taxonomy.RecordDepth,
+		&taxonomy.CreatedAt, &taxonomy.UpdatedAt, &taxonomy.DeletedAt, &createdBy, &updatedBy, &deletedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert parent ID string to UUID
+	if parentIDStr != nil {
+		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
+			taxonomy.ParentID = &parentID
+		}
+	}
+
+	return &taxonomy, nil
 }

@@ -2,64 +2,66 @@ package adapters
 
 import (
 	"context"
-	"webapi/internal/db/model"
+	"webapi/internal/domain/entities"
+	"webapi/internal/domain/repositories"
 	"webapi/internal/repository"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
-// JobRepository defines the interface for job operations
-type JobRepository interface {
-	AddJob(ctx context.Context, job model.Job) (jobID uuid.UUID, err error)
-	AddFailedJob(ctx context.Context, job model.FailedJob) (failedJobID int, err error)
-	UpdateJobStatus(ctx context.Context, jobID uuid.UUID, status string) error
-	ResetProcessingJobsToPending(ctx context.Context) error
-	GetJobs(ctx context.Context) ([]model.Job, error)
-	GetUnfinishedJobs(ctx context.Context) ([]model.Job, error)
-	GetFailedJobs(ctx context.Context) ([]model.FailedJob, error)
-	RemoveFailedJob(ctx context.Context, jobID uuid.UUID) error
-}
-
+// PostgresJobRepository implements JobRepository interface
 type PostgresJobRepository struct {
 	repo repository.JobRepository
 }
 
-func NewPostgresJobRepository(db *pgxpool.Pool, redisClient redis.Cmdable) JobRepository {
+// NewPostgresJobRepository creates a new postgres job repository
+func NewPostgresJobRepository(repo repository.JobRepository) repositories.JobRepository {
 	return &PostgresJobRepository{
-		repo: repository.NewJobRepository(db, redisClient),
+		repo: repo,
 	}
 }
 
-func (r *PostgresJobRepository) AddJob(ctx context.Context, job model.Job) (jobID uuid.UUID, err error) {
-	return r.repo.AddJob(ctx, job)
+// CreateJob creates a new job
+func (r *PostgresJobRepository) CreateJob(ctx context.Context, job *entities.Job) error {
+	return r.repo.Create(ctx, job)
 }
 
-func (r *PostgresJobRepository) AddFailedJob(ctx context.Context, job model.FailedJob) (failedJobID int, err error) {
+// GetJob retrieves a job by ID
+func (r *PostgresJobRepository) GetJob(ctx context.Context, jobID uuid.UUID) (*entities.Job, error) {
+	return r.repo.GetByID(ctx, jobID)
+}
+
+// GetJobs retrieves all jobs
+func (r *PostgresJobRepository) GetJobs(ctx context.Context) ([]*entities.Job, error) {
+	return r.repo.GetAll(ctx, 100, 0) // Default limit and offset
+}
+
+// GetUnfinishedJobs retrieves all unfinished jobs
+func (r *PostgresJobRepository) GetUnfinishedJobs(ctx context.Context) ([]*entities.Job, error) {
+	return r.repo.GetUnfinished(ctx)
+}
+
+// UpdateJobStatus updates the status of a job
+func (r *PostgresJobRepository) UpdateJobStatus(ctx context.Context, jobID uuid.UUID, status string) error {
+	return r.repo.UpdateStatus(ctx, jobID, status)
+}
+
+// AddFailedJob adds a failed job to the failed jobs table
+func (r *PostgresJobRepository) AddFailedJob(ctx context.Context, job entities.FailedJob) (failedJobID int, err error) {
 	return r.repo.AddFailedJob(ctx, job)
 }
 
-func (r *PostgresJobRepository) UpdateJobStatus(ctx context.Context, jobID uuid.UUID, status string) error {
-	return r.repo.UpdateJobStatus(ctx, jobID, status)
-}
-
-func (r *PostgresJobRepository) ResetProcessingJobsToPending(ctx context.Context) error {
-	return r.repo.ResetProcessingJobsToPending(ctx)
-}
-
-func (r *PostgresJobRepository) GetJobs(ctx context.Context) ([]model.Job, error) {
-	return r.repo.GetJobs(ctx)
-}
-
-func (r *PostgresJobRepository) GetUnfinishedJobs(ctx context.Context) ([]model.Job, error) {
-	return r.repo.GetUnfinishedJobs(ctx)
-}
-
-func (r *PostgresJobRepository) GetFailedJobs(ctx context.Context) ([]model.FailedJob, error) {
+// GetFailedJobs retrieves all failed jobs
+func (r *PostgresJobRepository) GetFailedJobs(ctx context.Context) ([]entities.FailedJob, error) {
 	return r.repo.GetFailedJobs(ctx)
 }
 
+// RemoveFailedJob removes a failed job
 func (r *PostgresJobRepository) RemoveFailedJob(ctx context.Context, jobID uuid.UUID) error {
 	return r.repo.RemoveFailedJob(ctx, jobID)
+}
+
+// ResetProcessingJobs resets all processing jobs to pending status
+func (r *PostgresJobRepository) ResetProcessingJobs(ctx context.Context) error {
+	return r.repo.ResetProcessing(ctx)
 }

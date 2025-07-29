@@ -2,98 +2,114 @@ package services
 
 import (
 	"context"
-	"time"
-
+	"encoding/json"
+	"fmt"
 	"webapi/internal/application/ports"
-	"webapi/internal/db/model"
+	"webapi/internal/domain/entities"
 	"webapi/internal/domain/repositories"
-	"webapi/internal/job"
 
 	"github.com/google/uuid"
 )
 
+// JobServiceImpl implements JobService interface
 type JobServiceImpl struct {
 	jobRepository repositories.JobRepository
 }
 
+// NewJobService creates a new job service
 func NewJobService(jobRepository repositories.JobRepository) ports.JobService {
 	return &JobServiceImpl{
 		jobRepository: jobRepository,
 	}
 }
 
-func (s *JobServiceImpl) CreateJob(ctx context.Context, queue string, handlerName string, payload interface{}, maxAttempts int, delay int) (*model.Job, error) {
-	jobInstance, err := job.NewJob(handlerName, payload, maxAttempts, delay)
+// CreateJob creates a new job in the queue
+func (s *JobServiceImpl) CreateJob(ctx context.Context, queue string, handlerName string, payload interface{}, maxAttempts int, delay int) (*entities.Job, error) {
+	// Convert payload to JSON string
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	// Create job entity
+	job, err := entities.NewJob(queue, handlerName, string(payloadBytes), maxAttempts, delay)
 	if err != nil {
 		return nil, err
 	}
 
-	modelJob := &model.Job{
-		ID:          jobInstance.ID,
-		Queue:       queue,
-		HandlerName: jobInstance.HandlerName,
-		Payload:     jobInstance.Payload,
-		MaxAttempts: jobInstance.MaxAttempts,
-		Delay:       jobInstance.Delay,
-		Status:      "pending",
-		CreatedAt:   jobInstance.CreatedAt,
-		UpdatedAt:   jobInstance.CreatedAt,
+	// Save to repository
+	err = s.jobRepository.CreateJob(ctx, job)
+	if err != nil {
+		return nil, err
 	}
 
-	_, err = s.jobRepository.AddJob(ctx, *modelJob)
-	return modelJob, err
+	return job, nil
 }
 
-func (s *JobServiceImpl) GetJob(ctx context.Context, jobID uuid.UUID) (*model.Job, error) {
-	jobs, err := s.jobRepository.GetJobs(ctx)
+// GetJob retrieves a job by ID
+func (s *JobServiceImpl) GetJob(ctx context.Context, jobID uuid.UUID) (*entities.Job, error) {
+	return s.jobRepository.GetJob(ctx, jobID)
+}
+
+// GetJobs retrieves all jobs
+func (s *JobServiceImpl) GetJobs(ctx context.Context) ([]*entities.Job, error) {
+	return s.jobRepository.GetJobs(ctx)
+}
+
+// GetUnfinishedJobs retrieves all unfinished jobs
+func (s *JobServiceImpl) GetUnfinishedJobs(ctx context.Context) ([]*entities.Job, error) {
+	return s.jobRepository.GetUnfinishedJobs(ctx)
+}
+
+// UpdateJobStatus updates the status of a job
+func (s *JobServiceImpl) UpdateJobStatus(ctx context.Context, jobID uuid.UUID, status string) error {
+	return s.jobRepository.UpdateJobStatus(ctx, jobID, status)
+}
+
+// ResetProcessingJobs resets all processing jobs to pending status
+func (s *JobServiceImpl) ResetProcessingJobs(ctx context.Context) error {
+	return s.jobRepository.ResetProcessingJobs(ctx)
+}
+
+// ProcessJobs processes pending jobs
+func (s *JobServiceImpl) ProcessJobs(ctx context.Context) error {
+	// Get unfinished jobs
+	unfinishedJobs, err := s.jobRepository.GetUnfinishedJobs(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	for _, job := range jobs {
-		if job.ID == jobID {
-			return &job, nil
+	// Process each job
+	for _, job := range unfinishedJobs {
+		if job.IsPending() {
+			// Mark as processing
+			job.MarkAsProcessing()
+			err = s.jobRepository.UpdateJobStatus(ctx, job.ID, job.Status)
+			if err != nil {
+				return err
+			}
+
+			// TODO: Execute job handler based on HandlerName
+			// For now, just mark as completed
+			job.MarkAsCompleted()
+			err = s.jobRepository.UpdateJobStatus(ctx, job.ID, job.Status)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
-func (s *JobServiceImpl) GetJobs(ctx context.Context) ([]*model.Job, error) {
-	jobs, err := s.jobRepository.GetJobs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []*model.Job
-	for _, job := range jobs {
-		result = append(result, &job)
-	}
-
-	return result, nil
-}
-
-func (s *JobServiceImpl) GetUnfinishedJobs(ctx context.Context) ([]*model.Job, error) {
-	jobs, err := s.jobRepository.GetUnfinishedJobs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []*model.Job
-	for _, job := range jobs {
-		result = append(result, &job)
-	}
-
-	return result, nil
-}
-
-func (s *JobServiceImpl) GetFailedJobs(ctx context.Context) ([]*model.FailedJob, error) {
+// GetFailedJobs retrieves all failed jobs
+func (s *JobServiceImpl) GetFailedJobs(ctx context.Context) ([]*entities.FailedJob, error) {
 	failedJobs, err := s.jobRepository.GetFailedJobs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*model.FailedJob
+	var result []*entities.FailedJob
 	for _, job := range failedJobs {
 		result = append(result, &job)
 	}
@@ -101,17 +117,14 @@ func (s *JobServiceImpl) GetFailedJobs(ctx context.Context) ([]*model.FailedJob,
 	return result, nil
 }
 
-func (s *JobServiceImpl) UpdateJobStatus(ctx context.Context, jobID uuid.UUID, status string) error {
-	return s.jobRepository.UpdateJobStatus(ctx, jobID, status)
-}
-
+// RetryFailedJob retries a failed job
 func (s *JobServiceImpl) RetryFailedJob(ctx context.Context, jobID uuid.UUID) error {
 	failedJobs, err := s.jobRepository.GetFailedJobs(ctx)
 	if err != nil {
 		return err
 	}
 
-	var failedJob *model.FailedJob
+	var failedJob *entities.FailedJob
 	for _, fj := range failedJobs {
 		if fj.JobID == jobID {
 			failedJob = &fj
@@ -120,50 +133,32 @@ func (s *JobServiceImpl) RetryFailedJob(ctx context.Context, jobID uuid.UUID) er
 	}
 
 	if failedJob == nil {
-		return nil
+		return fmt.Errorf("failed job not found")
 	}
 
-	job := &model.Job{
-		ID:          uuid.New(),
-		Queue:       failedJob.Queue,
-		HandlerName: "retry",
-		Payload:     failedJob.Payload,
-		MaxAttempts: 3,
-		Delay:       0,
-		Status:      "pending",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-
-	_, err = s.jobRepository.AddJob(ctx, *job)
+	// Create a new job from the failed job
+	newJob, err := entities.NewJob(
+		failedJob.Queue,
+		failedJob.HandlerName,
+		failedJob.Payload,
+		failedJob.MaxAttempts,
+		failedJob.Delay,
+	)
 	if err != nil {
 		return err
 	}
 
+	// Save the new job
+	err = s.jobRepository.CreateJob(ctx, newJob)
+	if err != nil {
+		return err
+	}
+
+	// Remove the failed job
 	return s.jobRepository.RemoveFailedJob(ctx, jobID)
 }
 
+// RemoveFailedJob removes a failed job
 func (s *JobServiceImpl) RemoveFailedJob(ctx context.Context, jobID uuid.UUID) error {
 	return s.jobRepository.RemoveFailedJob(ctx, jobID)
-}
-
-func (s *JobServiceImpl) ResetProcessingJobs(ctx context.Context) error {
-	return s.jobRepository.ResetProcessingJobsToPending(ctx)
-}
-
-func (s *JobServiceImpl) ProcessJobs(ctx context.Context) error {
-	jobs, err := s.GetUnfinishedJobs(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, job := range jobs {
-		if job.Status == "pending" {
-			s.UpdateJobStatus(ctx, job.ID, "processing")
-			// Process job logic here
-			s.UpdateJobStatus(ctx, job.ID, "completed")
-		}
-	}
-
-	return nil
 }

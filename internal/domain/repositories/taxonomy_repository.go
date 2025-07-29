@@ -13,6 +13,7 @@ type TaxonomyRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error)
 	GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error)
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error)
+	GetAllWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error)
 	GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error)
 	GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error)
 	GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error)
@@ -24,4 +25,5 @@ type TaxonomyRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	ExistsBySlug(ctx context.Context, slug string) (bool, error)
 	Count(ctx context.Context) (int64, error)
-} 
+	CountWithSearch(ctx context.Context, query string) (int64, error)
+}

@@ -2,8 +2,7 @@ package adapters
 
 import (
 	"context"
-	"time"
-	"webapi/internal/db/model"
+	"strings"
 	"webapi/internal/domain/entities"
 	"webapi/internal/domain/repositories"
 	"webapi/internal/repository"
@@ -24,121 +23,118 @@ func NewPostgresTagRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repos
 }
 
 func (r *PostgresTagRepository) Create(ctx context.Context, tag *entities.Tag) error {
-	// Convert domain entity to model
-	tagModel := &model.Tag{
-		ID:        tag.ID.String(),
-		Name:      tag.Name,
-		Slug:      tag.Slug,
-		CreatedBy: "",
-		UpdatedBy: "",
-		DeletedBy: "",
-		DeletedAt: time.Time{},
-	}
-
-	return r.repo.Create(ctx, tagModel)
+	// The repository already works with entities, so we can pass through directly
+	return r.repo.Create(ctx, tag)
 }
 
 func (r *PostgresTagRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Tag, error) {
-	tagModel, err := r.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert model to domain entity
-	tagID, _ := uuid.Parse(tagModel.ID)
-	var deletedAt *time.Time
-	if !tagModel.DeletedAt.IsZero() {
-		deletedAt = &tagModel.DeletedAt
-	}
-
-	tag := &entities.Tag{
-		ID:          tagID,
-		Name:        tagModel.Name,
-		Slug:        tagModel.Slug,
-		Description: "",
-		Color:       "",
-		CreatedAt:   time.Now(), // Not available in model
-		UpdatedAt:   time.Now(), // Not available in model
-		DeletedAt:   deletedAt,
-	}
-
-	return tag, nil
+	// The repository already works with entities, so we can pass through directly
+	return r.repo.GetByID(ctx, id)
 }
 
 func (r *PostgresTagRepository) GetBySlug(ctx context.Context, slug string) (*entities.Tag, error) {
-	// This would need to be implemented based on your specific requirements
-	// For now, returning nil as the existing repository doesn't have this method
-	return nil, nil
-}
-
-func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Tag, error) {
-	tagModels, err := r.repo.GetAll(ctx)
+	// This method is not available in the repository interface
+	// We need to implement it by filtering the results
+	allTags, err := r.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert models to domain entities
-	var tags []*entities.Tag
-	for _, tagModel := range tagModels {
-		tagID, _ := uuid.Parse(tagModel.ID)
-		var deletedAt *time.Time
-		if !tagModel.DeletedAt.IsZero() {
-			deletedAt = &tagModel.DeletedAt
+	for _, tag := range allTags {
+		if tag.Slug == slug {
+			return tag, nil
 		}
-
-		tags = append(tags, &entities.Tag{
-			ID:          tagID,
-			Name:        tagModel.Name,
-			Slug:        tagModel.Slug,
-			Description: "",
-			Color:       "",
-			CreatedAt:   time.Now(), // Not available in model
-			UpdatedAt:   time.Now(), // Not available in model
-			DeletedAt:   deletedAt,
-		})
 	}
 
-	return tags, nil
+	return nil, nil // Not found
+}
+
+func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Tag, error) {
+	// The repository method doesn't take limit and offset parameters
+	// We need to get all tags and then apply pagination
+	allTags, err := r.repo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply pagination manually
+	start := offset
+	end := offset + limit
+	if start >= len(allTags) {
+		return []*entities.Tag{}, nil
+	}
+	if end > len(allTags) {
+		end = len(allTags)
+	}
+
+	return allTags[start:end], nil
 }
 
 func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Tag, error) {
-	// This would need to be implemented based on your specific requirements
-	// For now, returning empty slice as the existing repository doesn't have this method
-	return []*entities.Tag{}, nil
+	// This method is not available in the repository interface
+	// We need to implement it by searching through all tags
+	allTags, err := r.repo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var searchResults []*entities.Tag
+	queryLower := strings.ToLower(query)
+	for _, tag := range allTags {
+		if strings.Contains(strings.ToLower(tag.Name), queryLower) ||
+			strings.Contains(strings.ToLower(tag.Slug), queryLower) ||
+			strings.Contains(strings.ToLower(tag.Description), queryLower) {
+			searchResults = append(searchResults, tag)
+		}
+	}
+
+	// Apply pagination to search results
+	start := offset
+	end := offset + limit
+	if start >= len(searchResults) {
+		return []*entities.Tag{}, nil
+	}
+	if end > len(searchResults) {
+		end = len(searchResults)
+	}
+
+	return searchResults[start:end], nil
 }
 
 func (r *PostgresTagRepository) Update(ctx context.Context, tag *entities.Tag) error {
-	// Convert domain entity to model
-	var deletedAt time.Time
-	if tag.DeletedAt != nil {
-		deletedAt = *tag.DeletedAt
-	}
-
-	tagModel := &model.Tag{
-		ID:        tag.ID.String(),
-		Name:      tag.Name,
-		Slug:      tag.Slug,
-		CreatedBy: "",
-		UpdatedBy: "",
-		DeletedBy: "",
-		DeletedAt: deletedAt,
-	}
-
-	return r.repo.Update(ctx, tagModel)
+	// The repository already works with entities, so we can pass through directly
+	return r.repo.Update(ctx, tag)
 }
 
 func (r *PostgresTagRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// The repository already works with entities, so we can pass through directly
 	return r.repo.Delete(ctx, id)
 }
 
 func (r *PostgresTagRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
-	// This would need to be implemented based on your specific requirements
-	// For now, returning false as the existing repository doesn't have this method
+	// This method is not available in the repository interface
+	// We need to implement it by checking if a tag with the slug exists
+	allTags, err := r.repo.GetAll(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for _, tag := range allTags {
+		if tag.Slug == slug {
+			return true, nil
+		}
+	}
+
 	return false, nil
 }
 
 func (r *PostgresTagRepository) Count(ctx context.Context) (int64, error) {
-	// This would need to be implemented based on your specific requirements
-	// For now, returning 0 as the existing repository doesn't have this method
-	return 0, nil
+	// This method is not available in the repository interface
+	// We need to implement it by counting all tags
+	allTags, err := r.repo.GetAll(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(len(allTags)), nil
 }

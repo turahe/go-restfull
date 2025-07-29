@@ -22,10 +22,10 @@ var createMediaTable = &Migration{
 			    "disk" varchar(255)  NOT NULL,
 			    "mime_type" varchar(255)  NOT NULL,
 			    "size" int4 NOT NULL,
-			    "record_left" int8,
-			    "record_right" int8,
-			    "record_depth" int8,
-			    "record_ordering" int8,
+			    "record_left" INTEGER NULL,
+			    "record_right" INTEGER NULL,
+			    "record_depth" INTEGER NULL,
+			    "record_ordering" INTEGER NULL,
 			    "parent_id" UUID NULL,
 			    "custom_attributes" varchar(255),
 			    "created_by" UUID NULL,
@@ -37,7 +37,28 @@ var createMediaTable = &Migration{
 			    CONSTRAINT "media_pkey" PRIMARY KEY ("id"),
 			    CONSTRAINT "media_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "media_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-			    CONSTRAINT "media_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION
+			    CONSTRAINT "media_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "media_parent_id_foreign" FOREIGN KEY ("parent_id") REFERENCES "media" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "media_record_left_right_check" CHECK ("record_left" < "record_right"),
+				CONSTRAINT "media_record_ordering_check" CHECK ("record_ordering" >= 0),
+				CONSTRAINT "media_record_depth_check" CHECK ("record_depth" >= 0),
+				CONSTRAINT "media_status_check" CHECK ("status" IN ('active', 'inactive', 'suspended')),
+				CONSTRAINT "media_code_check" CHECK ("code" IS NOT NULL),
+				CONSTRAINT "media_slug_check" CHECK ("slug" IS NOT NULL),
+				CONSTRAINT "media_name_check" CHECK ("name" IS NOT NULL),
+				CONSTRAINT "media_file_name_check" CHECK ("file_name" IS NOT NULL),
+				CONSTRAINT "media_disk_check" CHECK ("disk" IS NOT NULL),
+				CONSTRAINT "media_mime_type_check" CHECK ("mime_type" IS NOT NULL),
+				CONSTRAINT "media_size_check" CHECK ("size" IS NOT NULL),
+				CONSTRAINT "media_created_by_check" CHECK ("created_by" IS NOT NULL),
+				CONSTRAINT "media_updated_by_check" CHECK ("updated_by" IS NOT NULL),
+				-- Create indexes for nested set operations
+				CREATE INDEX IF NOT EXISTS "media_record_left_idx" ON "media" ("record_left");
+				CREATE INDEX IF NOT EXISTS "media_record_right_idx" ON "media" ("record_right");
+				CREATE INDEX IF NOT EXISTS "media_record_ordering_idx" ON "media" ("record_ordering");
+				CREATE INDEX IF NOT EXISTS "media_record_depth_idx" ON "media" ("record_depth");
+				CREATE INDEX IF NOT EXISTS "media_parent_id_idx" ON "media" ("parent_id");
+				CREATE INDEX IF NOT EXISTS "media_status_idx" ON "media" ("status");
 			);
 			
 			CREATE TABLE IF NOT EXISTS mediables (

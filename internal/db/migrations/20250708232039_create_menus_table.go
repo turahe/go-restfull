@@ -39,7 +39,20 @@ var createMenusTable20250708232039 = &Migration{
 				CONSTRAINT "menus_record_left_check" CHECK ("record_left" >= 0),
 				CONSTRAINT "menus_record_right_check" CHECK ("record_right" >= 0),
 				CONSTRAINT "menus_record_ordering_check" CHECK ("record_ordering" >= 0),
-				CONSTRAINT "menus_record_left_right_check" CHECK ("record_right" > "record_left")
+				CONSTRAINT "menus_record_left_right_check" CHECK ("record_right" > "record_left"),
+				CONSTRAINT "menus_is_active_check" CHECK ("is_active" IN (TRUE, FALSE)),
+				CONSTRAINT "menus_is_visible_check" CHECK ("is_visible" IN (TRUE, FALSE)),
+				CONSTRAINT "menus_target_check" CHECK ("target" IN ('_self', '_blank', '_parent', '_top')),
+				CONSTRAINT "menus_created_by_check" CHECK ("created_by" IS NOT NULL),
+				CONSTRAINT "menus_updated_by_check" CHECK ("updated_by" IS NOT NULL),
+				CONSTRAINT "menus_deleted_by_check" CHECK ("deleted_by" IS NOT NULL),
+				-- Create indexes for nested set operations
+				CREATE INDEX IF NOT EXISTS "menus_record_left_idx" ON "menus" ("record_left");
+				CREATE INDEX IF NOT EXISTS "menus_record_right_idx" ON "menus" ("record_right");
+				CREATE INDEX IF NOT EXISTS "menus_record_ordering_idx" ON "menus" ("record_ordering");
+				CREATE INDEX IF NOT EXISTS "menus_parent_id_idx" ON "menus" ("parent_id");
+				CREATE INDEX IF NOT EXISTS "menus_is_active_idx" ON "menus" ("is_active");
+				CREATE INDEX IF NOT EXISTS "menus_is_visible_idx" ON "menus" ("is_visible");
 			);
 		`)
 		if err != nil {

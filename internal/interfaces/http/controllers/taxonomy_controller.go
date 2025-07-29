@@ -1,191 +1,472 @@
 package controllers
 
 import (
-	"math"
 	"net/http"
-	"time"
+	"strconv"
 
-	"webapi/internal/db/model"
-	"webapi/internal/http/response"
-	"webapi/internal/repository"
+	"webapi/internal/application/ports"
+	"webapi/internal/interfaces/http/requests"
+	"webapi/internal/interfaces/http/responses"
+
+	"webapi/internal/dto"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
-type TaxonomyHandler struct {
-	Repo repository.TaxonomyRepository
+type TaxonomyController struct {
+	taxonomyService ports.TaxonomyService
 }
 
-func NewTaxonomyHandler(repo repository.TaxonomyRepository) *TaxonomyHandler {
-	return &TaxonomyHandler{
-		Repo: repo,
+func NewTaxonomyController(taxonomyService ports.TaxonomyService) *TaxonomyController {
+	return &TaxonomyController{
+		taxonomyService: taxonomyService,
 	}
 }
 
-// @Summary Create taxonomy
-// @Description Create a new taxonomy
+func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
+	var req requests.CreateTaxonomyRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body",
+		})
+	}
+
+	if err := req.Validate(); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	var parentID *uuid.UUID
+	if req.ParentID != "" {
+		parsedID, err := uuid.Parse(req.ParentID)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Invalid parent ID format",
+			})
+		}
+		parentID = &parsedID
+	}
+
+	taxonomy, err := c.taxonomyService.CreateTaxonomy(
+		ctx.Context(),
+		req.Name,
+		req.Slug,
+		req.Code,
+		req.Description,
+		parentID,
+	)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomy,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
+	}
+
+	taxonomy, err := c.taxonomyService.GetTaxonomyByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Taxonomy not found",
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomy,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
+	slug := ctx.Params("slug")
+	if slug == "" {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Slug is required",
+		})
+	}
+
+	taxonomy, err := c.taxonomyService.GetTaxonomyBySlug(ctx.Context(), slug)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Taxonomy not found",
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomy,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
+	limitStr := ctx.Query("limit", "10")
+	offsetStr := ctx.Query("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid limit parameter",
+		})
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid offset parameter",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.GetAllTaxonomies(ctx.Context(), limit, offset)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
+	taxonomies, err := c.taxonomyService.GetRootTaxonomies(ctx.Context())
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
+	taxonomies, err := c.taxonomyService.GetTaxonomyHierarchy(ctx.Context())
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.GetTaxonomyChildren(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.GetTaxonomyDescendants(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.GetTaxonomyAncestors(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.GetTaxonomySiblings(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
+	query := ctx.Query("q", "")
+	if query == "" {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Search query is required",
+		})
+	}
+
+	limitStr := ctx.Query("limit", "10")
+	offsetStr := ctx.Query("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid limit parameter",
+		})
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid offset parameter",
+		})
+	}
+
+	taxonomies, err := c.taxonomyService.SearchTaxonomies(ctx.Context(), query, limit, offset)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomies,
+	})
+}
+
+// SearchTaxonomiesWithPagination handles GET /v1/taxonomies/search requests with unified response
+// @Summary Search taxonomies with pagination
+// @Description Search taxonomies with pagination and return unified response
 // @Tags taxonomies
 // @Accept json
 // @Produce json
-// @Param taxonomy body model.Taxonomy true "Taxonomy info"
-// @Success 201 {object} response.CommonResponse
-// @Failure 400 {object} response.CommonResponse
-// @Router /v1/taxonomies [post]
-func (h *TaxonomyHandler) CreateTaxonomy(c *fiber.Ctx) error {
-	var req model.Taxonomy
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(response.CommonResponse{ResponseCode: http.StatusBadRequest, ResponseMessage: err.Error()})
+// @Param query query string false "Search query"
+// @Param page query int false "Page number (default: 1)"
+// @Param per_page query int false "Items per page (default: 10, max: 100)"
+// @Param sort_by query string false "Sort field (default: record_left)"
+// @Param sort_desc query bool false "Sort descending (default: false)"
+// @Success 200 {object} dto.TaxonomySearchResponse "Taxonomies with pagination"
+// @Failure 400 {object} responses.ErrorResponse "Bad request"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /taxonomies/search [get]
+func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) error {
+	// Parse query parameters
+	query := ctx.Query("query", "")
+	pageStr := ctx.Query("page", "1")
+	perPageStr := ctx.Query("per_page", "10")
+	sortBy := ctx.Query("sort_by", "record_left")
+	sortDescStr := ctx.Query("sort_desc", "false")
+
+	// Parse pagination parameters
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
 	}
-	if req.ID == "" {
-		req.ID = uuid.New().String()
+
+	perPage, err := strconv.Atoi(perPageStr)
+	if err != nil || perPage < 1 {
+		perPage = 10
 	}
-	req.CreatedAt = time.Now()
-	req.UpdatedAt = time.Now()
-	if err := h.Repo.Create(c.Context(), &req); err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(response.CommonResponse{ResponseCode: http.StatusInternalServerError, ResponseMessage: err.Error()})
+	if perPage > 100 {
+		perPage = 100
 	}
-	return c.Status(http.StatusCreated).JSON(response.CommonResponse{ResponseCode: http.StatusCreated, ResponseMessage: "Created", Data: req})
+
+	// Parse sort direction
+	sortDesc := sortDescStr == "true" || sortDescStr == "1"
+
+	// Create search request
+	searchRequest := &dto.TaxonomySearchRequest{
+		Query:    query,
+		Page:     page,
+		PerPage:  perPage,
+		SortBy:   sortBy,
+		SortDesc: sortDesc,
+	}
+
+	// Call service method
+	response, err := c.taxonomyService.SearchTaxonomiesWithPagination(ctx.Context(), searchRequest)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to search taxonomies: " + err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Taxonomies retrieved successfully",
+		Data:    response,
+	})
 }
 
-// @Summary Get taxonomy by ID
-// @Description Get a taxonomy by its ID
-// @Tags taxonomies
-// @Produce json
-// @Param id path string true "Taxonomy UUID"
-// @Success 200 {object} response.CommonResponse
-// @Failure 404 {object} response.CommonResponse
-// @Router /v1/taxonomies/{id} [get]
-func (h *TaxonomyHandler) GetTaxonomyByID(c *fiber.Ctx) error {
-	idStr := c.Params("id")
+func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(response.CommonResponse{ResponseCode: http.StatusBadRequest, ResponseMessage: "Invalid ID"})
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
 	}
-	tax, err := h.Repo.GetByID(c.Context(), id)
+
+	var req requests.UpdateTaxonomyRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body",
+		})
+	}
+
+	if err := req.Validate(); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	var parentID *uuid.UUID
+	if req.ParentID != "" {
+		parsedID, err := uuid.Parse(req.ParentID)
+		if err != nil {
+			return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Invalid parent ID format",
+			})
+		}
+		parentID = &parsedID
+	}
+
+	taxonomy, err := c.taxonomyService.UpdateTaxonomy(
+		ctx.Context(),
+		id,
+		req.Name,
+		req.Slug,
+		req.Code,
+		req.Description,
+		parentID,
+	)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(response.CommonResponse{ResponseCode: http.StatusNotFound, ResponseMessage: err.Error()})
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 	}
-	return c.Status(http.StatusOK).JSON(response.CommonResponse{ResponseCode: http.StatusOK, ResponseMessage: "OK", Data: tax})
+
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   taxonomy,
+	})
 }
 
-// @Summary Get all taxonomies
-// @Description Get all taxonomies
-// @Tags taxonomies
-// @Produce json
-// @Success 200 {object} response.CommonResponse
-// @Router /v1/taxonomies [get]
-func (h *TaxonomyHandler) GetAllTaxonomies(c *fiber.Ctx) error {
-	query := c.Query("query", "")
-	limit := c.QueryInt("limit", 10)
-	page := c.QueryInt("page", 1)
-	offset := (page - 1) * limit
-
-	var taxonomies []*model.Taxonomy
-	var err error
-	var total int64
-
-	if query != "" {
-		taxonomies, err = h.Repo.Search(c.Context(), query, limit, offset)
-	} else {
-		taxonomies, err = h.Repo.GetAll(c.Context(), limit, offset)
-	}
-
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(response.CommonResponse{ResponseCode: http.StatusInternalServerError, ResponseMessage: err.Error()})
-	}
-
-	// Get total count
-	total, err = h.Repo.Count(c.Context())
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(response.CommonResponse{ResponseCode: http.StatusInternalServerError, ResponseMessage: err.Error()})
-	}
-
-	// Calculate pagination info
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-
-	paginated := response.PaginationResponseLegacy{
-		Data:         taxonomies,
-		TotalCount:   int(total),
-		TotalPage:    totalPages,
-		CurrentPage:  page,
-		LastPage:     totalPages,
-		PerPage:      limit,
-		NextPage:     page + 1,
-		PreviousPage: page - 1,
-		Path:         "/v1/taxonomies",
-	}
-
-	return c.Status(http.StatusOK).JSON(response.CommonResponse{ResponseCode: http.StatusOK, ResponseMessage: "OK", Data: paginated})
-}
-
-// @Summary Update taxonomy
-// @Description Update a taxonomy by its ID
-// @Tags taxonomies
-// @Accept json
-// @Produce json
-// @Param id path string true "Taxonomy UUID"
-// @Param taxonomy body model.Taxonomy true "Taxonomy info"
-// @Success 200 {object} response.CommonResponse
-// @Failure 400 {object} response.CommonResponse
-// @Failure 404 {object} response.CommonResponse
-// @Router /v1/taxonomies/{id} [put]
-func (h *TaxonomyHandler) UpdateTaxonomy(c *fiber.Ctx) error {
-	idStr := c.Params("id")
+func (c *TaxonomyController) DeleteTaxonomy(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(response.CommonResponse{ResponseCode: http.StatusBadRequest, ResponseMessage: "Invalid ID"})
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid taxonomy ID format",
+		})
 	}
 
-	// Get existing taxonomy
-	existingTax, err := h.Repo.GetByID(c.Context(), id)
+	err = c.taxonomyService.DeleteTaxonomy(ctx.Context(), id)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(response.CommonResponse{ResponseCode: http.StatusNotFound, ResponseMessage: err.Error()})
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 	}
 
-	var req model.Taxonomy
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(response.CommonResponse{ResponseCode: http.StatusBadRequest, ResponseMessage: err.Error()})
-	}
-
-	// Update fields
-	if req.Name != "" {
-		existingTax.Name = req.Name
-	}
-	if req.Slug != "" {
-		existingTax.Slug = req.Slug
-	}
-	if req.Description != "" {
-		existingTax.Description = req.Description
-	}
-	existingTax.UpdatedAt = time.Now()
-
-	if err := h.Repo.Update(c.Context(), existingTax); err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(response.CommonResponse{ResponseCode: http.StatusInternalServerError, ResponseMessage: err.Error()})
-	}
-
-	return c.Status(http.StatusOK).JSON(response.CommonResponse{ResponseCode: http.StatusOK, ResponseMessage: "Updated", Data: existingTax})
-}
-
-// @Summary Delete taxonomy
-// @Description Delete a taxonomy by its ID
-// @Tags taxonomies
-// @Produce json
-// @Param id path string true "Taxonomy UUID"
-// @Success 200 {object} response.CommonResponse
-// @Failure 400 {object} response.CommonResponse
-// @Failure 404 {object} response.CommonResponse
-// @Router /v1/taxonomies/{id} [delete]
-func (h *TaxonomyHandler) DeleteTaxonomy(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(response.CommonResponse{ResponseCode: http.StatusBadRequest, ResponseMessage: "Invalid ID"})
-	}
-
-	if err := h.Repo.Delete(c.Context(), id); err != nil {
-		return c.Status(http.StatusNotFound).JSON(response.CommonResponse{ResponseCode: http.StatusNotFound, ResponseMessage: err.Error()})
-	}
-
-	return c.Status(http.StatusOK).JSON(response.CommonResponse{ResponseCode: http.StatusOK, ResponseMessage: "Deleted"})
+	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+		Status:  "success",
+		Message: "Taxonomy deleted successfully",
+	})
 }

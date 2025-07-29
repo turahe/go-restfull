@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"strconv"
 	"webapi/internal/application/ports"
 	"webapi/internal/http/response"
+	"webapi/pkg/exception"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // MediaController handles HTTP requests for media operations
@@ -47,12 +50,59 @@ func NewMediaController(mediaService ports.MediaService) *MediaController {
 // @Security BearerAuth
 // @Router /media [get]
 func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
+	// Get query parameters
+	limitStr := ctx.Query("limit", "10")
+	offsetStr := ctx.Query("offset", "0")
+	query := ctx.Query("query", "")
+
+	// Parse pagination parameters
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Get media based on whether search query is provided
+	var mediaList []interface{}
+	if query != "" {
+		media, err := c.mediaService.SearchMedia(ctx.Context(), query, limit, offset)
+		if err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+				ResponseCode:    fiber.StatusInternalServerError,
+				ResponseMessage: "Failed to search media",
+				Data:            nil,
+			})
+		}
+		// Convert to interface slice
+		for _, m := range media {
+			mediaList = append(mediaList, m)
+		}
+	} else {
+		media, err := c.mediaService.GetAllMedia(ctx.Context(), limit, offset)
+		if err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+				ResponseCode:    fiber.StatusInternalServerError,
+				ResponseMessage: "Failed to retrieve media",
+				Data:            nil,
+			})
+		}
+		// Convert to interface slice
+		for _, m := range media {
+			mediaList = append(mediaList, m)
+		}
+	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Media retrieved successfully",
-		Data:            []interface{}{},
+		Data:            mediaList,
 	})
 }
 
@@ -70,12 +120,37 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /media/{id} [get]
 func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
+	// Parse media ID
+	mediaID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Invalid media ID format",
+			Data:            nil,
+		})
+	}
+
+	// Get media by ID
+	media, err := c.mediaService.GetMediaByID(ctx.Context(), mediaID)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Media not found",
+				Data:            nil,
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve media",
+			Data:            nil,
+		})
+	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Media retrieved successfully",
-		Data:            map[string]interface{}{},
+		Data:            media,
 	})
 }
 
@@ -96,12 +171,49 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /media [post]
 func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
+	// Get user ID from context (assuming it's set by JWT middleware)
+	userIDStr := ctx.Locals("user_id")
+	if userIDStr == nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusUnauthorized,
+			ResponseMessage: "User not authenticated",
+			Data:            nil,
+		})
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Invalid user ID",
+			Data:            nil,
+		})
+	}
+
+	// Get uploaded file
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "No file uploaded",
+			Data:            nil,
+		})
+	}
+
+	// Upload media
+	media, err := c.mediaService.UploadMedia(ctx.Context(), file, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to upload media",
+			Data:            nil,
+		})
+	}
+
 	return ctx.Status(fiber.StatusCreated).JSON(response.CommonResponse{
 		ResponseCode:    fiber.StatusCreated,
-		ResponseMessage: "Media created successfully",
-		Data:            map[string]interface{}{},
+		ResponseMessage: "Media uploaded successfully",
+		Data:            media,
 	})
 }
 
@@ -120,12 +232,56 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /media/{id} [put]
 func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
+	// Parse media ID
+	mediaID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Invalid media ID format",
+			Data:            nil,
+		})
+	}
+
+	// Parse request body
+	var requestBody struct {
+		FileName     string `json:"file_name"`
+		OriginalName string `json:"original_name"`
+		MimeType     string `json:"mime_type"`
+		Path         string `json:"path"`
+		URL          string `json:"url"`
+		Size         int64  `json:"size"`
+	}
+
+	if err := ctx.BodyParser(&requestBody); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Invalid request body",
+			Data:            nil,
+		})
+	}
+
+	// Update media
+	media, err := c.mediaService.UpdateMedia(ctx.Context(), mediaID, requestBody.FileName, requestBody.OriginalName,
+		requestBody.MimeType, requestBody.Path, requestBody.URL, requestBody.Size)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Media not found",
+				Data:            nil,
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to update media",
+			Data:            nil,
+		})
+	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Media updated successfully",
-		Data:            map[string]interface{}{},
+		Data:            media,
 	})
 }
 
@@ -143,11 +299,36 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /media/{id} [delete]
 func (c *MediaController) DeleteMedia(ctx *fiber.Ctx) error {
-	// Implementation would go here
-	// For now, returning a placeholder response
+	// Parse media ID
+	mediaID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Invalid media ID format",
+			Data:            nil,
+		})
+	}
+
+	// Delete media
+	err = c.mediaService.DeleteMedia(ctx.Context(), mediaID)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Media not found",
+				Data:            nil,
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to delete media",
+			Data:            nil,
+		})
+	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Media deleted successfully",
-		Data:            map[string]interface{}{},
+		Data:            nil,
 	})
 }

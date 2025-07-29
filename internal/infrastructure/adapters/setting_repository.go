@@ -2,53 +2,52 @@ package adapters
 
 import (
 	"context"
-	"webapi/internal/db/model"
+	"webapi/internal/domain/entities"
 	"webapi/internal/repository"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
-
-// SettingRepository defines the interface for setting operations
-type SettingRepository interface {
-	GetSetting(ctx context.Context) (model.Setting, error)
-	GetSettingByKey(ctx context.Context, key string) (model.Setting, error)
-	SetSetting(ctx context.Context, setting model.Setting) error
-	SetModelSetting(ctx context.Context, setting model.Setting) error
-	UpdateSetting(ctx context.Context, key string, value string) (model.Setting, error)
-	DeleteSetting(ctx context.Context, setting model.Setting) error
-}
 
 type PostgresSettingRepository struct {
 	repo repository.SettingRepository
 }
 
-func NewPostgresSettingRepository(db *pgxpool.Pool, redisClient redis.Cmdable) SettingRepository {
+func NewPostgresSettingRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repository.SettingRepository {
 	return &PostgresSettingRepository{
 		repo: repository.NewSettingRepository(db, redisClient),
 	}
 }
 
-func (r *PostgresSettingRepository) GetSetting(ctx context.Context) (model.Setting, error) {
-	return r.repo.GetSetting(ctx)
+func (r *PostgresSettingRepository) Create(ctx context.Context, setting *entities.Setting) error {
+	return r.repo.Create(ctx, setting)
 }
 
-func (r *PostgresSettingRepository) GetSettingByKey(ctx context.Context, key string) (model.Setting, error) {
-	return r.repo.GetSettingByKey(ctx, key)
+func (r *PostgresSettingRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Setting, error) {
+	return r.repo.GetByID(ctx, id)
 }
 
-func (r *PostgresSettingRepository) SetSetting(ctx context.Context, setting model.Setting) error {
-	return r.repo.SetSetting(ctx, setting)
+func (r *PostgresSettingRepository) GetByKey(ctx context.Context, key string) (*entities.Setting, error) {
+	return r.repo.GetByKey(ctx, key)
 }
 
-func (r *PostgresSettingRepository) SetModelSetting(ctx context.Context, setting model.Setting) error {
-	return r.repo.SetModelSetting(ctx, setting)
+func (r *PostgresSettingRepository) GetAll(ctx context.Context) ([]*entities.Setting, error) {
+	return r.repo.GetAll(ctx)
 }
 
-func (r *PostgresSettingRepository) UpdateSetting(ctx context.Context, key string, value string) (model.Setting, error) {
-	return r.repo.UpdateSetting(ctx, key, value)
+func (r *PostgresSettingRepository) Update(ctx context.Context, setting *entities.Setting) error {
+	return r.repo.Update(ctx, setting)
 }
 
-func (r *PostgresSettingRepository) DeleteSetting(ctx context.Context, setting model.Setting) error {
-	return r.repo.DeleteSetting(ctx, setting)
+func (r *PostgresSettingRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.repo.Delete(ctx, id)
+}
+
+func (r *PostgresSettingRepository) ExistsByKey(ctx context.Context, key string) (bool, error) {
+	return r.repo.ExistsByKey(ctx, key)
+}
+
+func (r *PostgresSettingRepository) Count(ctx context.Context) (int64, error) {
+	return r.repo.Count(ctx)
 }

@@ -94,7 +94,7 @@ func main() {
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Setup routes using Hexagonal Architecture
-	routes.RegisterHexagonalRoutes(app, container)
+	routes.RegisterRoutes(app, container)
 
 	// Start the server
 	log.Fatal(app.Listen(":8000"))

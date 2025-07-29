@@ -16,34 +16,38 @@ import (
 
 type Container struct {
 	// Repositories
-	UserRepository     repositories.UserRepository
-	PostRepository     repositories.PostRepository
-	CommentRepository  repositories.CommentRepository
-	MediaRepository    repositories.MediaRepository
-	RoleRepository     repositories.RoleRepository
-	UserRoleRepository repositories.UserRoleRepository
-	MenuRepository     repositories.MenuRepository
-	MenuRoleRepository repositories.MenuRoleRepository
-	TagRepository      repositories.TagRepository
-	TaxonomyRepository repositories.TaxonomyRepository
-	ContentRepository  repositories.ContentRepository
-	SettingRepository  repository.SettingRepository
-	JobRepository      repository.JobRepository
+	UserRepository         repositories.UserRepository
+	PostRepository         repositories.PostRepository
+	CommentRepository      repositories.CommentRepository
+	MediaRepository        repositories.MediaRepository
+	RoleRepository         repositories.RoleRepository
+	UserRoleRepository     repositories.UserRoleRepository
+	MenuRepository         repositories.MenuRepository
+	MenuRoleRepository     repositories.MenuRoleRepository
+	TagRepository          repositories.TagRepository
+	TaxonomyRepository     repositories.TaxonomyRepository
+	ContentRepository      repositories.ContentRepository
+	SettingRepository      repository.SettingRepository
+	JobRepository          repositories.JobRepository
+	AddressRepository      repositories.AddressRepository
+	OrganizationRepository repositories.OrganizationRepository
 
 	// Application Services
-	UserService     ports.UserService
-	PostService     ports.PostService
-	CommentService  ports.CommentService
-	MediaService    ports.MediaService
-	RoleService     ports.RoleService
-	UserRoleService ports.UserRoleService
-	MenuService     ports.MenuService
-	MenuRoleService ports.MenuRoleService
-	TagService      ports.TagService
-	TaxonomyService ports.TaxonomyService
-	ContentService  ports.ContentService
-	AuthService     ports.AuthService
-	JobService      ports.JobService
+	UserService         ports.UserService
+	PostService         ports.PostService
+	CommentService      ports.CommentService
+	MediaService        ports.MediaService
+	RoleService         ports.RoleService
+	UserRoleService     ports.UserRoleService
+	MenuService         ports.MenuService
+	MenuRoleService     ports.MenuRoleService
+	TagService          ports.TagService
+	TaxonomyService     ports.TaxonomyService
+	ContentService      ports.ContentService
+	AuthService         ports.AuthService
+	JobService          ports.JobService
+	AddressService      ports.AddressService
+	OrganizationService ports.OrganizationService
 
 	// Domain Services
 	EmailService      domainservices.EmailService
@@ -52,19 +56,21 @@ type Container struct {
 	PaginationService domainservices.PaginationService
 
 	// Controllers
-	UserController     *controllers.UserController
-	PostController     *controllers.PostController
-	CommentController  *controllers.CommentController
-	MediaController    *controllers.MediaController
-	RoleController     *controllers.RoleController
-	UserRoleController *controllers.UserRoleController
-	MenuController     *controllers.MenuController
-	MenuRoleController *controllers.MenuRoleController
-	TagController      *controllers.TagController
-	TaxonomyController *controllers.TaxonomyController
-	AuthController     *controllers.AuthController
-	RBACController     *controllers.RBACController
-	JobController      *controllers.JobController
+	UserController         *controllers.UserController
+	PostController         *controllers.PostController
+	CommentController      *controllers.CommentController
+	MediaController        *controllers.MediaController
+	RoleController         *controllers.RoleController
+	UserRoleController     *controllers.UserRoleController
+	MenuController         *controllers.MenuController
+	MenuRoleController     *controllers.MenuRoleController
+	TagController          *controllers.TagController
+	TaxonomyController     *controllers.TaxonomyController
+	AuthController         *controllers.AuthController
+	RBACController         *controllers.RBACController
+	JobController          *controllers.JobController
+	AddressController      *controllers.AddressController
+	OrganizationController *controllers.OrganizationController
 }
 
 func NewContainer(db *pgxpool.Pool) *Container {
@@ -102,7 +108,9 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.TaxonomyRepository = adapters.NewPostgresTaxonomyRepository(db, redisClient)
 	container.ContentRepository = adapters.NewPostgresContentRepository(db)
 	container.SettingRepository = repository.NewSettingRepository(db, redisClient)
-	container.JobRepository = repository.NewJobRepository(db, redisClient)
+	container.JobRepository = adapters.NewPostgresJobRepository(repository.NewJobRepository(db, redisClient))
+	container.AddressRepository = adapters.NewAddressRepository(db)
+	container.OrganizationRepository = adapters.NewOrganizationRepository(db)
 
 	// Initialize application services
 	container.UserService = appservices.NewUserService(
@@ -126,6 +134,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.TaxonomyService = appservices.NewTaxonomyService(container.TaxonomyRepository)
 	container.ContentService = appservices.NewContentService(container.ContentRepository)
 	container.JobService = appservices.NewJobService(container.JobRepository)
+	container.AddressService = appservices.NewAddressService(container.AddressRepository)
+	container.OrganizationService = appservices.NewOrganizationService(container.OrganizationRepository)
 
 	// Initialize controllers
 	container.UserController = controllers.NewUserController(container.UserService, container.PaginationService)
@@ -141,6 +151,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.TaxonomyController = controllers.NewTaxonomyController(container.TaxonomyService)
 	container.RBACController = controllers.NewRBACController(container.RBACService)
 	container.JobController = controllers.NewJobController(container.JobService)
+	container.AddressController = controllers.NewAddressController(container.AddressService)
+	container.OrganizationController = controllers.NewOrganizationController(container.OrganizationService)
 
 	return container
 }
@@ -196,4 +208,12 @@ func (c *Container) GetRBACController() *controllers.RBACController {
 
 func (c *Container) GetJobController() *controllers.JobController {
 	return c.JobController
+}
+
+func (c *Container) GetAddressController() *controllers.AddressController {
+	return c.AddressController
+}
+
+func (c *Container) GetOrganizationController() *controllers.OrganizationController {
+	return c.OrganizationController
 }

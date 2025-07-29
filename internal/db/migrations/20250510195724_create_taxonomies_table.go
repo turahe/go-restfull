@@ -20,9 +20,10 @@ var createTaxonomyTable = &Migration{
 			    "slug" varchar(255) NOT NULL UNIQUE,
 			    "code" varchar(255),
 			    "description" text,
-			    "record_left" int8,
-			    "record_right" int8,
-			    "record_ordering" int8,
+			    "record_left" INTEGER NULL,
+			    "record_right" INTEGER NULL,
+			    "record_depth" INTEGER NULL,
+			    "record_ordering" INTEGER NULL,
 			    "parent_id" UUID NULL,
 			    "created_by" UUID NULL,
 			    "updated_by" UUID NULL,
@@ -32,7 +33,18 @@ var createTaxonomyTable = &Migration{
 			    "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			    CONSTRAINT "taxonomies_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 			    CONSTRAINT "taxonomies_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-			    CONSTRAINT "taxonomies_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION
+			    CONSTRAINT "taxonomies_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "taxonomies_parent_id_foreign" FOREIGN KEY ("parent_id") REFERENCES "taxonomies" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+				CONSTRAINT "taxonomies_record_left_right_check" CHECK ("record_left" < "record_right"),
+				CONSTRAINT "taxonomies_record_ordering_check" CHECK ("record_ordering" >= 0),
+				CONSTRAINT "taxonomies_record_depth_check" CHECK ("record_depth" >= 0),
+				CONSTRAINT "taxonomies_status_check" CHECK ("status" IN ('active', 'inactive', 'suspended')),
+				CONSTRAINT "taxonomies_code_check" CHECK ("code" IS NOT NULL),
+				CONSTRAINT "taxonomies_slug_check" CHECK ("slug" IS NOT NULL),
+				CONSTRAINT "taxonomies_name_check" CHECK ("name" IS NOT NULL),
+				CONSTRAINT "taxonomies_description_check" CHECK ("description" IS NOT NULL),
+				CONSTRAINT "taxonomies_created_by_check" CHECK ("created_by" IS NOT NULL),
+				CONSTRAINT "taxonomies_updated_by_check" CHECK ("updated_by" IS NOT NULL),
 			);
 		`)
 

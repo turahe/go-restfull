@@ -7,6 +7,7 @@ import (
 	"webapi/internal/application/ports"
 	"webapi/internal/domain/entities"
 	"webapi/internal/domain/repositories"
+	"webapi/internal/dto"
 
 	"github.com/google/uuid"
 )
@@ -75,6 +76,11 @@ func (s *TaxonomyService) GetAllTaxonomies(ctx context.Context, limit, offset in
 	return s.taxonomyRepository.GetAll(ctx, limit, offset)
 }
 
+// GetAllTaxonomiesWithSearch retrieves all taxonomies with optional search and pagination
+func (s *TaxonomyService) GetAllTaxonomiesWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+	return s.taxonomyRepository.GetAllWithSearch(ctx, query, limit, offset)
+}
+
 // GetRootTaxonomies retrieves root taxonomies (no parent)
 func (s *TaxonomyService) GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error) {
 	return s.taxonomyRepository.GetRootTaxonomies(ctx)
@@ -100,24 +106,20 @@ func (s *TaxonomyService) GetTaxonomyAncestors(ctx context.Context, id uuid.UUID
 	return s.taxonomyRepository.GetAncestors(ctx, id)
 }
 
-// GetTaxonomySiblings retrieves all siblings of a taxonomy
+// GetTaxonomySiblings retrieves siblings of a taxonomy
 func (s *TaxonomyService) GetTaxonomySiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
 	return s.taxonomyRepository.GetSiblings(ctx, id)
 }
 
 // SearchTaxonomies searches taxonomies by query
 func (s *TaxonomyService) SearchTaxonomies(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
-	if strings.TrimSpace(query) == "" {
-		return nil, errors.New("search query is required")
-	}
-
 	return s.taxonomyRepository.Search(ctx, query, limit, offset)
 }
 
 // UpdateTaxonomy updates a taxonomy
 func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, id uuid.UUID, name, slug, code, description string, parentID *uuid.UUID) (*entities.Taxonomy, error) {
 	// Get existing taxonomy
-	existingTaxonomy, err := s.taxonomyRepository.GetByID(ctx, id)
+	taxonomy, err := s.taxonomyRepository.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +134,7 @@ func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, id uuid.UUID, name
 	}
 
 	// Check if slug already exists (excluding current taxonomy)
-	if slug != existingTaxonomy.Slug {
+	if slug != taxonomy.Slug {
 		exists, err := s.taxonomyRepository.ExistsBySlug(ctx, slug)
 		if err != nil {
 			return nil, err
@@ -143,30 +145,53 @@ func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, id uuid.UUID, name
 	}
 
 	// Update taxonomy
-	existingTaxonomy.UpdateTaxonomy(name, slug, code, description, parentID)
+	taxonomy.UpdateTaxonomy(name, slug, code, description, parentID)
 
 	// Save to repository
-	err = s.taxonomyRepository.Update(ctx, existingTaxonomy)
+	err = s.taxonomyRepository.Update(ctx, taxonomy)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return updated taxonomy entity
-	return s.GetTaxonomyByID(ctx, id)
+	return taxonomy, nil
 }
 
 // DeleteTaxonomy deletes a taxonomy
 func (s *TaxonomyService) DeleteTaxonomy(ctx context.Context, id uuid.UUID) error {
-	// Check if taxonomy exists
-	_, err := s.taxonomyRepository.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-
 	return s.taxonomyRepository.Delete(ctx, id)
 }
 
-// GetTaxonomyCount returns the total number of taxonomies
+// GetTaxonomyCount retrieves the total count of taxonomies
 func (s *TaxonomyService) GetTaxonomyCount(ctx context.Context) (int64, error) {
 	return s.taxonomyRepository.Count(ctx)
-} 
+}
+
+// GetTaxonomyCountWithSearch retrieves the total count of taxonomies with optional search
+func (s *TaxonomyService) GetTaxonomyCountWithSearch(ctx context.Context, query string) (int64, error) {
+	return s.taxonomyRepository.CountWithSearch(ctx, query)
+}
+
+// SearchTaxonomiesWithPagination performs a unified search with pagination and returns a structured response
+func (s *TaxonomyService) SearchTaxonomiesWithPagination(ctx context.Context, request *dto.TaxonomySearchRequest) (*dto.TaxonomySearchResponse, error) {
+	// Validate request
+	if err := dto.ValidateTaxonomySearchRequest(request); err != nil {
+		return nil, err
+	}
+
+	// Get taxonomies with search
+	taxonomies, err := s.GetAllTaxonomiesWithSearch(ctx, request.Query, request.GetLimit(), request.GetOffset())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total count with search
+	totalCount, err := s.GetTaxonomyCountWithSearch(ctx, request.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create unified response
+	response := dto.CreateTaxonomySearchResponse(taxonomies, request.Page, request.PerPage, totalCount)
+
+	return response, nil
+}

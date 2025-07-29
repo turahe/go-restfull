@@ -49,7 +49,7 @@ func NewFiberRouter() *fiber.App {
 	container := container.NewContainer(db)
 
 	// Register routes using Hexagonal Architecture
-	routes.RegisterHexagonalRoutes(r, container)
+	routes.RegisterRoutes(r, container)
 
 	return r
 }
