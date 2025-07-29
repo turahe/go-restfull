@@ -29,4 +29,5 @@ func RegisterV1Routes(v1Group fiber.Router, container *container.Container) {
 	RegisterSettingRoutes(rbacProtected, container) // TODO: Implement when SettingController is created
 	RegisterRBACRoutes(rbacProtected, container)
 	RegisterJobRoutes(rbacProtected, container)
+	RegisterBackupRoutes(rbacProtected, container)
 }

@@ -20,6 +20,7 @@ type Config struct {
 	Sentry     Sentry     `yaml:"sentry"`
 	Email      Email      `yaml:"email"`
 	Casbin     Casbin     `yaml:"casbin"`
+	Backup     Backup     `yaml:"backup"`
 }
 
 type HttpServer struct {
@@ -119,6 +120,14 @@ type CasbinRedis struct {
 	Password string `yaml:"password"`
 	Database int    `yaml:"db"`
 	Key      string `yaml:"key"`
+}
+
+type Backup struct {
+	Enabled        bool   `yaml:"enabled"`
+	Directory      string `yaml:"directory"`
+	RetentionDays  int    `yaml:"retentionDays"`
+	CleanupOld     bool   `yaml:"cleanupOld"`
+	CompressBackup bool   `yaml:"compressBackup"`
 }
 
 func GetConfig() *Config {

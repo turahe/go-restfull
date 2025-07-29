@@ -1,7 +1,9 @@
-package dto
+package response
 
 import (
 	"time"
+
+	"webapi/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )
@@ -37,22 +39,8 @@ type TaxonomySearchRequest struct {
 
 // TaxonomySearchResponse represents the response for taxonomy search with pagination
 type TaxonomySearchResponse struct {
-	Data       []*TaxonomyDTO `json:"data"`
-	Pagination PaginationMeta `json:"pagination"`
-}
-
-// PaginationMeta represents pagination metadata
-type PaginationMeta struct {
-	CurrentPage  int   `json:"current_page"`
-	PerPage      int   `json:"per_page"`
-	TotalItems   int64 `json:"total_items"`
-	TotalPages   int   `json:"total_pages"`
-	HasNextPage  bool  `json:"has_next_page"`
-	HasPrevPage  bool  `json:"has_prev_page"`
-	NextPage     int   `json:"next_page,omitempty"`
-	PreviousPage int   `json:"previous_page,omitempty"`
-	From         int   `json:"from"`
-	To           int   `json:"to"`
+	Data       []*TaxonomyDTO                `json:"data"`
+	Pagination pagination.PaginationResponse `json:"pagination"`
 }
 
 // CreateTaxonomyRequest represents the request for creating a taxonomy
@@ -75,8 +63,8 @@ type UpdateTaxonomyRequest struct {
 
 // TaxonomyHierarchyResponse represents the response for taxonomy hierarchy
 type TaxonomyHierarchyResponse struct {
-	Data       []*TaxonomyDTO `json:"data"`
-	Pagination PaginationMeta `json:"pagination"`
+	Data       []*TaxonomyDTO                `json:"data"`
+	Pagination pagination.PaginationResponse `json:"pagination"`
 }
 
 // TaxonomyDetailResponse represents the response for a single taxonomy with full details

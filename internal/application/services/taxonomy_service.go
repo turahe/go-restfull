@@ -7,7 +7,7 @@ import (
 	"webapi/internal/application/ports"
 	"webapi/internal/domain/entities"
 	"webapi/internal/domain/repositories"
-	"webapi/internal/dto"
+	"webapi/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )
@@ -172,9 +172,9 @@ func (s *TaxonomyService) GetTaxonomyCountWithSearch(ctx context.Context, query 
 }
 
 // SearchTaxonomiesWithPagination performs a unified search with pagination and returns a structured response
-func (s *TaxonomyService) SearchTaxonomiesWithPagination(ctx context.Context, request *dto.TaxonomySearchRequest) (*dto.TaxonomySearchResponse, error) {
+func (s *TaxonomyService) SearchTaxonomiesWithPagination(ctx context.Context, request *pagination.TaxonomySearchRequest) (*pagination.TaxonomySearchResponse, error) {
 	// Validate request
-	if err := dto.ValidateTaxonomySearchRequest(request); err != nil {
+	if err := pagination.ValidateTaxonomySearchRequest(request); err != nil {
 		return nil, err
 	}
 
@@ -191,7 +191,7 @@ func (s *TaxonomyService) SearchTaxonomiesWithPagination(ctx context.Context, re
 	}
 
 	// Create unified response
-	response := dto.CreateTaxonomySearchResponse(taxonomies, request.Page, request.PerPage, totalCount)
+	searchResponse := pagination.CreateTaxonomySearchResponse(taxonomies, request.Page, request.PerPage, totalCount)
 
-	return response, nil
+	return searchResponse, nil
 }

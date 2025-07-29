@@ -1,73 +1,46 @@
 package validation
 
 import (
-	"reflect"
-	"strings"
-	"sync"
-
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-
-	en_translations "github.com/go-playground/validator/v10/translations/en"
 )
 
 var validate *validator.Validate
-var uni *ut.UniversalTranslator
-var trans ut.Translator
-var m sync.Mutex
 
+// InitValidator initializes the validator
 func InitValidator() {
-	if validate == nil {
-		m.Lock()
-		defer m.Unlock()
-
-		// Create a new validator instance
-		validate = validator.New()
-
-		// Turns to use json tag instead of struct field name
-		// When using validationError.Field() it will return the json tag instead of struct field name
-		validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-
-			if name == "-" {
-				return ""
-			}
-
-			return name
-		})
-
-		// Set translator
-		en := en.New()
-		uni = ut.New(en, en)
-
-		// This is usually know or extracted from controllers 'Accept-Language' header
-		// also see uni.FindTranslator(...)
-		trans, _ = uni.GetTranslator("en")
-
-		// Register translation for validator
-		en_translations.RegisterDefaultTranslations(validate, trans)
-
-	}
+	validate = validator.New()
 }
 
-func GetValidator() (*validator.Validate, ut.Translator) {
+// GetValidator returns the validator instance
+func GetValidator() (*validator.Validate, error) {
 	if validate == nil {
 		InitValidator()
 	}
-	return validate, trans
+	return validate, nil
 }
 
-func GetValidationErrors(validationErrors validator.ValidationErrors) (errors []map[string]any) {
-	for _, validationError := range validationErrors {
-		errorItem := make(map[string]any, 1)
-		errorItem[validationError.Field()] = validationError.Translate(trans)
-		errors = append(errors, errorItem)
+// Translate translates validation errors to human-readable messages
+func Translate(err validator.FieldError) string {
+	switch err.Tag() {
+	case "required":
+		return err.Field() + " is required"
+	case "email":
+		return err.Field() + " must be a valid email address"
+	case "min":
+		return err.Field() + " must be at least " + err.Param() + " characters"
+	case "max":
+		return err.Field() + " must be at most " + err.Param() + " characters"
+	case "uuid":
+		return err.Field() + " must be a valid UUID"
+	case "url":
+		return err.Field() + " must be a valid URL"
+	case "numeric":
+		return err.Field() + " must be numeric"
+	case "alpha":
+		return err.Field() + " must contain only alphabetic characters"
+	case "alphanum":
+		return err.Field() + " must contain only alphanumeric characters"
+	default:
+		return err.Field() + " failed validation: " + err.Tag()
 	}
-
-	return errors
-}
-
-func Translate(v validator.FieldError) string {
-	return v.Translate(trans)
 }

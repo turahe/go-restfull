@@ -4,12 +4,27 @@ import (
 	"testing"
 
 	"webapi/config"
-	. "webapi/internal/logger"
+	"webapi/internal/logger"
 
 	"go.uber.org/zap/zapcore"
 )
 
 func TestInitLogger(t *testing.T) {
+	// Initialize default config for testing
+	defaultConfig := &config.Config{
+		Log: config.Log{
+			Level:           "info",
+			StacktraceLevel: "error",
+			FileEnabled:     false,
+			FileSize:        100,
+			FilePath:        "logs/app.log",
+			FileCompress:    false,
+			MaxAge:          30,
+			MaxBackups:      5,
+		},
+	}
+	config.SetConfig(defaultConfig)
+
 	tests := []struct {
 		name          string
 		logDriver     string
@@ -117,13 +132,13 @@ func TestInitLogger(t *testing.T) {
 			cfg.Log.Level = tt.logLevel
 			cfg.Log.FileEnabled = tt.fileEnabled
 
-			InitLogger(tt.logDriver)
+			logger.InitLogger(tt.logDriver)
 
-			if Log == nil {
+			if logger.Log == nil {
 				t.Fatal("Expected logger to be initialized, but it is nil")
 			}
 
-			logLevel := Log.Core().Enabled(tt.expectedLevel)
+			logLevel := logger.Log.Core().Enabled(tt.expectedLevel)
 			if !logLevel {
 				t.Errorf("Expected log level to be %v, but it's not enabled", tt.expectedLevel)
 			}

@@ -67,6 +67,16 @@ scheduler:
 # schedules:
 #   - cron: "0 */20 * * * *"
 #     job: "SyncAll"
+#   - cron: "0 2 * * *"  # Daily at 2 AM
+#     job: "DatabaseBackup"
+#     isEnabled: true
+
+backup:
+  enabled: true
+  directory: "backups"
+  retentionDays: 30
+  cleanupOld: true
+  compressBackup: false
 
 email:
   smtpHost: "smtp.gmail.com"

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"webapi/internal/application/ports"
-	"webapi/internal/http/response"
 	"webapi/internal/interfaces/http/requests"
 	"webapi/internal/interfaces/http/responses"
 	"webapi/internal/router/middleware"
@@ -192,7 +191,7 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 	}
 
 	// Create paginated response using helper
-	paginatedResult := response.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
+	paginatedResult := responses.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
 
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
@@ -246,7 +245,7 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 	total := int64(len(posts))
 
 	// Create paginated response using helper
-	paginatedResult := response.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
+	paginatedResult := responses.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
 
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",

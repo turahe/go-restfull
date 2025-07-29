@@ -4,10 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/stretchr/testify/assert"
 	"webapi/internal/http/validation"
 	. "webapi/pkg/exception"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_NewValidationFailedErrors(t *testing.T) {
@@ -38,7 +39,7 @@ func Test_NewValidationFailedErrors(t *testing.T) {
 				GlobalMessage:  "validation failed",
 				ErrItems: []*ExceptionError{
 					{
-						Message:      "age is a required field",
+						Message:      "Age is required",
 						Type:         ERROR_TYPE_VALIDATION_ERROR,
 						ErrorSubcode: SUBCODE_VALIDATION_FAILED,
 					},
@@ -58,12 +59,12 @@ func Test_NewValidationFailedErrors(t *testing.T) {
 				GlobalMessage:  "validation failed",
 				ErrItems: []*ExceptionError{
 					{
-						Message:      "name is a required field",
+						Message:      "Name is required",
 						Type:         ERROR_TYPE_VALIDATION_ERROR,
 						ErrorSubcode: SUBCODE_VALIDATION_FAILED,
 					},
 					{
-						Message:      "age is a required field",
+						Message:      "Age is required",
 						Type:         ERROR_TYPE_VALIDATION_ERROR,
 						ErrorSubcode: SUBCODE_VALIDATION_FAILED,
 					},
@@ -106,7 +107,7 @@ func TestAppendFieldErrors(t *testing.T) {
 		GlobalMessage:  "validation failed",
 		ErrItems: []*ExceptionError{
 			{
-				Message:      "age is a required field",
+				Message:      "Age is required",
 				Type:         ERROR_TYPE_VALIDATION_ERROR,
 				ErrorSubcode: SUBCODE_VALIDATION_FAILED,
 			},

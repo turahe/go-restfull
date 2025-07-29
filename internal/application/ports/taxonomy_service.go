@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 	"webapi/internal/domain/entities"
-	"webapi/internal/dto"
+	"webapi/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )
@@ -26,5 +26,5 @@ type TaxonomyService interface {
 	DeleteTaxonomy(ctx context.Context, id uuid.UUID) error
 	GetTaxonomyCount(ctx context.Context) (int64, error)
 	GetTaxonomyCountWithSearch(ctx context.Context, query string) (int64, error)
-	SearchTaxonomiesWithPagination(ctx context.Context, request *dto.TaxonomySearchRequest) (*dto.TaxonomySearchResponse, error)
+	SearchTaxonomiesWithPagination(ctx context.Context, request *pagination.TaxonomySearchRequest) (*pagination.TaxonomySearchResponse, error)
 }

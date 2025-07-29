@@ -1,8 +1,9 @@
-package dto
+package response
 
 import (
 	"math"
 	"webapi/internal/domain/entities"
+	"webapi/internal/helper/pagination"
 )
 
 // ConvertTaxonomyEntityToDTO converts a taxonomy entity to DTO
@@ -11,7 +12,7 @@ func ConvertTaxonomyEntityToDTO(entity *entities.Taxonomy) *TaxonomyDTO {
 		return nil
 	}
 
-	dto := &TaxonomyDTO{
+	taxonomyDTO := &TaxonomyDTO{
 		ID:          entity.ID,
 		Name:        entity.Name,
 		Slug:        entity.Slug,
@@ -28,18 +29,18 @@ func ConvertTaxonomyEntityToDTO(entity *entities.Taxonomy) *TaxonomyDTO {
 
 	// Convert parent if exists
 	if entity.Parent != nil {
-		dto.Parent = ConvertTaxonomyEntityToDTO(entity.Parent)
+		taxonomyDTO.Parent = ConvertTaxonomyEntityToDTO(entity.Parent)
 	}
 
 	// Convert children if exists
 	if len(entity.Children) > 0 {
-		dto.Children = make([]*TaxonomyDTO, len(entity.Children))
+		taxonomyDTO.Children = make([]*TaxonomyDTO, len(entity.Children))
 		for i, child := range entity.Children {
-			dto.Children[i] = ConvertTaxonomyEntityToDTO(child)
+			taxonomyDTO.Children[i] = ConvertTaxonomyEntityToDTO(child)
 		}
 	}
 
-	return dto
+	return taxonomyDTO
 }
 
 // ConvertTaxonomyEntitiesToDTOs converts a slice of taxonomy entities to DTOs
@@ -57,7 +58,7 @@ func ConvertTaxonomyEntitiesToDTOs(entities []*entities.Taxonomy) []*TaxonomyDTO
 }
 
 // CreatePaginationMeta creates pagination metadata
-func CreatePaginationMeta(page, perPage int, totalItems int64) PaginationMeta {
+func CreatePaginationMeta(page, perPage int, totalItems int64) pagination.PaginationResponse {
 	totalPages := int(math.Ceil(float64(totalItems) / float64(perPage)))
 
 	// Ensure current page doesn't exceed total pages
@@ -86,7 +87,7 @@ func CreatePaginationMeta(page, perPage int, totalItems int64) PaginationMeta {
 		prevPage = page - 1
 	}
 
-	return PaginationMeta{
+	return pagination.PaginationResponse{
 		CurrentPage:  page,
 		PerPage:      perPage,
 		TotalItems:   totalItems,

@@ -131,11 +131,15 @@ func TestAuthController_Register(t *testing.T) {
 			expectedError:  false,
 		},
 		{
-			name:        "invalid request body",
-			requestBody: requests.RegisterRequest{},
-			mockSetup: func() {
-				// No mock setup needed for invalid request
+			name: "invalid request body",
+			requestBody: requests.RegisterRequest{
+				Username:        "",
+				Email:           "invalid-email",
+				Phone:           "123",
+				Password:        "short",
+				ConfirmPassword: "short",
 			},
+			mockSetup:      func() {}, // No mock setup needed for validation error
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
 		},
@@ -159,6 +163,10 @@ func TestAuthController_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset mock
+			mockAuthService.ExpectedCalls = nil
+			mockAuthService.Calls = nil
+
 			// Setup mock
 			tt.mockSetup()
 
@@ -233,13 +241,17 @@ func TestAuthController_Login(t *testing.T) {
 				mockAuthService.On("LoginUser", mock.Anything, "testuser", "wrongpassword").
 					Return(nil, (*entities.User)(nil), assert.AnError)
 			},
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusUnauthorized,
 			expectedError:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset mock
+			mockAuthService.ExpectedCalls = nil
+			mockAuthService.Calls = nil
+
 			// Setup mock
 			tt.mockSetup()
 
@@ -310,13 +322,17 @@ func TestAuthController_Refresh(t *testing.T) {
 				mockAuthService.On("RefreshToken", mock.Anything, "invalid_token").
 					Return(nil, assert.AnError)
 			},
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusUnauthorized,
 			expectedError:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset mock
+			mockAuthService.ExpectedCalls = nil
+			mockAuthService.Calls = nil
+
 			// Setup mock
 			tt.mockSetup()
 
@@ -378,9 +394,7 @@ func TestAuthController_ForgetPassword(t *testing.T) {
 			requestBody: requests.ForgetPasswordRequest{
 				Email: "invalid-email",
 			},
-			mockSetup: func() {
-				// No mock setup needed for validation error
-			},
+			mockSetup:      func() {}, // No mock setup needed for validation error
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
 		},
@@ -388,6 +402,10 @@ func TestAuthController_ForgetPassword(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset mock
+			mockAuthService.ExpectedCalls = nil
+			mockAuthService.Calls = nil
+
 			// Setup mock
 			tt.mockSetup()
 
@@ -454,9 +472,7 @@ func TestAuthController_ResetPassword(t *testing.T) {
 				Password:        "newpassword123",
 				ConfirmPassword: "differentpassword",
 			},
-			mockSetup: func() {
-				// No mock setup needed for validation error
-			},
+			mockSetup:      func() {}, // No mock setup needed for validation error
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
 		},
@@ -464,6 +480,10 @@ func TestAuthController_ResetPassword(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset mock
+			mockAuthService.ExpectedCalls = nil
+			mockAuthService.Calls = nil
+
 			// Setup mock
 			tt.mockSetup()
 

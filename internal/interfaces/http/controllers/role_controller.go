@@ -3,7 +3,7 @@ package controllers
 import (
 	"strconv"
 	"webapi/internal/application/ports"
-	"webapi/internal/http/response"
+	"webapi/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -43,9 +43,9 @@ func NewRoleController(roleService ports.RoleService) *RoleController {
 // @Param limit query int false "Number of roles to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
 // @Param offset query int false "Number of roles to skip (default: 0)" default(0) minimum(0)
 // @Param active query string false "Filter by active status (true/false)" Enums(true, false)
-// @Success 200 {object} response.CommonResponse{data=[]interface{}} "List of roles"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid parameters"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of roles"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid parameters"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles [get]
 func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
@@ -64,14 +64,14 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve roles",
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Roles retrieved successfully",
 		Data:            roles,
@@ -85,16 +85,16 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Role ID" format(uuid)
-// @Success 200 {object} response.CommonResponse{data=map[string]interface{}} "Role details"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid role ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Role details"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid role ID"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/{id} [get]
 func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
 			Data:            map[string]interface{}{},
@@ -103,14 +103,14 @@ func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.GetRoleByID(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusNotFound,
 			ResponseMessage: "Role not found",
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role retrieved successfully",
 		Data:            role,
@@ -124,16 +124,16 @@ func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param slug path string true "Role slug"
-// @Success 200 {object} response.CommonResponse{data=map[string]interface{}} "Role details"
-// @Failure 400 {object} response.CommonResponse "Bad request - Slug is required"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Role details"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Slug is required"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/slug/{slug} [get]
 func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
 	if slug == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Role slug is required",
 			Data:            map[string]interface{}{},
@@ -142,14 +142,14 @@ func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.GetRoleBySlug(ctx.Context(), slug)
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusNotFound,
 			ResponseMessage: "Role not found",
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role retrieved successfully",
 		Data:            role,
@@ -163,10 +163,10 @@ func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param role body object true "Role creation request" SchemaExample({"name": "Admin", "slug": "admin", "description": "Administrator role"})
-// @Success 201 {object} response.CommonResponse{data=map[string]interface{}} "Role created successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid input data"
-// @Failure 409 {object} response.CommonResponse "Conflict - Role with same slug already exists"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 201 {object} responses.CommonResponse{data=map[string]interface{}} "Role created successfully"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid input data"
+// @Failure 409 {object} responses.CommonResponse "Conflict - Role with same slug already exists"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles [post]
 func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
@@ -177,7 +177,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 	}
 
 	if err := ctx.BodyParser(&request); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid request body",
 			Data:            map[string]interface{}{},
@@ -186,14 +186,14 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.CreateRole(ctx.Context(), request.Name, request.Slug, request.Description)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: err.Error(),
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusCreated).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusCreated,
 		ResponseMessage: "Role created successfully",
 		Data:            role,
@@ -208,16 +208,16 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Role ID" format(uuid)
 // @Param role body object true "Role update request" SchemaExample({"name": "Admin", "slug": "admin", "description": "Updated administrator role"})
-// @Success 200 {object} response.CommonResponse{data=map[string]interface{}} "Role updated successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid input data"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Role updated successfully"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid input data"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/{id} [put]
 func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
 			Data:            map[string]interface{}{},
@@ -231,7 +231,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 	}
 
 	if err := ctx.BodyParser(&request); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid request body",
 			Data:            map[string]interface{}{},
@@ -240,14 +240,14 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.UpdateRole(ctx.Context(), id, request.Name, request.Slug, request.Description)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: err.Error(),
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role updated successfully",
 		Data:            role,
@@ -261,16 +261,16 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Role ID" format(uuid)
-// @Success 200 {object} response.CommonResponse "Role deleted successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid role ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse "Role deleted successfully"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid role ID"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/{id} [delete]
 func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
 			Data:            map[string]interface{}{},
@@ -279,14 +279,14 @@ func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 
 	err = c.roleService.DeleteRole(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: err.Error(),
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role deleted successfully",
 		Data:            map[string]interface{}{},
@@ -300,16 +300,16 @@ func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Role ID" format(uuid)
-// @Success 200 {object} response.CommonResponse{data=map[string]interface{}} "Role activated successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid role ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Role activated successfully"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid role ID"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/{id}/activate [put]
 func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
 			Data:            map[string]interface{}{},
@@ -318,14 +318,14 @@ func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.ActivateRole(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: err.Error(),
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role activated successfully",
 		Data:            role,
@@ -339,16 +339,16 @@ func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Role ID" format(uuid)
-// @Success 200 {object} response.CommonResponse{data=map[string]interface{}} "Role deactivated successfully"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid role ID"
-// @Failure 404 {object} response.CommonResponse "Not found - Role does not exist"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Role deactivated successfully"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid role ID"
+// @Failure 404 {object} responses.CommonResponse "Not found - Role does not exist"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/{id}/deactivate [put]
 func (c *RoleController) DeactivateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
 			Data:            map[string]interface{}{},
@@ -357,14 +357,14 @@ func (c *RoleController) DeactivateRole(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.DeactivateRole(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: err.Error(),
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Role deactivated successfully",
 		Data:            role,
@@ -380,15 +380,15 @@ func (c *RoleController) DeactivateRole(ctx *fiber.Ctx) error {
 // @Param query query string true "Search query"
 // @Param limit query int false "Number of roles to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
 // @Param offset query int false "Number of roles to skip (default: 0)" default(0) minimum(0)
-// @Success 200 {object} response.CommonResponse{data=[]interface{}} "List of matching roles"
-// @Failure 400 {object} response.CommonResponse "Bad request - Invalid parameters"
-// @Failure 500 {object} response.CommonResponse "Internal server error"
+// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of matching roles"
+// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid parameters"
+// @Failure 500 {object} responses.CommonResponse "Internal server error"
 // @Security BearerAuth
 // @Router /roles/search [get]
 func (c *RoleController) SearchRoles(ctx *fiber.Ctx) error {
 	query := ctx.Query("q")
 	if query == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Search query is required",
 			Data:            map[string]interface{}{},
@@ -400,14 +400,14 @@ func (c *RoleController) SearchRoles(ctx *fiber.Ctx) error {
 
 	roles, err := c.roleService.SearchRoles(ctx.Context(), query, limit, offset)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(response.CommonResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to search roles",
 			Data:            map[string]interface{}{},
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.CommonResponse{
+	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusOK,
 		ResponseMessage: "Roles search completed successfully",
 		Data:            roles,

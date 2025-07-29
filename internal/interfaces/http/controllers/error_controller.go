@@ -1,9 +1,10 @@
 package controllers
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"webapi/internal/http/response"
+	"webapi/internal/interfaces/http/responses"
 	"webapi/pkg/exception"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Centralized error handler for all routes
@@ -24,11 +25,11 @@ func ErrorHandler(c *fiber.Ctx, err error) error {
 
 	// Handle 500 error
 	return c.Status(responseCode).JSON(
-		&response.CommonResponse{
+		&responses.CommonResponse{
 			ResponseCode:    responseCode,
 			ResponseMessage: responseMessage,
 			Errors:          cErrs,
 			RequestID:       requestID,
 		},
 	)
-} 
+}

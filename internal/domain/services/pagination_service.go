@@ -3,13 +3,12 @@ package services
 import (
 	"context"
 	"webapi/internal/helper/pagination"
-	"webapi/internal/http/response"
 )
 
 // PaginationService defines the interface for pagination operations
 type PaginationService interface {
 	// CreatePaginatedResponse creates a standardized paginated response
-	CreatePaginatedResponse(ctx context.Context, data interface{}, total int64, paginationParams *pagination.PaginationRequest) *response.PaginatedResult
+	CreatePaginatedResponse(ctx context.Context, data interface{}, total int64, paginationParams *pagination.PaginationRequest) *pagination.PaginatedResult
 
 	// ValidatePaginationParams validates and normalizes pagination parameters
 	ValidatePaginationParams(params *pagination.PaginationRequest) *pagination.PaginationRequest
@@ -24,12 +23,12 @@ func NewPaginationService() PaginationService {
 }
 
 // CreatePaginatedResponse creates a standardized paginated response
-func (p *PaginationServiceImpl) CreatePaginatedResponse(ctx context.Context, data interface{}, total int64, paginationParams *pagination.PaginationRequest) *response.PaginatedResult {
+func (p *PaginationServiceImpl) CreatePaginatedResponse(ctx context.Context, data interface{}, total int64, paginationParams *pagination.PaginationRequest) *pagination.PaginatedResult {
 	// Validate and normalize pagination parameters
 	validatedParams := p.ValidatePaginationParams(paginationParams)
 
 	// Create paginated result using the existing helper function
-	return response.CreatePaginatedResult(data, validatedParams.Page, validatedParams.PerPage, total)
+	return pagination.CreatePaginatedResult(data, validatedParams, total)
 }
 
 // ValidatePaginationParams validates and normalizes pagination parameters

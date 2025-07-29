@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"webapi/internal/http/controllers/healthz"
 	"webapi/internal/infrastructure/container"
+	"webapi/internal/interfaces/http/controllers"
 	v1 "webapi/internal/interfaces/http/routes/v1"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,7 +11,7 @@ import (
 // RegisterRoutes registers all routes using the Hexagonal Architecture
 func RegisterRoutes(app *fiber.App, container *container.Container) {
 	// Comprehensive health check endpoint
-	healthzHandler := healthz.NewHealthzHTTPHandler()
+	healthzHandler := controllers.NewHealthzHTTPHandler()
 	app.Get("/healthz", healthzHandler.Healthz)
 
 	// API v1 routes

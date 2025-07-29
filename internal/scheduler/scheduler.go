@@ -6,8 +6,11 @@ import (
 	_ "time/tzdata"
 
 	"webapi/config"
+	"webapi/internal/job"
+	"webapi/internal/logger"
 
 	"github.com/go-co-op/gocron"
+	"go.uber.org/zap"
 )
 
 var Timezone = time.Now().Location()
@@ -44,6 +47,34 @@ func Start() {
 					asiaBangkok, _ := time.LoadLocation("Asia/Jakarta")
 					fmt.Printf("\nNext run: %s / %s\n", task.NextRun().UTC().String(), task.NextRun().In(asiaBangkok).String())
 
+				})
+			case "DatabaseBackup":
+				// Create backup job handler
+				backupHandler := job.NewBackupJobHandler("backups")
+
+				task, err := s.CronWithSeconds(schedule.Cron).Do(func() {
+					if err := backupHandler.Handle(); err != nil {
+						logger.Log.Error("Database backup job failed", zap.Error(err))
+					}
+				})
+
+				if err != nil {
+					logger.Log.Error("Failed to schedule DatabaseBackup job", zap.Error(err))
+					continue
+				}
+
+				// Set up event listeners
+				task.SetEventListeners(func() {
+					logger.Log.Info("Database backup job started", zap.Int("round", task.RunCount()))
+				}, func() {
+					time.Sleep(1 * time.Second)
+
+					// Print next run time in both utc and asia/jakarta timezone
+					asiaBangkok, _ := time.LoadLocation("Asia/Jakarta")
+					logger.Log.Info("Database backup job completed",
+						zap.String("next_run_utc", task.NextRun().UTC().String()),
+						zap.String("next_run_local", task.NextRun().In(asiaBangkok).String()),
+					)
 				})
 			}
 		}

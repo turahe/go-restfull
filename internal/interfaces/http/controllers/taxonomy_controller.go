@@ -5,10 +5,9 @@ import (
 	"strconv"
 
 	"webapi/internal/application/ports"
+	"webapi/internal/helper/pagination"
 	"webapi/internal/interfaces/http/requests"
 	"webapi/internal/interfaces/http/responses"
-
-	"webapi/internal/dto"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -333,7 +332,7 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 // @Param per_page query int false "Items per page (default: 10, max: 100)"
 // @Param sort_by query string false "Sort field (default: record_left)"
 // @Param sort_desc query bool false "Sort descending (default: false)"
-// @Success 200 {object} dto.TaxonomySearchResponse "Taxonomies with pagination"
+// @Success 200 {object} pagination.TaxonomySearchResponse "Taxonomies with pagination"
 // @Failure 400 {object} responses.ErrorResponse "Bad request"
 // @Failure 500 {object} responses.ErrorResponse "Internal server error"
 // @Security BearerAuth
@@ -364,7 +363,7 @@ func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) erro
 	sortDesc := sortDescStr == "true" || sortDescStr == "1"
 
 	// Create search request
-	searchRequest := &dto.TaxonomySearchRequest{
+	searchRequest := &pagination.TaxonomySearchRequest{
 		Query:    query,
 		Page:     page,
 		PerPage:  perPage,
