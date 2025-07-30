@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	Migrations = append(Migrations, createMenuRolesTable20250708232040)
+	Migrations = append(Migrations, createMenuEntitiesTable20250708232040)
 }
 
-var createMenuRolesTable20250708232040 = &Migration{
+var createMenuEntitiesTable20250708232040 = &Migration{
 	Name: "20250708232040_create_menu_entities_table",
 	Up: func() error {
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `

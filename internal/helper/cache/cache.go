@@ -11,8 +11,14 @@ import (
 
 // Set sets a key-value pair with an expiration time.
 func Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Skip cache operation if Redis is not available
+		return nil
+	}
+
 	key = rdb.AddPrefix(key)
-	err := rdb.GetRedisClient().Set(ctx, key, value, expiration).Err()
+	err := redisClient.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		return fmt.Errorf("failed to set key %s: %w", key, err)
 	}
@@ -21,8 +27,14 @@ func Set(ctx context.Context, key string, value interface{}, expiration time.Dur
 
 // Get retrieves the value of a key from Redis.
 func Get(ctx context.Context, key string) (string, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return empty string if Redis is not available
+		return "", fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	val, err := rdb.GetRedisClient().Get(ctx, key).Result()
+	val, err := redisClient.Get(ctx, key).Result()
 	if err != nil {
 		return "", fmt.Errorf("failed to get key %s: %w", key, err)
 	}
@@ -31,13 +43,19 @@ func Get(ctx context.Context, key string) (string, error) {
 
 // Pull retrieves the value of a key from Redis and then deletes the key-value pair.
 func Pull(ctx context.Context, key string) (string, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return empty string if Redis is not available
+		return "", fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	val, err := rdb.GetRedisClient().Get(ctx, key).Result()
+	val, err := redisClient.Get(ctx, key).Result()
 	if err != nil {
 		return "", fmt.Errorf("failed to get key %s: %w", key, err)
 	}
 
-	_, delErr := rdb.GetRedisClient().Del(ctx, key).Result()
+	_, delErr := redisClient.Del(ctx, key).Result()
 	if delErr != nil {
 		return "", fmt.Errorf("failed to delete key %s: %w", key, delErr)
 	}
@@ -47,8 +65,14 @@ func Pull(ctx context.Context, key string) (string, error) {
 
 // Forever sets the value of a key without an expiration time.
 func SetForever(ctx context.Context, key string, value interface{}) error {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Skip cache operation if Redis is not available
+		return nil
+	}
+
 	key = rdb.AddPrefix(key)
-	err := rdb.GetRedisClient().Set(ctx, key, value, 0).Err()
+	err := redisClient.Set(ctx, key, value, 0).Err()
 	if err != nil {
 		return fmt.Errorf("failed to set key %s forever: %w", key, err)
 	}
@@ -57,8 +81,14 @@ func SetForever(ctx context.Context, key string, value interface{}) error {
 
 // Delete the key-value pair from Redis.
 func Remove(ctx context.Context, key string) error {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Skip cache operation if Redis is not available
+		return nil
+	}
+
 	key = rdb.AddPrefix(key)
-	_, err := rdb.GetRedisClient().Del(ctx, key).Result()
+	_, err := redisClient.Del(ctx, key).Result()
 	if err != nil {
 		return fmt.Errorf("failed to forget key %s: %w", key, err)
 	}
@@ -67,8 +97,14 @@ func Remove(ctx context.Context, key string) error {
 
 // Remove all keys from the current database.
 func Flush(ctx context.Context) error {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Skip cache operation if Redis is not available
+		return nil
+	}
+
 	key := rdb.AddPrefix("*")
-	_, err := rdb.GetRedisClient().Del(ctx, key).Result()
+	_, err := redisClient.Del(ctx, key).Result()
 	if err != nil {
 		return err
 	}
@@ -78,8 +114,14 @@ func Flush(ctx context.Context) error {
 // Increment increases the integer value of a key by the given increment.
 // If the key does not exist, it is set to 0 before performing the operation.
 func Increment(ctx context.Context, key string, increment int64) (int64, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return 0 if Redis is not available
+		return 0, fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	val, err := rdb.GetRedisClient().IncrBy(ctx, key, increment).Result()
+	val, err := redisClient.IncrBy(ctx, key, increment).Result()
 	if err != nil {
 		return 0, fmt.Errorf("failed to increment key %s by %d: %w", key, increment, err)
 	}
@@ -89,8 +131,14 @@ func Increment(ctx context.Context, key string, increment int64) (int64, error) 
 // Decrement decreases the integer value of a key by the given decrement.
 // If the key does not exist, it is set to 0 before performing the operation.
 func Decrement(ctx context.Context, key string, decrement int64) (int64, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return 0 if Redis is not available
+		return 0, fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	val, err := rdb.GetRedisClient().DecrBy(ctx, key, decrement).Result()
+	val, err := redisClient.DecrBy(ctx, key, decrement).Result()
 	if err != nil {
 		return 0, fmt.Errorf("failed to decrement key %s by %d: %w", key, decrement, err)
 	}
@@ -165,14 +213,20 @@ func RememberJSON(ctx context.Context, key string, duration time.Duration, dest 
 
 // InvalidatePattern removes all keys matching the given pattern
 func InvalidatePattern(ctx context.Context, pattern string) error {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Skip cache operation if Redis is not available
+		return nil
+	}
+
 	pattern = rdb.AddPrefix(pattern)
-	keys, err := rdb.GetRedisClient().Keys(ctx, pattern).Result()
+	keys, err := redisClient.Keys(ctx, pattern).Result()
 	if err != nil {
 		return fmt.Errorf("failed to get keys for pattern %s: %w", pattern, err)
 	}
 
 	if len(keys) > 0 {
-		_, err = rdb.GetRedisClient().Del(ctx, keys...).Result()
+		_, err = redisClient.Del(ctx, keys...).Result()
 		if err != nil {
 			return fmt.Errorf("failed to delete keys for pattern %s: %w", pattern, err)
 		}
@@ -183,20 +237,32 @@ func InvalidatePattern(ctx context.Context, pattern string) error {
 
 // Exists checks if a key exists
 func Exists(ctx context.Context, key string) (bool, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return false if Redis is not available
+		return false, fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	exists, err := rdb.GetRedisClient().Exists(ctx, key).Result()
+	exists, err := redisClient.Exists(ctx, key).Result()
 	if err != nil {
-		return false, fmt.Errorf("failed to check existence of key %s: %w", key, err)
+		return false, fmt.Errorf("failed to check if key %s exists: %w", key, err)
 	}
 	return exists > 0, nil
 }
 
 // TTL gets the time to live of a key
 func TTL(ctx context.Context, key string) (time.Duration, error) {
+	redisClient := rdb.GetRedisClient()
+	if redisClient == nil {
+		// Return 0 if Redis is not available
+		return 0, fmt.Errorf("redis not available")
+	}
+
 	key = rdb.AddPrefix(key)
-	ttl, err := rdb.GetRedisClient().TTL(ctx, key).Result()
+	ttl, err := redisClient.TTL(ctx, key).Result()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get TTL of key %s: %w", key, err)
+		return 0, fmt.Errorf("failed to get TTL for key %s: %w", key, err)
 	}
 	return ttl, nil
 }

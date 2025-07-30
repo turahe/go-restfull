@@ -88,14 +88,28 @@ func GetRedisClient() redis.Cmdable {
 		defer m.Unlock()
 
 		logger.Log.Info("Initializing redis again")
-		err := InitRedisClient(config.GetConfig().Redis)
-		if err != nil {
-			logger.Log.Error("Failed to initialize redis client", zap.Error(err))
-			// Return a mock client or handle the error gracefully
-			// For now, we'll return nil and let the calling code handle it
+
+		// Use a context with timeout for the entire initialization
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		// Run initialization in a goroutine with timeout
+		done := make(chan error, 1)
+		go func() {
+			done <- InitRedisClient(config.GetConfig().Redis)
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				logger.Log.Error("Failed to initialize redis client", zap.Error(err))
+				return nil
+			}
+			logger.Log.Info("redis initialized")
+		case <-ctx.Done():
+			logger.Log.Error("Redis initialization timed out")
 			return nil
 		}
-		logger.Log.Info("redis initialized")
 	}
 
 	return rdb

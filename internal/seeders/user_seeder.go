@@ -2,7 +2,6 @@ package seeders
 
 import (
 	"context"
-
 	"webapi/internal/domain/entities"
 	"webapi/internal/infrastructure/adapters"
 
