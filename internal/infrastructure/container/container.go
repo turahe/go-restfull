@@ -1,15 +1,15 @@
 package container
 
 import (
-	"webapi/internal/application/ports"
-	appservices "webapi/internal/application/services"
-	"webapi/internal/db/rdb"
-	"webapi/internal/domain/repositories"
-	domainservices "webapi/internal/domain/services"
-	"webapi/internal/infrastructure/adapters"
-	"webapi/internal/interfaces/http/controllers"
-	"webapi/internal/repository"
-	"webapi/pkg/email"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	appservices "github.com/turahe/go-restfull/internal/application/services"
+	"github.com/turahe/go-restfull/internal/db/rdb"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
+	domainservices "github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
+	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/pkg/email"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

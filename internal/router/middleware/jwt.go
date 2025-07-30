@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"webapi/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/helper/utils"
 
 	"github.com/gofiber/fiber/v2"
 )

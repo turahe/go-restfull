@@ -3,8 +3,8 @@ package ports
 import (
 	"context"
 
-	"webapi/internal/domain/entities"
-	"webapi/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/utils"
 )
 
 // AuthService defines the application service interface for authentication operations

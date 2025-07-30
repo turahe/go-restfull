@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"webapi/config"
-	"webapi/internal/domain/services"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/domain/services"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"

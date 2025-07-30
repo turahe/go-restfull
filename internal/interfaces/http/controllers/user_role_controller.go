@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"strconv"
-	"webapi/internal/application/ports"
-	"webapi/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

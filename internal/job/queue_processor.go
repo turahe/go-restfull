@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"go.uber.org/zap"
 )

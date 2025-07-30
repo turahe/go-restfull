@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"webapi/internal/helper/cache"
-	"webapi/pkg/email"
+	"github.com/turahe/go-restfull/internal/helper/cache"
+	"github.com/turahe/go-restfull/pkg/email"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"webapi/internal/db/rdb"
+	"github.com/turahe/go-restfull/internal/db/rdb"
 )
 
 // Set sets a key-value pair with an expiration time.

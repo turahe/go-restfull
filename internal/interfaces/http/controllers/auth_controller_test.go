@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"webapi/internal/domain/entities"
-	"webapi/internal/helper/utils"
-	"webapi/internal/interfaces/http/controllers"
-	"webapi/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"

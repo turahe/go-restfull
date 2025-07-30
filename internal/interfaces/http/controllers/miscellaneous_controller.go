@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"webapi/pkg/exception"
+	"github.com/turahe/go-restfull/pkg/exception"
 )
 
 type MiscellaneousHTTPHandler struct{}

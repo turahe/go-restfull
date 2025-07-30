@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 
-	"webapi/config"
-	"webapi/internal/scheduler"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/scheduler"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/lnquy/cron"

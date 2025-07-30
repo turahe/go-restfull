@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"webapi/internal/domain/entities"
-	"webapi/internal/interfaces/http/controllers"
-	"webapi/internal/interfaces/http/requests"
-	"webapi/pkg/exception"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

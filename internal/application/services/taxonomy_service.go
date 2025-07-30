@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
-	"webapi/internal/domain/repositories"
-	"webapi/internal/helper/pagination"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )

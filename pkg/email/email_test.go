@@ -3,7 +3,7 @@ package email
 import (
 	"os"
 	"testing"
-	"webapi/config"
+	"github.com/turahe/go-restfull/config"
 
 	"go.uber.org/zap/zapcore"
 )

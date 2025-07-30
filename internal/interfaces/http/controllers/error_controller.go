@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"webapi/internal/interfaces/http/responses"
-	"webapi/pkg/exception"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/gofiber/fiber/v2"
 )

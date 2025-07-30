@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
-	"webapi/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
 
 	"github.com/google/uuid"
 )

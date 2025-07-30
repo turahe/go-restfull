@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"webapi/config"
+	"github.com/turahe/go-restfull/config"
 
 	"github.com/google/uuid"
 )

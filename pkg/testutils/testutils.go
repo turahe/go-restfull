@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/db/pgx"
-	"webapi/internal/db/rdb"
-	"webapi/internal/infrastructure/container"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/db/rdb"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"

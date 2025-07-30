@@ -25,11 +25,11 @@ import (
 	"log"
 	"os"
 
-	"webapi/cmd"
-	"webapi/internal/db/pgx"
-	"webapi/internal/infrastructure/container"
-	"webapi/internal/interfaces/http/routes"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/cmd"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

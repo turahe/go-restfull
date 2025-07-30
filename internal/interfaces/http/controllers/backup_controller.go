@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/domain/services"
-	"webapi/internal/interfaces/http/responses"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"

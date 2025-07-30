@@ -3,7 +3,7 @@ package migrations
 import (
 	"context"
 
-	"webapi/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/db/pgx"
 )
 
 func init() {

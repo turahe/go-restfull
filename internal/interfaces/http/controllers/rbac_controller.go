@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"webapi/internal/domain/services"
-	"webapi/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
 )

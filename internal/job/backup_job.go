@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"webapi/internal/domain/services"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"go.uber.org/zap"
 )

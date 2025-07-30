@@ -2,8 +2,8 @@ package ports
 
 import (
 	"context"
-	"webapi/internal/domain/entities"
-	"webapi/internal/helper/pagination"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )

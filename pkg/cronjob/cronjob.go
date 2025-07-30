@@ -3,7 +3,7 @@ package cronjob
 import (
 	"time"
 
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/go-co-op/gocron/v2"
 	"go.uber.org/zap"

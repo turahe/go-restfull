@@ -6,10 +6,10 @@ import (
 	"os"
 	"sort"
 
-	"webapi/config"
-	"webapi/internal/db/migrations"
-	"webapi/internal/db/pgx"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/db/migrations"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"

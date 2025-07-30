@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
-	"webapi/internal/domain/repositories"
-	"webapi/internal/domain/services"
-	"webapi/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/helper/utils"
 )
 
 // authService implements the AuthService interface

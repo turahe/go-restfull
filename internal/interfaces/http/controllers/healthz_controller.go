@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/db/pgx"
-	"webapi/internal/db/rdb"
-	internal_minio "webapi/pkg/minio"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/db/rdb"
+	internal_minio "github.com/turahe/go-restfull/pkg/minio"
 
 	"github.com/gofiber/fiber/v2"
 )

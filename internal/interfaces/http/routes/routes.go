@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"webapi/internal/infrastructure/container"
-	"webapi/internal/interfaces/http/controllers"
-	v1 "webapi/internal/interfaces/http/routes/v1"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
+	v1 "github.com/turahe/go-restfull/internal/interfaces/http/routes/v1"
 
 	"github.com/gofiber/fiber/v2"
 )

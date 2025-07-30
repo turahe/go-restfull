@@ -5,8 +5,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
-	"webapi/config"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/logger"
 )
 
 var (

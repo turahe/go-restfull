@@ -3,7 +3,7 @@ package responses
 import (
 	"time"
 
-	"webapi/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // PostResponse represents a post in API responses

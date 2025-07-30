@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/domain/services"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/domain/services"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

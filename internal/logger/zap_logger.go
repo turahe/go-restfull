@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"webapi/config"
+	"github.com/turahe/go-restfull/config"
 )
 
 func newZapLogger() *zap.Logger {

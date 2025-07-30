@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"webapi/config"
+	"github.com/turahe/go-restfull/config"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

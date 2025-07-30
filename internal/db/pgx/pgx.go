@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"webapi/config"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

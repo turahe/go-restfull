@@ -1,7 +1,7 @@
 package responses
 
 import (
-	"webapi/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // MenuResponse represents a menu in API responses

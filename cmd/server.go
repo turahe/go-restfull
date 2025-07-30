@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/http/validation"
-	"webapi/internal/logger"
-	"webapi/internal/router"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/http/validation"
+	"github.com/turahe/go-restfull/internal/logger"
+	"github.com/turahe/go-restfull/internal/router"
 
 	"github.com/spf13/cobra"
 )

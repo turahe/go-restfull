@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"webapi/internal/application/ports"
-	"webapi/internal/domain/entities"
-	"webapi/internal/helper/utils"
-	"webapi/internal/interfaces/http/requests"
-	"webapi/internal/interfaces/http/responses"
-	"webapi/pkg/exception"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

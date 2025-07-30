@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"webapi/internal/helper/pagination"
+	"github.com/turahe/go-restfull/internal/helper/pagination"
 )
 
 // PaginationService defines the interface for pagination operations

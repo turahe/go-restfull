@@ -3,7 +3,7 @@ package services_test
 import (
 	"testing"
 
-	"webapi/internal/infrastructure/adapters"
+	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

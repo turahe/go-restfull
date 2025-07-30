@@ -3,7 +3,7 @@ package responses
 import (
 	"time"
 
-	"webapi/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // RoleResponse represents a role in API responses

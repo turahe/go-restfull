@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"webapi/build"
-	"webapi/version"
+	"github.com/turahe/go-restfull/build"
+	"github.com/turahe/go-restfull/version"
 )
 
 func init() {

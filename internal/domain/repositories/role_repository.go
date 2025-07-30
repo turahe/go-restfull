@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"webapi/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
 )

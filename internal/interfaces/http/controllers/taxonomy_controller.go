@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"webapi/internal/application/ports"
-	"webapi/internal/helper/pagination"
-	"webapi/internal/interfaces/http/requests"
-	"webapi/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/helper/pagination"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

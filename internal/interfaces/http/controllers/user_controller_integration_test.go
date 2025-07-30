@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"webapi/pkg/testutils"
+	"github.com/turahe/go-restfull/pkg/testutils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"webapi/internal/application/services"
-	"webapi/internal/domain/entities"
-	"webapi/internal/interfaces/http/controllers"
-	"webapi/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/internal/application/services"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 )
 
 func TestUserController_Integration_CreateUser(t *testing.T) {

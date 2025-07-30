@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"webapi/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/domain/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

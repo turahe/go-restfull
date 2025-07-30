@@ -5,7 +5,7 @@ import (
 	"fmt"
 	htmltemplate "html/template"
 	"text/template"
-	"webapi/config"
+	"github.com/turahe/go-restfull/config"
 
 	"gopkg.in/gomail.v2"
 )

@@ -2,9 +2,9 @@ package adapters
 
 import (
 	"context"
-	"webapi/internal/domain/entities"
-	"webapi/internal/domain/repositories"
-	"webapi/internal/repository"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/repository"
 
 	"github.com/google/uuid"
 )

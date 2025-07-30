@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"webapi/internal/infrastructure/container"
-	"webapi/internal/router/middleware"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/router/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

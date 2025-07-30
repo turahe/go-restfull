@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"webapi/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
 
 	"github.com/gofiber/fiber/v2"
 )

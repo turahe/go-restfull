@@ -3,8 +3,8 @@ package logger_test
 import (
 	"testing"
 
-	"webapi/config"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"go.uber.org/zap/zapcore"
 )

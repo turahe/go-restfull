@@ -5,9 +5,9 @@ import (
 	"time"
 	_ "time/tzdata"
 
-	"webapi/config"
-	"webapi/internal/job"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/job"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/go-co-op/gocron"
 	"go.uber.org/zap"

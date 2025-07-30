@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"webapi/internal/http/validation"
+	"github.com/turahe/go-restfull/internal/http/validation"
 )
 
 // NewValidationFailedErrors reads ValidationErrors and converts to format of ExceptionErrors.

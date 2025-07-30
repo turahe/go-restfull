@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"webapi/config"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"

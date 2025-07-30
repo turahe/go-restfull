@@ -2,8 +2,8 @@ package adapters
 
 import (
 	"context"
-	"webapi/internal/domain/entities"
-	"webapi/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

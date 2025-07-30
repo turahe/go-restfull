@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"webapi/internal/domain/services"
-	"webapi/pkg/email"
+	"github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/pkg/email"
 )
 
 // smtpEmailService implements EmailService interface

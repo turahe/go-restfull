@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"webapi/internal/logger"
+	"github.com/turahe/go-restfull/internal/logger"
 )
 
 func Logger() fiber.Handler {

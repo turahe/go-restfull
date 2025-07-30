@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"webapi/internal/http/validation"
-	. "webapi/pkg/exception"
+	"github.com/turahe/go-restfull/internal/http/validation"
+	. "github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"

@@ -3,11 +3,11 @@ package controllers
 import (
 	"net/http"
 
-	"webapi/internal/application/ports"
-	domainservices "webapi/internal/domain/services"
-	"webapi/internal/interfaces/http/requests"
-	"webapi/internal/interfaces/http/responses"
-	"webapi/internal/router/middleware"
+	"github.com/turahe/go-restfull/internal/application/ports"
+	domainservices "github.com/turahe/go-restfull/internal/domain/services"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/router/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

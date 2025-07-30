@@ -1,4 +1,4 @@
-module webapi
+module github.com/turahe/go-restfull
 
 go 1.24.5
 

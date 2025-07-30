@@ -3,7 +3,7 @@ package response
 import (
 	"time"
 
-	"webapi/internal/helper/pagination"
+	"github.com/turahe/go-restfull/internal/helper/pagination"
 
 	"github.com/google/uuid"
 )
