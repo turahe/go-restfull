@@ -90,7 +90,7 @@ func GetRedisClient() redis.Cmdable {
 		logger.Log.Info("Initializing redis again")
 
 		// Use a context with timeout for the entire initialization
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
 		// Run initialization in a goroutine with timeout
