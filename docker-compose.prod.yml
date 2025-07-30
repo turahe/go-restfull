@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: go-restfull-prod
+    ports:
+      - "8000:8000"
+    volumes:
+      # Uncomment to use external config file
+      # - ./custom.yml:/app/config.yml
+      # - ./custom.yml:/configs/user.yml
+    environment:
+      - ENV=production
+      - TZ=Asia/Jakarta
+      # Uncomment to use external config via environment variable
+      # - CONFIG_PATH=/configs/user.yml
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - go-restfull-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:17
+    container_name: go-restfull-postgres-prod
+    environment:
+      POSTGRES_DB: my_db
+      POSTGRES_USER: my_user
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - go-restfull-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U my_user -d my_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: go-restfull-redis-prod
+    ports:
+      - "6379:6379"
+    networks:
+      - go-restfull-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: go-restfull-minio-prod
+    ports:
+      - "9000:9000"
+      - "8900:8900"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":8900"
+    volumes:
+      - minio_data:/data
+    networks:
+      - go-restfull-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: go-restfull-mailpit-prod
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - go-restfull-network
+    restart: always
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  go-restfull-network:
+    driver: bridge 

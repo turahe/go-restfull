@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
+
 	internal_minio "github.com/turahe/go-restfull/pkg/minio"
 
 	"github.com/turahe/go-restfull/config"
@@ -57,11 +58,17 @@ func Execute() {
 }
 
 func setUpConfig() {
-	if configFile == "" {
+	// Check for CONFIG_PATH environment variable first
+	if configPath := os.Getenv("CONFIG_PATH"); configPath != "" {
+		configFile = configPath
+		log.Default().Printf("Using config file from CONFIG_PATH: %s", configFile)
+	} else if configFile == "" {
 		configFile = defaultConfigFile
+		log.Default().Printf("Using default config file: %s", configFile)
+	} else {
+		log.Default().Printf("Using config file from command line: %s", configFile)
 	}
 
-	log.Default().Printf("Using config file: %s", configFile)
 	viper.SetConfigFile(configFile)
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -109,13 +116,15 @@ func setUpPostgres() {
 
 func setUpRedis() {
 	// Create the database connection pool
-	if config.GetConfig().Redis[0].Host != "" {
+	if len(config.GetConfig().Redis) > 0 && config.GetConfig().Redis[0].Host != "" {
 		logger.Log.Info("Initializing redis")
 		err := rdb.InitRedisClient(config.GetConfig().Redis)
 		if err != nil {
 			logger.Log.Fatal("rdb.InitRedisClient()", zap.Error(err))
 		}
 		logger.Log.Info("redis initialized")
+	} else {
+		logger.Log.Info("Skipping Redis initialization - no Redis configuration provided")
 	}
 
 }

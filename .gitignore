@@ -13,17 +13,216 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
-.idea
-config/config.yaml
-db_data/
+
+# Go workspace file
+go.work
+
+# Build output
+build/
+bin/
+dist/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-log/*.log
+# Logs
+*.log
+logs/
+log/
 
-tmp/
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-*-coverage*
+# Docker
+.dockerignore
+docker-compose.override.yml
 
-*coverage.html
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Configuration files with secrets
+config/config.local.yaml
+config/config.production.yaml
+*.secret
+.secret
+
+# SonarCloud
+.scannerwork/
+.sonar/
+
+# Air (Go hot reload)
+.air.toml
+
+# Test coverage
+coverage.out
+coverage.html
+*.coverage
+
+# Documentation build
+docs/build/
+
+# MinIO data
+minio_data/
+
+# PostgreSQL data
+postgres_data/
+
+# Redis dump
+dump.rdb
+
+# Mailpit data
+mailpit_data/
+
+# Application specific
+uploads/
+downloads/
+cache/
+sessions/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes
+*.kubeconfig
+
+# Helm
+charts/*.tgz
+
+# Local development
+.local/
+local/
+
+# Custom configuration files
+custom.yml
+test-config.yml
+user-config.yml
+
+# Generated files
+swagger.json
+swagger.yaml
+docs/docs.go
+
+# Air cache
+.air/
+
+# Go mod cache
+go.sum
+
+# Docker volumes
+volumes/
+
+# Application data
+data/
+storage/
+
+# Backup directories
+backup/
+backups/
+
+# Cache directories
+.cache/
+cache/
+
+# Temporary application files
+*.pid
+*.lock
+*.sock
+
+# Application logs
+app.log
+error.log
+access.log
+
+# Development tools
+.devcontainer/
+.dev/
+
+# Local configuration overrides
+config.local.*
+*.local.*
+
+# Test artifacts
+test-results/
+test-output/
+
+# Performance profiling
+*.prof
+*.pprof
+
+# Memory dumps
+*.dump
+
+# Core dumps
+core.*
+
+# Application specific ignores
+# Add any project-specific files or directories here

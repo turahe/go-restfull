@@ -80,3 +80,80 @@ vet:
 lint:
 	go get golang.org/x/lint/golint
 	$(GOPATH)/bin/golint ./...
+
+# Docker commands
+docker-build: docker-build-dev docker-build-staging docker-build-prod
+
+docker-build-dev:
+	docker build --target development -t go-restfull:dev .
+
+docker-build-staging:
+	docker build --target staging -t go-restfull:staging .
+
+docker-build-prod:
+	docker build --target production -t go-restfull:prod .
+
+docker-run:
+	docker run -p 8000:8000 go-restfull:prod
+
+docker-run-dev:
+	docker run -p 8000:8000 -v $(PWD):/app go-restfull:dev
+
+docker-run-staging:
+	docker run -p 8000:8000 go-restfull:staging
+
+# Docker run with external configuration
+docker-run-with-config:
+	docker run -p 8000:8000 -v $(PWD)/custom.yml:/app/config.yml go-restfull:prod
+
+docker-run-with-config-env:
+	docker run -p 8000:8000 -v $(PWD)/custom.yml:/configs/user.yml -e CONFIG_PATH=/configs/user.yml go-restfull:prod
+
+docker-run-dev-with-config:
+	docker run -p 8000:8000 -v $(PWD):/app -v $(PWD)/custom.yml:/app/config.yml go-restfull:dev
+
+docker-run-dev-with-config-env:
+	docker run -p 8000:8000 -v $(PWD):/app -v $(PWD)/custom.yml:/configs/user.yml -e CONFIG_PATH=/configs/user.yml go-restfull:dev
+
+# Docker Hub commands
+docker-hub-login:
+	docker login
+
+docker-hub-build-and-push: docker-hub-build docker-hub-push
+
+docker-hub-build:
+	docker build --target production -t turahe/go-restfull:latest .
+	docker build --target production -t turahe/go-restfull:prod .
+	docker build --target staging -t turahe/go-restfull:staging .
+	docker build --target development -t turahe/go-restfull:dev .
+
+docker-hub-push:
+	docker push turahe/go-restfull:latest
+	docker push turahe/go-restfull:prod
+	docker push turahe/go-restfull:staging
+	docker push turahe/go-restfull:dev
+
+docker-hub-push-latest:
+	docker push turahe/go-restfull:latest
+
+docker-hub-push-prod:
+	docker push turahe/go-restfull:prod
+
+docker-hub-push-staging:
+	docker push turahe/go-restfull:staging
+
+docker-hub-push-dev:
+	docker push turahe/go-restfull:dev
+
+# Development commands
+run:
+	go run main.go server
+
+migrate:
+	go run main.go migrate
+
+seed:
+	go run main.go seed
+
+docs:
+	swag init -g main.go

@@ -44,7 +44,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ForgetPasswordRequest"
+                            "$ref": "#/definitions/requests.ForgetPasswordRequest"
                         }
                     }
                 ],
@@ -194,7 +194,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.RefreshTokenRequest"
+                            "$ref": "#/definitions/requests.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -322,7 +322,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ResetPasswordRequest"
+                            "$ref": "#/definitions/requests.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -356,7 +356,7 @@ const docTemplate = `{
         },
         "/healthz": {
             "get": {
-                "description": "Check if the API is running and healthy",
+                "description": "Check if the API and all services are running and healthy",
                 "consumes": [
                     "application/json"
                 ],
@@ -371,7 +371,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/controllers.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.HealthResponse"
                         }
                     }
                 }
@@ -426,7 +432,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -443,13 +449,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -498,7 +504,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -515,25 +521,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid file or parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "413": {
                         "description": "Payload too large - File size exceeds limit",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported media type",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -573,7 +579,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -590,19 +596,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid media ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Media does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -649,7 +655,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -666,19 +672,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Media does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -714,25 +720,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Media deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request - Invalid media ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Media does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -801,7 +807,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -818,13 +824,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -863,7 +869,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -880,19 +886,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict - Menu with same slug already exists",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -922,7 +928,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -939,7 +945,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -969,7 +975,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -986,7 +992,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1042,7 +1048,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1059,13 +1065,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Search query is required",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1104,7 +1110,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1121,19 +1127,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Slug is required",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1173,7 +1179,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1190,19 +1196,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1249,7 +1255,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1266,19 +1272,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1314,25 +1320,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Menu deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1372,7 +1378,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1389,19 +1395,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1441,7 +1447,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1458,19 +1464,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1510,7 +1516,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1527,19 +1533,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -1579,7 +1585,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1596,19 +1602,914 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid menu ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Menu does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations": {
+            "get": {
+                "description": "Get a paginated list of all organizations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get all organizations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new organization, optionally with a parent",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Create a new organization",
+                "parameters": [
+                    {
+                        "description": "Organization to create",
+                        "name": "organization",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CreateOrganizationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/root": {
+            "get": {
+                "description": "Get all root organizations (organizations without a parent)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get root organizations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/search": {
+            "get": {
+                "description": "Search organizations by query string",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Search organizations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Results per page",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/tree": {
+            "get": {
+                "description": "Get the entire organization tree structure",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get the full organization tree",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/validate-hierarchy": {
+            "get": {
+                "description": "Validate if a parent-child relationship is valid",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Validate organization hierarchy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Parent Organization ID",
+                        "name": "parent_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Child Organization ID",
+                        "name": "child_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}": {
+            "get": {
+                "description": "Get a single organization by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get organization by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an organization's details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Update an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Organization update data",
+                        "name": "organization",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.UpdateOrganizationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an organization by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Delete an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/ancestors": {
+            "get": {
+                "description": "Get all ancestor organizations of an organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get ancestors of an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/children": {
+            "get": {
+                "description": "Get direct children of an organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get children of an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a new child organization to a parent",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Add a child organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Parent Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Child organization to create",
+                        "name": "organization",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CreateOrganizationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/descendants": {
+            "get": {
+                "description": "Get all descendant organizations of an organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get descendants of an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/move": {
+            "post": {
+                "description": "Move an organization and all its descendants to a new parent",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Move an organization subtree",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Move request",
+                        "name": "move",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.MoveOrganizationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/path": {
+            "get": {
+                "description": "Get the path from the root to the specified organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get path to an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/siblings": {
+            "get": {
+                "description": "Get all sibling organizations of an organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get siblings of an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/stats": {
+            "get": {
+                "description": "Get statistics for an organization (children and descendants count)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get organization statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/status": {
+            "put": {
+                "description": "Set the status of an organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Set organization status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status request",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.SetOrganizationStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/organizations/{id}/subtree": {
+            "get": {
+                "description": "Get the subtree rooted at the specified organization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Get a subtree of an organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an organization and all its descendants",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "summary": "Delete an organization subtree",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
@@ -1723,7 +2624,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.CreatePostRequest"
+                            "$ref": "#/definitions/requests.CreatePostRequest"
                         }
                     }
                 ],
@@ -2006,7 +2907,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.UpdatePostRequest"
+                            "$ref": "#/definitions/requests.UpdatePostRequest"
                         }
                     }
                 ],
@@ -2240,6 +3141,382 @@ const docTemplate = `{
                 }
             }
         },
+        "/rbac/policies": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all RBAC policies from the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Get all RBAC policies",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new policy rule to the RBAC system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Add a new RBAC policy",
+                "parameters": [
+                    {
+                        "description": "Policy to add",
+                        "name": "policy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.AddPolicyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a policy rule from the RBAC system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Remove an RBAC policy",
+                "parameters": [
+                    {
+                        "description": "Policy to remove",
+                        "name": "policy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.RemovePolicyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/rbac/roles/{role}/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all users assigned to a specific role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Get users for a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role name",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/rbac/users/{user}/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all roles assigned to a specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Get roles for a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/rbac/users/{user}/roles/{role}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Assign a role to a specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Add role to user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Role name",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a role from a specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rbac"
+                ],
+                "summary": "Remove role from user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Role name",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/roles": {
             "get": {
                 "security": [
@@ -2293,7 +3570,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2310,13 +3587,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2355,7 +3632,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2372,19 +3649,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict - Role with same slug already exists",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2440,7 +3717,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2457,13 +3734,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2502,7 +3779,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2519,19 +3796,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Slug is required",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2571,7 +3848,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2588,19 +3865,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2647,7 +3924,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2664,19 +3941,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid input data",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2712,25 +3989,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Role deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request - Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2770,7 +4047,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2787,19 +4064,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -2839,7 +4116,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2856,19 +4133,496 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - Role does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tags": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all tags with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Get all tags",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of tags to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of tags to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of tags",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new tag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Create tag",
+                "parameters": [
+                    {
+                        "description": "Tag object",
+                        "name": "tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CreateTagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Tag created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {}
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Tag with same slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tags/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search tags by query with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Search tags",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of tags to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of tags to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tags/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a tag by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Get tag by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag retrieved successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {}
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid tag ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Tag does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing tag by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Update tag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Tag object",
+                        "name": "tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.UpdateTagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag updated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {}
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid tag ID or input data",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Tag does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Tag with same slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a tag by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tags"
+                ],
+                "summary": "Delete tag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Invalid tag ID",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found - Tag does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/taxonomies/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search taxonomies with pagination and return unified response",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "taxonomies"
+                ],
+                "summary": "Search taxonomies with pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field (default: record_left)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Sort descending (default: false)",
+                        "name": "sort_desc",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Taxonomies with pagination",
+                        "schema": {
+                            "$ref": "#/definitions/pagination.TaxonomySearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
                         }
                     }
                 }
@@ -2972,7 +4726,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.CreateUserRequest"
+                            "$ref": "#/definitions/requests.CreateUserRequest"
                         }
                     }
                 ],
@@ -3115,7 +4869,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.UpdateUserRequest"
+                            "$ref": "#/definitions/requests.UpdateUserRequest"
                         }
                     }
                 ],
@@ -3246,7 +5000,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/webapi_internal_interfaces_http_requests.ChangePasswordRequest"
+                            "$ref": "#/definitions/requests.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -3318,7 +5072,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.CommonResponse"
+                                    "$ref": "#/definitions/responses.CommonResponse"
                                 },
                                 {
                                     "type": "object",
@@ -3335,45 +5089,27 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request - Invalid user ID",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not found - User does not exist",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
             }
         },
-        "/v1/taxonomies": {
+        "/v1/comments": {
             "get": {
-                "description": "Get all taxonomies",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "taxonomies"
-                ],
-                "summary": "Get all taxonomies",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new taxonomy",
+                "description": "Get all comments with optional filtering",
                 "consumes": [
                     "application/json"
                 ],
@@ -3381,17 +5117,88 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "taxonomies"
+                    "comments"
                 ],
-                "summary": "Create taxonomy",
+                "summary": "List comments",
                 "parameters": [
                     {
-                        "description": "Taxonomy info",
-                        "name": "taxonomy",
+                        "type": "string",
+                        "description": "Filter by post ID",
+                        "name": "post_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by user ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by parent comment ID",
+                        "name": "parent_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (approved, pending, rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of comments to return (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of comments to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new comment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Create comment",
+                "parameters": [
+                    {
+                        "description": "Comment info",
+                        "name": "comment",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.Taxonomy"
+                            "$ref": "#/definitions/requests.CreateCommentRequest"
                         }
                     }
                 ],
@@ -3399,54 +5206,33 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
             }
         },
-        "/v1/taxonomies/{id}": {
+        "/v1/comments/{id}": {
             "get": {
-                "description": "Get a taxonomy by its ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "taxonomies"
-                ],
-                "summary": "Get taxonomy by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Taxonomy UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update a taxonomy by its ID",
+                "description": "Get a single comment by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -3454,55 +5240,124 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "taxonomies"
+                    "comments"
                 ],
-                "summary": "Update taxonomy",
+                "summary": "Get comment by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Taxonomy UUID",
+                        "description": "Comment ID",
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Taxonomy info",
-                        "name": "taxonomy",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.Taxonomy"
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing comment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Update comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment info",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.UpdateCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete a taxonomy by its ID",
+                "description": "Delete a comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "taxonomies"
+                    "comments"
                 ],
-                "summary": "Delete taxonomy",
+                "summary": "Delete comment",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Taxonomy UUID",
+                        "description": "Comment ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3512,13 +5367,143 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.CommonResponse"
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/comments/{id}/approve": {
+            "put": {
+                "description": "Approve a comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Approve comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/comments/{id}/reject": {
+            "put": {
+                "description": "Reject a comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Reject comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CommonResponse"
                         }
                     }
                 }
@@ -3526,76 +5511,125 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "exception.ExceptionError": {
+        "controllers.AddPolicyRequest": {
             "type": "object",
             "properties": {
-                "error_subcode": {
-                    "type": "integer"
+                "action": {
+                    "type": "string"
                 },
+                "object": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.HealthCheck": {
+            "type": "object",
+            "properties": {
                 "message": {
                     "type": "string"
                 },
-                "type": {
-                    "$ref": "#/definitions/exception.errorType"
+                "service": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
                 }
             }
         },
-        "exception.ExceptionErrors": {
+        "controllers.HealthResponse": {
             "type": "object",
             "properties": {
-                "errItems": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/exception.ExceptionError"
-                    }
-                },
-                "globalMessage": {
+                "environment": {
                     "type": "string"
                 },
-                "httpStatusCode": {
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controllers.HealthCheck"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.RemovePolicyRequest": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "pagination.PaginationResponse": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "from": {
+                    "type": "integer"
+                },
+                "has_next_page": {
+                    "type": "boolean"
+                },
+                "has_prev_page": {
+                    "type": "boolean"
+                },
+                "next_page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "previous_page": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "integer"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "total_pages": {
                     "type": "integer"
                 }
             }
         },
-        "exception.errorType": {
-            "type": "string",
-            "enum": [
-                "UnknownError",
-                "BadRequest",
-                "NotFound",
-                "Unauthorized",
-                "ValidationError",
-                "JobError",
-                "ExternalServiceError",
-                "DatasourceError"
-            ],
-            "x-enum-varnames": [
-                "ERROR_TYPE_UNKNOWN_ERROR",
-                "ERROR_TYPE_BAD_REQUEST",
-                "ERROR_TYPE_NOT_FOUND",
-                "ERROR_TYPE_UNAUTHORIZED",
-                "ERROR_TYPE_VALIDATION_ERROR",
-                "ERROR_TYPE_JOB_ERROR",
-                "ERROR_TYPE_EXTERNAL_SERVICE_ERROR",
-                "ERROR_TYPE_DATASOURCE_ERROR"
-            ]
-        },
-        "model.Taxonomy": {
+        "pagination.TaxonomyDTO": {
             "type": "object",
             "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pagination.TaxonomyDTO"
+                    }
+                },
                 "code": {
                     "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
-                "created_by": {
-                    "type": "string"
-                },
                 "deleted_at": {
-                    "type": "string"
-                },
-                "deleted_by": {
                     "type": "string"
                 },
                 "description": {
@@ -3606,6 +5640,14 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "parent": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pagination.TaxonomyDTO"
+                        }
+                    ]
                 },
                 "parent_id": {
                     "type": "string"
@@ -3624,8 +5666,159 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "pagination.TaxonomySearchResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pagination.TaxonomyDTO"
+                    }
                 },
-                "updated_by": {
+                "pagination": {
+                    "$ref": "#/definitions/pagination.PaginationResponse"
+                }
+            }
+        },
+        "requests.ChangePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "new_password": {
+                    "type": "string"
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CreateCommentRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "post_id"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 1
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "post_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CreateOrganizationRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "code": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "logo_url": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "website": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "requests.CreatePostRequest": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CreateTagRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CreateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ForgetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -3637,6 +5830,28 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.MoveOrganizationRequest": {
+            "type": "object",
+            "required": [
+                "new_parent_id"
+            ],
+            "properties": {
+                "new_parent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
                     "type": "string"
                 }
             }
@@ -3672,23 +5887,142 @@ const docTemplate = `{
                 }
             }
         },
-        "response.CommonResponse": {
+        "requests.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "email",
+                "otp",
+                "password"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 8
+                }
+            }
+        },
+        "requests.SetOrganizationStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "inactive",
+                        "suspended"
+                    ]
+                }
+            }
+        },
+        "requests.UpdateCommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 1
+                }
+            }
+        },
+        "requests.UpdateOrganizationRequest": {
             "type": "object",
             "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
                 "code": {
-                    "type": "integer"
+                    "type": "string",
+                    "maxLength": 50
                 },
-                "data": {},
-                "errors": {
-                    "$ref": "#/definitions/exception.ExceptionErrors"
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
                 },
-                "message": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "logo_url": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "website": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "requests.UpdatePostRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
                     "type": "string"
                 },
-                "path": {
+                "slug": {
                     "type": "string"
                 },
-                "request_id": {
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.UpdateTagRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -3710,6 +6044,22 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/responses.UserResponse"
+                }
+            }
+        },
+        "responses.CommonResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "errors": {},
+                "request_id": {
+                    "type": "string"
+                },
+                "response_code": {
+                    "type": "integer"
+                },
+                "response_message": {
+                    "type": "string"
                 }
             }
         },
@@ -3804,132 +6154,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone_verified_at": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.ChangePasswordRequest": {
-            "type": "object",
-            "properties": {
-                "new_password": {
-                    "type": "string"
-                },
-                "old_password": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.CreatePostRequest": {
-            "type": "object",
-            "properties": {
-                "author_id": {
-                    "type": "string"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.CreateUserRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.ForgetPasswordRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.RefreshTokenRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.ResetPasswordRequest": {
-            "type": "object",
-            "required": [
-                "confirm_password",
-                "email",
-                "otp",
-                "password"
-            ],
-            "properties": {
-                "confirm_password": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "otp": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 8
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.UpdatePostRequest": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "webapi_internal_interfaces_http_requests.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "phone": {
                     "type": "string"
                 },
                 "username": {

@@ -1,56 +1,83 @@
 basePath: /api
 definitions:
-  exception.ExceptionError:
+  controllers.AddPolicyRequest:
     properties:
-      error_subcode:
-        type: integer
+      action:
+        type: string
+      object:
+        type: string
+      subject:
+        type: string
+    type: object
+  controllers.HealthCheck:
+    properties:
       message:
         type: string
-      type:
-        $ref: '#/definitions/exception.errorType'
-    type: object
-  exception.ExceptionErrors:
-    properties:
-      errItems:
-        items:
-          $ref: '#/definitions/exception.ExceptionError'
-        type: array
-      globalMessage:
+      service:
         type: string
-      httpStatusCode:
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  controllers.HealthResponse:
+    properties:
+      environment:
+        type: string
+      services:
+        items:
+          $ref: '#/definitions/controllers.HealthCheck'
+        type: array
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
+  controllers.RemovePolicyRequest:
+    properties:
+      action:
+        type: string
+      object:
+        type: string
+      subject:
+        type: string
+    type: object
+  pagination.PaginationResponse:
+    properties:
+      current_page:
+        type: integer
+      from:
+        type: integer
+      has_next_page:
+        type: boolean
+      has_prev_page:
+        type: boolean
+      next_page:
+        type: integer
+      per_page:
+        type: integer
+      previous_page:
+        type: integer
+      to:
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
         type: integer
     type: object
-  exception.errorType:
-    enum:
-    - UnknownError
-    - BadRequest
-    - NotFound
-    - Unauthorized
-    - ValidationError
-    - JobError
-    - ExternalServiceError
-    - DatasourceError
-    type: string
-    x-enum-varnames:
-    - ERROR_TYPE_UNKNOWN_ERROR
-    - ERROR_TYPE_BAD_REQUEST
-    - ERROR_TYPE_NOT_FOUND
-    - ERROR_TYPE_UNAUTHORIZED
-    - ERROR_TYPE_VALIDATION_ERROR
-    - ERROR_TYPE_JOB_ERROR
-    - ERROR_TYPE_EXTERNAL_SERVICE_ERROR
-    - ERROR_TYPE_DATASOURCE_ERROR
-  model.Taxonomy:
+  pagination.TaxonomyDTO:
     properties:
+      children:
+        items:
+          $ref: '#/definitions/pagination.TaxonomyDTO'
+        type: array
       code:
         type: string
       created_at:
         type: string
-      created_by:
-        type: string
       deleted_at:
-        type: string
-      deleted_by:
         type: string
       description:
         type: string
@@ -58,6 +85,10 @@ definitions:
         type: string
       name:
         type: string
+      parent:
+        allOf:
+        - $ref: '#/definitions/pagination.TaxonomyDTO'
+        description: Relationships
       parent_id:
         type: string
       record_depth:
@@ -70,8 +101,110 @@ definitions:
         type: string
       updated_at:
         type: string
-      updated_by:
+    type: object
+  pagination.TaxonomySearchResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/pagination.TaxonomyDTO'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.PaginationResponse'
+    type: object
+  requests.ChangePasswordRequest:
+    properties:
+      new_password:
         type: string
+      old_password:
+        type: string
+    type: object
+  requests.CreateCommentRequest:
+    properties:
+      content:
+        maxLength: 1000
+        minLength: 1
+        type: string
+      parent_id:
+        type: string
+      post_id:
+        type: string
+    required:
+    - content
+    - post_id
+    type: object
+  requests.CreateOrganizationRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
+      code:
+        maxLength: 50
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      email:
+        maxLength: 255
+        type: string
+      logo_url:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      parent_id:
+        type: string
+      phone:
+        maxLength: 50
+        type: string
+      website:
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  requests.CreatePostRequest:
+    properties:
+      author_id:
+        type: string
+      content:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  requests.CreateTagRequest:
+    properties:
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  requests.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      username:
+        type: string
+    type: object
+  requests.ForgetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
     type: object
   requests.LoginRequest:
     properties:
@@ -79,6 +212,20 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  requests.MoveOrganizationRequest:
+    properties:
+      new_parent_id:
+        type: string
+    required:
+    - new_parent_id
+    type: object
+  requests.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
     type: object
   requests.RegisterRequest:
     properties:
@@ -103,18 +250,101 @@ definitions:
     - phone
     - username
     type: object
-  response.CommonResponse:
+  requests.ResetPasswordRequest:
     properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      otp:
+        type: string
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
+    required:
+    - confirm_password
+    - email
+    - otp
+    - password
+    type: object
+  requests.SetOrganizationStatusRequest:
+    properties:
+      status:
+        enum:
+        - active
+        - inactive
+        - suspended
+        type: string
+    required:
+    - status
+    type: object
+  requests.UpdateCommentRequest:
+    properties:
+      content:
+        maxLength: 1000
+        minLength: 1
+        type: string
+    required:
+    - content
+    type: object
+  requests.UpdateOrganizationRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
       code:
-        type: integer
-      data: {}
-      errors:
-        $ref: '#/definitions/exception.ExceptionErrors'
-      message:
+        maxLength: 50
         type: string
-      path:
+      description:
+        maxLength: 1000
         type: string
-      request_id:
+      email:
+        maxLength: 255
+        type: string
+      logo_url:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      phone:
+        maxLength: 50
+        type: string
+      website:
+        maxLength: 255
+        type: string
+    type: object
+  requests.UpdatePostRequest:
+    properties:
+      content:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  requests.UpdateTagRequest:
+    properties:
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  requests.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      phone:
+        type: string
+      username:
         type: string
     type: object
   responses.AuthResponse:
@@ -129,6 +359,17 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/responses.UserResponse'
+    type: object
+  responses.CommonResponse:
+    properties:
+      data: {}
+      errors: {}
+      request_id:
+        type: string
+      response_code:
+        type: integer
+      response_message:
+        type: string
     type: object
   responses.ErrorResponse:
     properties:
@@ -194,89 +435,6 @@ definitions:
       username:
         type: string
     type: object
-  webapi_internal_interfaces_http_requests.ChangePasswordRequest:
-    properties:
-      new_password:
-        type: string
-      old_password:
-        type: string
-    type: object
-  webapi_internal_interfaces_http_requests.CreatePostRequest:
-    properties:
-      author_id:
-        type: string
-      content:
-        type: string
-      slug:
-        type: string
-      status:
-        type: string
-      title:
-        type: string
-    type: object
-  webapi_internal_interfaces_http_requests.CreateUserRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-      phone:
-        type: string
-      username:
-        type: string
-    type: object
-  webapi_internal_interfaces_http_requests.ForgetPasswordRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  webapi_internal_interfaces_http_requests.RefreshTokenRequest:
-    properties:
-      refresh_token:
-        type: string
-    required:
-    - refresh_token
-    type: object
-  webapi_internal_interfaces_http_requests.ResetPasswordRequest:
-    properties:
-      confirm_password:
-        type: string
-      email:
-        type: string
-      otp:
-        type: string
-      password:
-        maxLength: 32
-        minLength: 8
-        type: string
-    required:
-    - confirm_password
-    - email
-    - otp
-    - password
-    type: object
-  webapi_internal_interfaces_http_requests.UpdatePostRequest:
-    properties:
-      content:
-        type: string
-      slug:
-        type: string
-      status:
-        type: string
-      title:
-        type: string
-    type: object
-  webapi_internal_interfaces_http_requests.UpdateUserRequest:
-    properties:
-      email:
-        type: string
-      phone:
-        type: string
-      username:
-        type: string
-    type: object
 host: localhost:8000
 info:
   contact:
@@ -303,7 +461,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ForgetPasswordRequest'
+          $ref: '#/definitions/requests.ForgetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -397,7 +555,7 @@ paths:
         name: token
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.RefreshTokenRequest'
+          $ref: '#/definitions/requests.RefreshTokenRequest'
       produces:
       - application/json
       responses:
@@ -475,7 +633,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ResetPasswordRequest'
+          $ref: '#/definitions/requests.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -502,14 +660,18 @@ paths:
     get:
       consumes:
       - application/json
-      description: Check if the API is running and healthy
+      description: Check if the API and all services are running and healthy
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/controllers.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/controllers.HealthResponse'
       summary: Health check endpoint
       tags:
       - health
@@ -543,7 +705,7 @@ paths:
           description: List of media files
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -552,11 +714,11 @@ paths:
         "400":
           description: Bad request - Invalid parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get all media
@@ -587,7 +749,7 @@ paths:
           description: Media uploaded successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -596,19 +758,19 @@ paths:
         "400":
           description: Bad request - Invalid file or parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "413":
           description: Payload too large - File size exceeds limit
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "415":
           description: Unsupported media type
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Upload media
@@ -632,19 +794,19 @@ paths:
         "200":
           description: Media deleted successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "400":
           description: Bad request - Invalid media ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Media does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Delete media
@@ -668,7 +830,7 @@ paths:
           description: Media file details
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -677,15 +839,15 @@ paths:
         "400":
           description: Bad request - Invalid media ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Media does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get media by ID
@@ -715,7 +877,7 @@ paths:
           description: Media updated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -724,15 +886,15 @@ paths:
         "400":
           description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Media does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Update media
@@ -778,7 +940,7 @@ paths:
           description: List of menus
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -787,11 +949,11 @@ paths:
         "400":
           description: Bad request - Invalid parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get all menus
@@ -815,7 +977,7 @@ paths:
           description: Menu created successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -824,15 +986,15 @@ paths:
         "400":
           description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "409":
           description: Conflict - Menu with same slug already exists
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Create a new menu
@@ -856,19 +1018,19 @@ paths:
         "200":
           description: Menu deleted successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Delete menu
@@ -892,7 +1054,7 @@ paths:
           description: Menu details
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -901,15 +1063,15 @@ paths:
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get menu by ID
@@ -939,7 +1101,7 @@ paths:
           description: Menu updated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -948,15 +1110,15 @@ paths:
         "400":
           description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Update menu
@@ -981,7 +1143,7 @@ paths:
           description: Menu activated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -990,15 +1152,15 @@ paths:
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Activate menu
@@ -1023,7 +1185,7 @@ paths:
           description: Menu deactivated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1032,15 +1194,15 @@ paths:
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Deactivate menu
@@ -1065,7 +1227,7 @@ paths:
           description: Menu hidden successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1074,15 +1236,15 @@ paths:
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Hide menu
@@ -1107,7 +1269,7 @@ paths:
           description: Menu shown successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1116,15 +1278,15 @@ paths:
         "400":
           description: Bad request - Invalid menu ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Show menu
@@ -1142,7 +1304,7 @@ paths:
           description: Menu hierarchy
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -1151,7 +1313,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get menu hierarchy
@@ -1169,7 +1331,7 @@ paths:
           description: List of root menus
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -1178,7 +1340,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get root menus
@@ -1215,7 +1377,7 @@ paths:
           description: List of matching menus
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -1224,11 +1386,11 @@ paths:
         "400":
           description: Bad request - Search query is required
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Search menus
@@ -1252,7 +1414,7 @@ paths:
           description: Menu details
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1261,20 +1423,611 @@ paths:
         "400":
           description: Bad request - Slug is required
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Menu does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get menu by slug
       tags:
       - menus
+  /organizations:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of all organizations
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get all organizations
+      tags:
+      - organizations
+    post:
+      consumes:
+      - application/json
+      description: Create a new organization, optionally with a parent
+      parameters:
+      - description: Organization to create
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Create a new organization
+      tags:
+      - organizations
+  /organizations/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an organization by its ID
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Delete an organization
+      tags:
+      - organizations
+    get:
+      consumes:
+      - application/json
+      description: Get a single organization by its ID
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get organization by ID
+      tags:
+      - organizations
+    put:
+      consumes:
+      - application/json
+      description: Update an organization's details
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization update data
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Update an organization
+      tags:
+      - organizations
+  /organizations/{id}/ancestors:
+    get:
+      consumes:
+      - application/json
+      description: Get all ancestor organizations of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get ancestors of an organization
+      tags:
+      - organizations
+  /organizations/{id}/children:
+    get:
+      consumes:
+      - application/json
+      description: Get direct children of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get children of an organization
+      tags:
+      - organizations
+    post:
+      consumes:
+      - application/json
+      description: Add a new child organization to a parent
+      parameters:
+      - description: Parent Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Child organization to create
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Add a child organization
+      tags:
+      - organizations
+  /organizations/{id}/descendants:
+    get:
+      consumes:
+      - application/json
+      description: Get all descendant organizations of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get descendants of an organization
+      tags:
+      - organizations
+  /organizations/{id}/move:
+    post:
+      consumes:
+      - application/json
+      description: Move an organization and all its descendants to a new parent
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Move request
+        in: body
+        name: move
+        required: true
+        schema:
+          $ref: '#/definitions/requests.MoveOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Move an organization subtree
+      tags:
+      - organizations
+  /organizations/{id}/path:
+    get:
+      consumes:
+      - application/json
+      description: Get the path from the root to the specified organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get path to an organization
+      tags:
+      - organizations
+  /organizations/{id}/siblings:
+    get:
+      consumes:
+      - application/json
+      description: Get all sibling organizations of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get siblings of an organization
+      tags:
+      - organizations
+  /organizations/{id}/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics for an organization (children and descendants count)
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get organization statistics
+      tags:
+      - organizations
+  /organizations/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Set the status of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status request
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/requests.SetOrganizationStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Set organization status
+      tags:
+      - organizations
+  /organizations/{id}/subtree:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an organization and all its descendants
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Delete an organization subtree
+      tags:
+      - organizations
+    get:
+      consumes:
+      - application/json
+      description: Get the subtree rooted at the specified organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get a subtree of an organization
+      tags:
+      - organizations
+  /organizations/root:
+    get:
+      consumes:
+      - application/json
+      description: Get all root organizations (organizations without a parent)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get root organizations
+      tags:
+      - organizations
+  /organizations/search:
+    get:
+      consumes:
+      - application/json
+      description: Search organizations by query string
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Results per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Search organizations
+      tags:
+      - organizations
+  /organizations/tree:
+    get:
+      consumes:
+      - application/json
+      description: Get the entire organization tree structure
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Get the full organization tree
+      tags:
+      - organizations
+  /organizations/validate-hierarchy:
+    get:
+      consumes:
+      - application/json
+      description: Validate if a parent-child relationship is valid
+      parameters:
+      - description: Parent Organization ID
+        in: query
+        name: parent_id
+        required: true
+        type: string
+      - description: Child Organization ID
+        in: query
+        name: child_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Validate organization hierarchy
+      tags:
+      - organizations
   /posts:
     get:
       consumes:
@@ -1342,7 +2095,7 @@ paths:
         name: post
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.CreatePostRequest'
+          $ref: '#/definitions/requests.CreatePostRequest'
       produces:
       - application/json
       responses:
@@ -1462,7 +2215,7 @@ paths:
         name: post
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.UpdatePostRequest'
+          $ref: '#/definitions/requests.UpdatePostRequest'
       produces:
       - application/json
       responses:
@@ -1666,6 +2419,237 @@ paths:
       summary: Get post by slug
       tags:
       - posts
+  /rbac/policies:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a policy rule from the RBAC system
+      parameters:
+      - description: Policy to remove
+        in: body
+        name: policy
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RemovePolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove an RBAC policy
+      tags:
+      - rbac
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all RBAC policies from the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    items:
+                      type: string
+                    type: array
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all RBAC policies
+      tags:
+      - rbac
+    post:
+      consumes:
+      - application/json
+      description: Add a new policy rule to the RBAC system
+      parameters:
+      - description: Policy to add
+        in: body
+        name: policy
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.AddPolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a new RBAC policy
+      tags:
+      - rbac
+  /rbac/roles/{role}/users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all users assigned to a specific role
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get users for a role
+      tags:
+      - rbac
+  /rbac/users/{user}/roles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all roles assigned to a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get roles for a user
+      tags:
+      - rbac
+  /rbac/users/{user}/roles/{role}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a role from a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user
+        required: true
+        type: string
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove role from user
+      tags:
+      - rbac
+    post:
+      consumes:
+      - application/json
+      description: Assign a role to a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user
+        required: true
+        type: string
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Add role to user
+      tags:
+      - rbac
   /roles:
     get:
       consumes:
@@ -1699,7 +2683,7 @@ paths:
           description: List of roles
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -1708,11 +2692,11 @@ paths:
         "400":
           description: Bad request - Invalid parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get all roles
@@ -1736,7 +2720,7 @@ paths:
           description: Role created successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1745,15 +2729,15 @@ paths:
         "400":
           description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "409":
           description: Conflict - Role with same slug already exists
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Create a new role
@@ -1777,19 +2761,19 @@ paths:
         "200":
           description: Role deleted successfully
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "400":
           description: Bad request - Invalid role ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Delete role
@@ -1813,7 +2797,7 @@ paths:
           description: Role details
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1822,15 +2806,15 @@ paths:
         "400":
           description: Bad request - Invalid role ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get role by ID
@@ -1860,7 +2844,7 @@ paths:
           description: Role updated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1869,15 +2853,15 @@ paths:
         "400":
           description: Bad request - Invalid input data
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Update role
@@ -1902,7 +2886,7 @@ paths:
           description: Role activated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1911,15 +2895,15 @@ paths:
         "400":
           description: Bad request - Invalid role ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Activate role
@@ -1944,7 +2928,7 @@ paths:
           description: Role deactivated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1953,15 +2937,15 @@ paths:
         "400":
           description: Bad request - Invalid role ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Deactivate role
@@ -1998,7 +2982,7 @@ paths:
           description: List of matching roles
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -2007,11 +2991,11 @@ paths:
         "400":
           description: Bad request - Invalid parameters
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Search roles
@@ -2035,7 +3019,7 @@ paths:
           description: Role details
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -2044,20 +3028,314 @@ paths:
         "400":
           description: Bad request - Slug is required
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - Role does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get role by slug
       tags:
       - roles
+  /tags:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all tags with pagination
+      parameters:
+      - description: 'Number of tags to return (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of tags to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tags
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all tags
+      tags:
+      - tags
+    post:
+      consumes:
+      - application/json
+      description: Create a new tag
+      parameters:
+      - description: Tag object
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Tag created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data: {}
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict - Tag with same slug already exists
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create tag
+      tags:
+      - tags
+  /tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a tag by its ID
+      parameters:
+      - description: Tag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag deleted successfully
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid tag ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Tag does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete tag
+      tags:
+      - tags
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a tag by its ID
+      parameters:
+      - description: Tag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data: {}
+              type: object
+        "400":
+          description: Bad request - Invalid tag ID
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Tag does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get tag by ID
+      tags:
+      - tags
+    put:
+      consumes:
+      - application/json
+      description: Update an existing tag by its ID
+      parameters:
+      - description: Tag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tag object
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data: {}
+              type: object
+        "400":
+          description: Bad request - Invalid tag ID or input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not found - Tag does not exist
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict - Tag with same slug already exists
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update tag
+      tags:
+      - tags
+  /tags/search:
+    get:
+      consumes:
+      - application/json
+      description: Search tags by query with pagination
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        required: true
+        type: string
+      - description: 'Number of tags to return (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of tags to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search results
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items: {}
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search tags
+      tags:
+      - tags
+  /taxonomies/search:
+    get:
+      consumes:
+      - application/json
+      description: Search taxonomies with pagination and return unified response
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: per_page
+        type: integer
+      - description: 'Sort field (default: record_left)'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort descending (default: false)'
+        in: query
+        name: sort_desc
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomies with pagination
+          schema:
+            $ref: '#/definitions/pagination.TaxonomySearchResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search taxonomies with pagination
+      tags:
+      - taxonomies
   /users:
     get:
       consumes:
@@ -2118,7 +3396,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.CreateUserRequest'
+          $ref: '#/definitions/requests.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -2238,7 +3516,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.UpdateUserRequest'
+          $ref: '#/definitions/requests.UpdateUserRequest'
       produces:
       - application/json
       responses:
@@ -2285,7 +3563,7 @@ paths:
         name: password
         required: true
         schema:
-          $ref: '#/definitions/webapi_internal_interfaces_http_requests.ChangePasswordRequest'
+          $ref: '#/definitions/requests.ChangePasswordRequest'
       produces:
       - application/json
       responses:
@@ -2334,7 +3612,7 @@ paths:
           description: List of user menus
           schema:
             allOf:
-            - $ref: '#/definitions/response.CommonResponse'
+            - $ref: '#/definitions/responses.CommonResponse'
             - properties:
                 data:
                   items: {}
@@ -2343,63 +3621,108 @@ paths:
         "400":
           description: Bad request - Invalid user ID
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not found - User does not exist
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
       security:
       - BearerAuth: []
       summary: Get user menus
       tags:
       - menus
-  /v1/taxonomies:
+  /v1/comments:
     get:
-      description: Get all taxonomies
+      consumes:
+      - application/json
+      description: Get all comments with optional filtering
+      parameters:
+      - description: Filter by post ID
+        in: query
+        name: post_id
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by parent comment ID
+        in: query
+        name: parent_id
+        type: string
+      - description: Filter by status (approved, pending, rejected)
+        in: query
+        name: status
+        type: string
+      - description: 'Number of comments to return (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of comments to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Get all taxonomies
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: List comments
       tags:
-      - taxonomies
+      - comments
     post:
       consumes:
       - application/json
-      description: Create a new taxonomy
+      description: Create a new comment
       parameters:
-      - description: Taxonomy info
+      - description: Comment info
         in: body
-        name: taxonomy
+        name: comment
         required: true
         schema:
-          $ref: '#/definitions/model.Taxonomy'
+          $ref: '#/definitions/requests.CreateCommentRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Create taxonomy
+            $ref: '#/definitions/responses.CommonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Create comment
       tags:
-      - taxonomies
-  /v1/taxonomies/{id}:
+      - comments
+  /v1/comments/{id}:
     delete:
-      description: Delete a taxonomy by its ID
+      consumes:
+      - application/json
+      description: Delete a comment by its ID
       parameters:
-      - description: Taxonomy UUID
+      - description: Comment ID
         in: path
         name: id
         required: true
@@ -2410,18 +3733,32 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Delete taxonomy
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Delete comment
       tags:
-      - taxonomies
+      - comments
     get:
-      description: Get a taxonomy by its ID
+      consumes:
+      - application/json
+      description: Get a single comment by its ID
       parameters:
-      - description: Taxonomy UUID
+      - description: Comment ID
         in: path
         name: id
         required: true
@@ -2432,44 +3769,138 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Get taxonomy by ID
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Get comment by ID
       tags:
-      - taxonomies
+      - comments
     put:
       consumes:
       - application/json
-      description: Update a taxonomy by its ID
+      description: Update an existing comment
       parameters:
-      - description: Taxonomy UUID
+      - description: Comment ID
         in: path
         name: id
         required: true
         type: string
-      - description: Taxonomy info
+      - description: Comment info
         in: body
-        name: taxonomy
+        name: comment
         required: true
         schema:
-          $ref: '#/definitions/model.Taxonomy'
+          $ref: '#/definitions/requests.UpdateCommentRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.CommonResponse'
+            $ref: '#/definitions/responses.CommonResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.CommonResponse'
-      summary: Update taxonomy
+            $ref: '#/definitions/responses.CommonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Update comment
       tags:
-      - taxonomies
+      - comments
+  /v1/comments/{id}/approve:
+    put:
+      consumes:
+      - application/json
+      description: Approve a comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Approve comment
+      tags:
+      - comments
+  /v1/comments/{id}/reject:
+    put:
+      consumes:
+      - application/json
+      description: Reject a comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      summary: Reject comment
+      tags:
+      - comments
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
