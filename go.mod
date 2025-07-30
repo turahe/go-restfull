@@ -3,7 +3,7 @@ module github.com/turahe/go-restfull
 go 1.24.5
 
 require (
-	github.com/bytedance/sonic v1.13.2
+	github.com/bytedance/sonic v1.14.0
 	github.com/casbin/casbin/v2 v2.110.0
 	github.com/getsentry/sentry-go v0.33.0
 	github.com/go-co-op/gocron v1.37.0
@@ -33,7 +33,7 @@ require (
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
-	github.com/bytedance/sonic/loader v0.2.4 // indirect
+	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
