@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// MenuRoleService defines the interface for menu-role relationship business operations
-type MenuRoleService interface {
+// MenuEntitiesService defines the interface for menu-role relationship business operations
+type MenuEntitiesService interface {
 	AssignRoleToMenu(ctx context.Context, menuID, roleID uuid.UUID) error
 	RemoveRoleFromMenu(ctx context.Context, menuID, roleID uuid.UUID) error
 	GetMenuRoles(ctx context.Context, menuID uuid.UUID) ([]*entities.Role, error)

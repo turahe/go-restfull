@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type MenuRoleRepository interface {
+type MenuEntitiesRepository interface {
 	AssignRoleToMenu(ctx context.Context, menuID, roleID uuid.UUID) error
 	RemoveRoleFromMenu(ctx context.Context, menuID, roleID uuid.UUID) error
 	GetMenuRoles(ctx context.Context, menuID uuid.UUID) ([]*entities.Role, error)
@@ -24,7 +24,7 @@ type MenuRoleRepositoryImpl struct {
 	redisClient redis.Cmdable
 }
 
-func NewMenuRoleRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MenuRoleRepository {
+func NewMenuRoleRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MenuEntitiesRepository {
 	return &MenuRoleRepositoryImpl{
 		pgxPool:     pgxPool,
 		redisClient: redisClient,

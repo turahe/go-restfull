@@ -13,6 +13,7 @@ func init() {
 var createMenusTable20250708232039 = &Migration{
 	Name: "20250708232039_create_menus_table",
 	Up: func() error {
+		// Create the menus table
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE IF NOT EXISTS menus (
 				"id" UUID NOT NULL,
@@ -45,19 +46,26 @@ var createMenusTable20250708232039 = &Migration{
 				CONSTRAINT "menus_target_check" CHECK ("target" IN ('_self', '_blank', '_parent', '_top')),
 				CONSTRAINT "menus_created_by_check" CHECK ("created_by" IS NOT NULL),
 				CONSTRAINT "menus_updated_by_check" CHECK ("updated_by" IS NOT NULL),
-				CONSTRAINT "menus_deleted_by_check" CHECK ("deleted_by" IS NOT NULL),
-				-- Create indexes for nested set operations
-				CREATE INDEX IF NOT EXISTS "menus_record_left_idx" ON "menus" ("record_left");
-				CREATE INDEX IF NOT EXISTS "menus_record_right_idx" ON "menus" ("record_right");
-				CREATE INDEX IF NOT EXISTS "menus_record_ordering_idx" ON "menus" ("record_ordering");
-				CREATE INDEX IF NOT EXISTS "menus_parent_id_idx" ON "menus" ("parent_id");
-				CREATE INDEX IF NOT EXISTS "menus_is_active_idx" ON "menus" ("is_active");
-				CREATE INDEX IF NOT EXISTS "menus_is_visible_idx" ON "menus" ("is_visible");
-			);
+				CONSTRAINT "menus_deleted_by_check" CHECK ("deleted_by" IS NOT NULL)
+			)
 		`)
 		if err != nil {
 			return err
 		}
+
+		// Create indexes for nested set operations
+		_, err = pgx.GetPgxPool().Exec(context.Background(), `
+			CREATE INDEX IF NOT EXISTS "menus_record_left_idx" ON "menus" ("record_left");
+			CREATE INDEX IF NOT EXISTS "menus_record_right_idx" ON "menus" ("record_right");
+			CREATE INDEX IF NOT EXISTS "menus_record_ordering_idx" ON "menus" ("record_ordering");
+			CREATE INDEX IF NOT EXISTS "menus_parent_id_idx" ON "menus" ("parent_id");
+			CREATE INDEX IF NOT EXISTS "menus_is_active_idx" ON "menus" ("is_active");
+			CREATE INDEX IF NOT EXISTS "menus_is_visible_idx" ON "menus" ("is_visible")
+		`)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	},
 	Down: func() error {

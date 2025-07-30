@@ -13,6 +13,7 @@ func init() {
 var createCommentTable = &Migration{
 	Name: "20250708232036_create_comment_table",
 	Up: func() error {
+		// Create the comments table
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE IF NOT EXISTS comments (
 				"id" UUID NOT NULL,
@@ -38,22 +39,30 @@ var createCommentTable = &Migration{
 				CONSTRAINT "comments_record_left_right_check" CHECK ("record_left" < "record_right"),
 				CONSTRAINT "comments_record_ordering_check" CHECK ("record_ordering" >= 0),
 				CONSTRAINT "comments_record_depth_check" CHECK ("record_depth" >= 0),
-				CONSTRAINT "comments_status_check" CHECK ("status" IN ('pending', 'approved', 'rejected', 'spam', 'trash'))
-				CONSTRAINT "comments_model_type_check" CHECK ("model_type" IN ('post', 'page', 'comment', 'media', 'taxonomy', 'organization', 'user', 'job', 'menu', 'menu_role', 'role', 'user_role', 'setting', 'content', 'tag', 'taxonomy')),
-				CONSTRAINT "comments_model_id_check" CHECK ("model_id" IS NOT NULL),
-				-- Create indexes for nested set operations
-				CREATE INDEX IF NOT EXISTS "comments_record_left_idx" ON "comments" ("record_left");
-				CREATE INDEX IF NOT EXISTS "comments_record_right_idx" ON "comments" ("record_right");
-				CREATE INDEX IF NOT EXISTS "comments_record_ordering_idx" ON "comments" ("record_ordering");
-				CREATE INDEX IF NOT EXISTS "comments_record_depth_idx" ON "comments" ("record_depth");
-				CREATE INDEX IF NOT EXISTS "comments_parent_id_idx" ON "comments" ("parent_id");
-				CREATE INDEX IF NOT EXISTS "comments_status_idx" ON "comments" ("status");
+				CONSTRAINT "comments_status_check" CHECK ("status" IN ('pending', 'approved', 'rejected', 'spam', 'trash')),
+				CONSTRAINT "comments_model_type_check" CHECK ("model_type" IN ('post', 'page', 'comment', 'media', 'taxonomy', 'organization', 'user', 'job', 'menu', 'menu_role', 'role', 'user_role', 'setting', 'content', 'tag')),
+				CONSTRAINT "comments_model_id_check" CHECK ("model_id" IS NOT NULL)
 			)
 		`)
 
 		if err != nil {
 			return err
 		}
+
+		// Create indexes for nested set operations
+		_, err = pgx.GetPgxPool().Exec(context.Background(), `
+			CREATE INDEX IF NOT EXISTS "comments_record_left_idx" ON "comments" ("record_left");
+			CREATE INDEX IF NOT EXISTS "comments_record_right_idx" ON "comments" ("record_right");
+			CREATE INDEX IF NOT EXISTS "comments_record_ordering_idx" ON "comments" ("record_ordering");
+			CREATE INDEX IF NOT EXISTS "comments_record_depth_idx" ON "comments" ("record_depth");
+			CREATE INDEX IF NOT EXISTS "comments_parent_id_idx" ON "comments" ("parent_id");
+			CREATE INDEX IF NOT EXISTS "comments_status_idx" ON "comments" ("status")
+		`)
+
+		if err != nil {
+			return err
+		}
+
 		return nil
 
 	},

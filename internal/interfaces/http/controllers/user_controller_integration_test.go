@@ -7,16 +7,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"webapi/internal/application/services"
-	"webapi/internal/domain/entities"
-	"webapi/internal/interfaces/http/controllers"
-	"webapi/internal/interfaces/http/requests"
-	"webapi/internal/testutils"
+	"webapi/pkg/testutils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"webapi/internal/application/services"
+	"webapi/internal/domain/entities"
+	"webapi/internal/interfaces/http/controllers"
+	"webapi/internal/interfaces/http/requests"
 )
 
 func TestUserController_Integration_CreateUser(t *testing.T) {

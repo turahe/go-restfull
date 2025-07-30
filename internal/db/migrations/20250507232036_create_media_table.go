@@ -13,6 +13,7 @@ func init() {
 var createMediaTable = &Migration{
 	Name: "20250507232036_create_media_table",
 	Up: func() error {
+		// Create the media table
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE IF NOT EXISTS media (
 			    "id" UUID NOT NULL,
@@ -41,39 +42,42 @@ var createMediaTable = &Migration{
 				CONSTRAINT "media_parent_id_foreign" FOREIGN KEY ("parent_id") REFERENCES "media" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 				CONSTRAINT "media_record_left_right_check" CHECK ("record_left" < "record_right"),
 				CONSTRAINT "media_record_ordering_check" CHECK ("record_ordering" >= 0),
-				CONSTRAINT "media_record_depth_check" CHECK ("record_depth" >= 0),
-				CONSTRAINT "media_status_check" CHECK ("status" IN ('active', 'inactive', 'suspended')),
-				CONSTRAINT "media_code_check" CHECK ("code" IS NOT NULL),
-				CONSTRAINT "media_slug_check" CHECK ("slug" IS NOT NULL),
-				CONSTRAINT "media_name_check" CHECK ("name" IS NOT NULL),
-				CONSTRAINT "media_file_name_check" CHECK ("file_name" IS NOT NULL),
-				CONSTRAINT "media_disk_check" CHECK ("disk" IS NOT NULL),
-				CONSTRAINT "media_mime_type_check" CHECK ("mime_type" IS NOT NULL),
-				CONSTRAINT "media_size_check" CHECK ("size" IS NOT NULL),
-				CONSTRAINT "media_created_by_check" CHECK ("created_by" IS NOT NULL),
-				CONSTRAINT "media_updated_by_check" CHECK ("updated_by" IS NOT NULL),
-				-- Create indexes for nested set operations
-				CREATE INDEX IF NOT EXISTS "media_record_left_idx" ON "media" ("record_left");
-				CREATE INDEX IF NOT EXISTS "media_record_right_idx" ON "media" ("record_right");
-				CREATE INDEX IF NOT EXISTS "media_record_ordering_idx" ON "media" ("record_ordering");
-				CREATE INDEX IF NOT EXISTS "media_record_depth_idx" ON "media" ("record_depth");
-				CREATE INDEX IF NOT EXISTS "media_parent_id_idx" ON "media" ("parent_id");
-				CREATE INDEX IF NOT EXISTS "media_status_idx" ON "media" ("status");
-			);
-			
-			CREATE TABLE IF NOT EXISTS mediables (
-			    "media_id" UUID NOT NULL,
-			    "mediable_id" UUID NOT NULL,
-			    "mediable_type" varchar(255)  NOT NULL,
-			    "group" varchar(255)  NOT NULL
-			);
+				CONSTRAINT "media_record_depth_check" CHECK ("record_depth" >= 0)
+			)
 		`)
 
 		if err != nil {
 			return err
 		}
-		return nil
 
+		// Create indexes for nested set operations
+		_, err = pgx.GetPgxPool().Exec(context.Background(), `
+			CREATE INDEX IF NOT EXISTS "media_record_left_idx" ON "media" ("record_left");
+			CREATE INDEX IF NOT EXISTS "media_record_right_idx" ON "media" ("record_right");
+			CREATE INDEX IF NOT EXISTS "media_record_ordering_idx" ON "media" ("record_ordering");
+			CREATE INDEX IF NOT EXISTS "media_record_depth_idx" ON "media" ("record_depth");
+			CREATE INDEX IF NOT EXISTS "media_parent_id_idx" ON "media" ("parent_id")
+		`)
+
+		if err != nil {
+			return err
+		}
+
+		// Create the mediables table
+		_, err = pgx.GetPgxPool().Exec(context.Background(), `
+			CREATE TABLE IF NOT EXISTS mediables (
+			    "media_id" UUID NOT NULL,
+			    "mediable_id" UUID NOT NULL,
+			    "mediable_type" varchar(255)  NOT NULL,
+			    "group" varchar(255)  NOT NULL
+			)
+		`)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 	Down: func() error {
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `

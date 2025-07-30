@@ -23,7 +23,7 @@ type Container struct {
 	RoleRepository         repositories.RoleRepository
 	UserRoleRepository     repositories.UserRoleRepository
 	MenuRepository         repositories.MenuRepository
-	MenuRoleRepository     repositories.MenuRoleRepository
+	MenuRoleRepository     repositories.MenuEntitiesRepository
 	TagRepository          repositories.TagRepository
 	TaxonomyRepository     repositories.TaxonomyRepository
 	ContentRepository      repositories.ContentRepository
@@ -40,7 +40,7 @@ type Container struct {
 	RoleService         ports.RoleService
 	UserRoleService     ports.UserRoleService
 	MenuService         ports.MenuService
-	MenuRoleService     ports.MenuRoleService
+	MenuRoleService     ports.MenuEntitiesService
 	TagService          ports.TagService
 	TaxonomyService     ports.TaxonomyService
 	ContentService      ports.ContentService
@@ -63,7 +63,7 @@ type Container struct {
 	RoleController         *controllers.RoleController
 	UserRoleController     *controllers.UserRoleController
 	MenuController         *controllers.MenuController
-	MenuRoleController     *controllers.MenuRoleController
+	MenuRoleController     *controllers.MenuEntitiesController
 	TagController          *controllers.TagController
 	TaxonomyController     *controllers.TaxonomyController
 	AuthController         *controllers.AuthController
@@ -194,7 +194,7 @@ func (c *Container) GetMenuController() *controllers.MenuController {
 	return c.MenuController
 }
 
-func (c *Container) GetMenuRoleController() *controllers.MenuRoleController {
+func (c *Container) GetMenuRoleController() *controllers.MenuEntitiesController {
 	return c.MenuRoleController
 }
 

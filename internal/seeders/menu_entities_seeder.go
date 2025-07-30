@@ -7,21 +7,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// MenuRoleSeeder seeds menu-role relationships
-type MenuRoleSeeder struct{}
+// MenuEntitiesSeeder seeds menu-role relationships
+type MenuEntitiesSeeder struct{}
 
 // NewMenuRoleSeeder creates a new menu role seeder
-func NewMenuRoleSeeder() *MenuRoleSeeder {
-	return &MenuRoleSeeder{}
+func NewMenuRoleSeeder() *MenuEntitiesSeeder {
+	return &MenuEntitiesSeeder{}
 }
 
 // GetName returns the seeder name
-func (mrs *MenuRoleSeeder) GetName() string {
-	return "MenuRoleSeeder"
+func (mrs *MenuEntitiesSeeder) GetName() string {
+	return "MenuEntitiesSeeder"
 }
 
 // Run executes the menu role seeder
-func (mrs *MenuRoleSeeder) Run(ctx context.Context, db *pgxpool.Pool) error {
+func (mrs *MenuEntitiesSeeder) Run(ctx context.Context, db *pgxpool.Pool) error {
 	// Get role IDs
 	var superAdminRoleID, adminRoleID, editorRoleID, authorRoleID, userRoleID uuid.UUID
 

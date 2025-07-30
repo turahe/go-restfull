@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
 
 	"webapi/internal/domain/services"
@@ -12,9 +13,12 @@ import (
 // RBACMiddleware creates a middleware that checks RBAC permissions
 func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		fmt.Printf("=== RBAC middleware triggered for path: %s, method: %s ===\n", c.Path(), c.Method())
+
 		// Get user from context (set by JWT middleware)
 		userID := c.Locals("user_id")
 		if userID == nil {
+			fmt.Println("ERROR: User not authenticated in RBAC middleware")
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"message": "User not authenticated",
 			})

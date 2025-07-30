@@ -9,18 +9,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type MenuRoleController struct {
-	menuRoleService ports.MenuRoleService
+type MenuEntitiesController struct {
+	menuRoleService ports.MenuEntitiesService
 }
 
-func NewMenuRoleController(menuRoleService ports.MenuRoleService) *MenuRoleController {
-	return &MenuRoleController{
+func NewMenuRoleController(menuRoleService ports.MenuEntitiesService) *MenuEntitiesController {
+	return &MenuEntitiesController{
 		menuRoleService: menuRoleService,
 	}
 }
 
 // AssignRoleToMenu handles POST /v1/menus/:menu_id/roles/:role_id requests
-func (c *MenuRoleController) AssignRoleToMenu(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) AssignRoleToMenu(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -56,7 +56,7 @@ func (c *MenuRoleController) AssignRoleToMenu(ctx *fiber.Ctx) error {
 }
 
 // RemoveRoleFromMenu handles DELETE /v1/menus/:menu_id/roles/:role_id requests
-func (c *MenuRoleController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -92,7 +92,7 @@ func (c *MenuRoleController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
 }
 
 // GetMenuRoles handles GET /v1/menus/:menu_id/roles requests
-func (c *MenuRoleController) GetMenuRoles(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) GetMenuRoles(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -119,7 +119,7 @@ func (c *MenuRoleController) GetMenuRoles(ctx *fiber.Ctx) error {
 }
 
 // GetRoleMenus handles GET /v1/roles/:role_id/menus requests
-func (c *MenuRoleController) GetRoleMenus(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) GetRoleMenus(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -149,7 +149,7 @@ func (c *MenuRoleController) GetRoleMenus(ctx *fiber.Ctx) error {
 }
 
 // HasRole handles GET /v1/menus/:menu_id/roles/:role_id/check requests
-func (c *MenuRoleController) HasRole(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) HasRole(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -185,7 +185,7 @@ func (c *MenuRoleController) HasRole(ctx *fiber.Ctx) error {
 }
 
 // GetMenuRoleCount handles GET /v1/roles/:role_id/menus/count requests
-func (c *MenuRoleController) GetMenuRoleCount(ctx *fiber.Ctx) error {
+func (c *MenuEntitiesController) GetMenuRoleCount(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{

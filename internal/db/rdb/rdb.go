@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
+
+	"webapi/config"
+	"webapi/internal/logger"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-	"webapi/config"
-	"webapi/internal/logger"
 )
 
 var rdb redis.Cmdable
@@ -40,9 +42,12 @@ func InitRedisClient(redisConfigs []config.Redis) error {
 
 	if len(addrs) == 1 {
 		rdb = redis.NewClient(&redis.Options{
-			Addr:     addrs[0],
-			Password: creds[addrs[0]].Password,
-			DB:       creds[addrs[0]].Database,
+			Addr:         addrs[0],
+			Password:     creds[addrs[0]].Password,
+			DB:           creds[addrs[0]].Database,
+			DialTimeout:  5 * time.Second,
+			ReadTimeout:  3 * time.Second,
+			WriteTimeout: 3 * time.Second,
 		})
 	} else {
 		rdb = redis.NewClusterClient(&redis.ClusterOptions{
@@ -51,15 +56,22 @@ func InitRedisClient(redisConfigs []config.Redis) error {
 				cred := creds[opt.Addr]
 				opt.Password = cred.Password
 				opt.DB = cred.Database
+				opt.DialTimeout = 5 * time.Second
+				opt.ReadTimeout = 3 * time.Second
+				opt.WriteTimeout = 3 * time.Second
 
 				return redis.NewClient(opt)
 			},
 		})
 	}
 
-	_, err := rdb.Ping(context.Background()).Result()
+	// Add timeout to the ping operation
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
 	// Set the prefix string
@@ -79,6 +91,9 @@ func GetRedisClient() redis.Cmdable {
 		err := InitRedisClient(config.GetConfig().Redis)
 		if err != nil {
 			logger.Log.Error("Failed to initialize redis client", zap.Error(err))
+			// Return a mock client or handle the error gracefully
+			// For now, we'll return nil and let the calling code handle it
+			return nil
 		}
 		logger.Log.Info("redis initialized")
 	}

@@ -37,15 +37,8 @@ var createTaxonomyTable = &Migration{
 				CONSTRAINT "taxonomies_parent_id_foreign" FOREIGN KEY ("parent_id") REFERENCES "taxonomies" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 				CONSTRAINT "taxonomies_record_left_right_check" CHECK ("record_left" < "record_right"),
 				CONSTRAINT "taxonomies_record_ordering_check" CHECK ("record_ordering" >= 0),
-				CONSTRAINT "taxonomies_record_depth_check" CHECK ("record_depth" >= 0),
-				CONSTRAINT "taxonomies_status_check" CHECK ("status" IN ('active', 'inactive', 'suspended')),
-				CONSTRAINT "taxonomies_code_check" CHECK ("code" IS NOT NULL),
-				CONSTRAINT "taxonomies_slug_check" CHECK ("slug" IS NOT NULL),
-				CONSTRAINT "taxonomies_name_check" CHECK ("name" IS NOT NULL),
-				CONSTRAINT "taxonomies_description_check" CHECK ("description" IS NOT NULL),
-				CONSTRAINT "taxonomies_created_by_check" CHECK ("created_by" IS NOT NULL),
-				CONSTRAINT "taxonomies_updated_by_check" CHECK ("updated_by" IS NOT NULL),
-			);
+				CONSTRAINT "taxonomies_record_depth_check" CHECK ("record_depth" >= 0)
+			)
 		`)
 
 		if err != nil {
