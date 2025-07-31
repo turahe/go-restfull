@@ -5,7 +5,7 @@ go 1.24.5
 require (
 	github.com/bytedance/sonic v1.13.2
 	github.com/casbin/casbin/v2 v2.110.0
-	github.com/getsentry/sentry-go v0.33.0
+	github.com/getsentry/sentry-go v0.34.1
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-co-op/gocron/v2 v2.16.2
 	github.com/go-playground/universal-translator v0.18.1
