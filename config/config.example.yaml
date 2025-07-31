@@ -3,12 +3,12 @@ app:
   key: "my-app-key"
   name: "My App"
   nameSlug: "my-app"
-  jwtSecret: "your-super-secret-jwt-key-here-make-it-long-and-secure"
-  accessTokenExpiration: 24
+  jwtSecret: "your-jwt-secret"
+  accessTokenExpiration: 3600
 
 httpServer:
   port: 8000
-  swaggerURL: "http://localhost:8000/swagger/"
+  swaggerURL: "/swagger"
 
 log:
   level: "debug"
@@ -18,10 +18,11 @@ log:
   filePath: "log/log.log"
   fileCompress: false # enable log file compress before rotate
   maxAge: 1 # days to keep log files
-  maxBackups: 10 # umber of log files
+  maxBackups: 10 # number of log files
 
+# Legacy single database configuration (for backward compatibility)
 postgres:
-  host: "postgres" # use "host.docker.internal" if you run app inside docker container
+  host: "localhost" # use "host.docker.internal" if you run app inside docker container
   port: 5432
   database: "my_db"
   schema: "public"
@@ -30,30 +31,158 @@ postgres:
   maxConnections: 20
   maxIdleConnections: 10
 
+# New multi-database configuration
+databases:
+  # Primary database (default)
+  - name: "primary"
+    host: "localhost"
+    port: 5432
+    database: "primary_db"
+    schema: "public"
+    username: "primary_user"
+    password: "primary_secret"
+    maxConnections: 20
+    connectionTimeout: 30
+    idleTimeout: 300
+    maxIdleConns: 10
+    maxOpenConns: 100
+    sslMode: "disable"
+    isDefault: true
+
+  # Secondary database (read replica)
+  - name: "secondary"
+    host: "localhost"
+    port: 5433
+    database: "secondary_db"
+    schema: "public"
+    username: "secondary_user"
+    password: "secondary_secret"
+    maxConnections: 15
+    connectionTimeout: 30
+    idleTimeout: 300
+    maxIdleConns: 5
+    maxOpenConns: 50
+    sslMode: "disable"
+    isDefault: false
+
+  # Analytics database
+  - name: "analytics"
+    host: "analytics-db.example.com"
+    port: 5432
+    database: "analytics_db"
+    schema: "analytics"
+    username: "analytics_user"
+    password: "analytics_secret"
+    maxConnections: 10
+    connectionTimeout: 30
+    idleTimeout: 300
+    maxIdleConns: 3
+    maxOpenConns: 20
+    sslMode: "require"
+    isDefault: false
+
+  # Testing database
+  - name: "testing"
+    host: "localhost"
+    port: 5434
+    database: "testing_db"
+    schema: "test"
+    username: "test_user"
+    password: "test_secret"
+    maxConnections: 5
+    connectionTimeout: 30
+    idleTimeout: 300
+    maxIdleConns: 2
+    maxOpenConns: 10
+    sslMode: "disable"
+    isDefault: false
+
+# RabbitMQ configuration
+rabbitmq:
+  enable: true
+  host: "localhost"
+  port: 5672
+  username: "guest"
+  password: "guest"
+  vhost: "/"
+  ssl: false
+  connection:
+    maxRetries: 3
+    retryDelay: 5
+    timeout: 30
+  channel:
+    prefetchCount: 10
+    qos: 10
+  exchanges:
+    # User events exchange
+    - name: "user.events"
+      type: "topic"
+      durable: true
+      autoDelete: false
+      internal: false
+      arguments: {}
+    
+    # Email notifications exchange
+    - name: "email.notifications"
+      type: "direct"
+      durable: true
+      autoDelete: false
+      internal: false
+      arguments: {}
+    
+    # System events exchange
+    - name: "system.events"
+      type: "fanout"
+      durable: true
+      autoDelete: false
+      internal: false
+      arguments: {}
+  
+  queues:
+    # User registration queue
+    - name: "user.registration"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments: {}
+      bindings:
+        - exchange: "user.events"
+          routingKey: "user.registered"
+    
+    # Email sending queue
+    - name: "email.sending"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments: {}
+      bindings:
+        - exchange: "email.notifications"
+          routingKey: "email.send"
+    
+    # System logging queue
+    - name: "system.logging"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments: {}
+      bindings:
+        - exchange: "system.events"
+          routingKey: "system.log"
+    
+    # Dead letter queue for failed messages
+    - name: "dead.letter"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments:
+        "x-message-ttl": "86400000"  # 24 hours in milliseconds
+      bindings: []
+
 Redis:
-  - host: "redis"
+  - host: "localhost"
     port: 6379
     password: ""
-    db: 0
-
-casbin:
-  model: "config/rbac_model.conf"
-  policy: "config/rbac_policy.csv"
-  redis:
-    host: "redis"
-    port: 6379
-    password: ""
-    db: 1
-    key: "casbin_policy"
-
-minio:
-  enable: false
-  endpoint: '127.0.0.1:9000'
-  accessKeyID: 'minioadmin'
-  secretAccessKey: 'minioadmin'
-  useSSL: false
-  bucket: 'my-bucket'
-
+    database: 0
 
 sentry:
   dsn: ""
@@ -61,27 +190,44 @@ sentry:
   release: "webapi@v0.1.0"
   debug: false
 
-
 scheduler:
   timezone: "Asia/Jakarta" # Timezone for cron jobs
+
 # schedules:
 #   - cron: "0 */20 * * * *"
 #     job: "SyncAll"
-#   - cron: "0 2 * * *"  # Daily at 2 AM
-#     job: "DatabaseBackup"
 #     isEnabled: true
 
-backup:
-  enabled: true
-  directory: "backups"
-  retentionDays: 30
-  cleanupOld: true
-  compressBackup: false
+minio:
+  enable: false
+  endpoint: "localhost:9000"
+  accessKeyID: "minioadmin"
+  accessKeySecret: "minioadmin"
+  useSSL: false
+  bucket: "my-bucket"
+  region: "us-east-1"
 
 email:
   smtpHost: "smtp.gmail.com"
   smtpPort: 587
   username: "your-email@gmail.com"
   password: "your-app-password"
-  fromAddress: "noreply@yourapp.com"
-  fromName: "Your App"
+  fromAddress: "noreply@example.com"
+  fromName: "My App"
+
+casbin:
+  model: "config/rbac_model.conf"
+  policy: "config/rbac_policy.csv"
+  redis:
+    host: "localhost"
+    port: 6379
+    password: ""
+    db: 1
+    key: "casbin_policy"
+
+backup:
+  enabled: true
+  directory: "backups"
+  retentionDays: 30
+  cleanupOld: true
+  compressBackup: true

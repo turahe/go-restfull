@@ -22,7 +22,7 @@ type AuthService interface {
 	LogoutUser(ctx context.Context, userID string) error
 
 	// ForgetPassword sends a password reset email with OTP
-	ForgetPassword(ctx context.Context, email string) error
+	ForgetPassword(ctx context.Context, identifier string) error
 
 	// ResetPassword resets password using OTP
 	ResetPassword(ctx context.Context, email, otp, newPassword string) error

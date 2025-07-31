@@ -10,25 +10,30 @@ import (
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/helper/utils"
+	"github.com/turahe/go-restfull/internal/rabbitmq"
 )
 
 // authService implements the AuthService interface
 type authService struct {
 	userRepo        repositories.UserRepository
 	passwordService services.PasswordService
-	emailService    services.EmailService
+	emailService    *EmailService
+	rabbitMQService *rabbitmq.Service
 }
 
 // NewAuthService creates a new auth service instance
 func NewAuthService(
 	userRepo repositories.UserRepository,
 	passwordService services.PasswordService,
-	emailService services.EmailService,
+	rabbitMQService *rabbitmq.Service,
 ) ports.AuthService {
+	emailService := NewEmailService(rabbitMQService)
+
 	return &authService{
 		userRepo:        userRepo,
 		passwordService: passwordService,
 		emailService:    emailService,
+		rabbitMQService: rabbitMQService,
 	}
 }
 
@@ -86,9 +91,13 @@ func (s *authService) RegisterUser(ctx context.Context, username, email, phone, 
 		return nil, nil, err
 	}
 
-	// Send welcome email (async)
+	// Send welcome email via RabbitMQ (async)
 	go func() {
-		_ = s.emailService.SendWelcomeEmail(email, username)
+		if err := s.emailService.SendWelcomeEmail(email, username); err != nil {
+			// Log error but don't fail the registration
+			// In production, you might want to use a proper logger
+			fmt.Printf("Failed to send welcome email to %s: %v\n", email, err)
+		}
 	}()
 
 	return tokenPair, user, nil
@@ -158,30 +167,51 @@ func (s *authService) LogoutUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (s *authService) ForgetPassword(ctx context.Context, email string) error {
-	// Get user by email
-	user, err := s.userRepo.GetByEmail(ctx, email)
-	if err != nil {
-		// Don't reveal if user exists or not for security
-		return nil
+func (s *authService) ForgetPassword(ctx context.Context, identifier string) error {
+	var user *entities.User
+	var err error
+
+	// Try to find user by different identifiers
+	// First, try by email
+	user, err = s.userRepo.GetByEmail(ctx, identifier)
+	if err == nil && user != nil && !user.IsDeleted() {
+		// Found user by email
+		return s.sendPasswordResetEmail(user.Email, user.UserName)
 	}
 
-	// Check if user is deleted
-	if user.IsDeleted() {
-		return nil
+	// Try by username
+	user, err = s.userRepo.GetByUsername(ctx, identifier)
+	if err == nil && user != nil && !user.IsDeleted() {
+		// Found user by username
+		return s.sendPasswordResetEmail(user.Email, user.UserName)
 	}
 
+	// Try by phone
+	user, err = s.userRepo.GetByPhone(ctx, identifier)
+	if err == nil && user != nil && !user.IsDeleted() {
+		// Found user by phone
+		return s.sendPasswordResetEmail(user.Email, user.UserName)
+	}
+
+	// Don't reveal if user exists or not for security
+	return nil
+}
+
+// sendPasswordResetEmail sends a password reset email for the given user
+func (s *authService) sendPasswordResetEmail(email, username string) error {
 	// Generate OTP
 	otp := utils.GenerateOTP(6)
 
 	// Store OTP in cache (you might want to implement this)
 	// For now, we'll just send the email
 
-	// Send password reset email
-	err = s.emailService.SendPasswordResetEmail(email, otp)
-	if err != nil {
-		return fmt.Errorf("failed to send password reset email: %w", err)
-	}
+	// Send password reset email via RabbitMQ (async)
+	go func() {
+		if err := s.emailService.SendPasswordResetEmail(email, otp); err != nil {
+			// Log error but don't fail the password reset request
+			fmt.Printf("Failed to send password reset email to %s: %v\n", email, err)
+		}
+	}()
 
 	return nil
 }

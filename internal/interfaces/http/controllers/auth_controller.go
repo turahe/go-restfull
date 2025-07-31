@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
@@ -13,12 +14,14 @@ import (
 // AuthController handles authentication-related HTTP requests
 type AuthController struct {
 	authService ports.AuthService
+	userRepo    repositories.UserRepository
 }
 
 // NewAuthController creates a new auth controller instance
-func NewAuthController(authService ports.AuthService) *AuthController {
+func NewAuthController(authService ports.AuthService, userRepo repositories.UserRepository) *AuthController {
 	return &AuthController{
 		authService: authService,
+		userRepo:    userRepo,
 	}
 }
 
@@ -43,8 +46,19 @@ func (c *AuthController) Register(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Validate request
-	if err := req.Validate(); err != nil {
+	// Validate request with database uniqueness check
+	if err := req.ValidateWithDatabase(ctx.Context(), c.userRepo); err != nil {
+		// Check if it's a uniqueness error (409 Conflict)
+		if err.Error() == "username already exists" ||
+			err.Error() == "email already exists" ||
+			err.Error() == "phone number already exists" {
+			return ctx.Status(http.StatusConflict).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+		}
+
+		// Other validation errors (400 Bad Request)
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: err.Error(),
@@ -223,8 +237,9 @@ func (c *AuthController) ForgetPassword(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Send password reset email
-	err := c.authService.ForgetPassword(ctx.Context(), req.Email)
+	// if identifier as username or email, send reset password link to email
+	// if identifier as phone number, send OTP
+	err := c.authService.ForgetPassword(ctx.Context(), req.Identifier)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
