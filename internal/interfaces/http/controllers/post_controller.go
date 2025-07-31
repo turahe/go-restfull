@@ -13,20 +13,20 @@ import (
 )
 
 // PostController handles HTTP requests for post operations
-// @title Post Management API
-// @version 1.0
-// @description This is a post management API for creating, reading, updating, and deleting blog posts
-// @termsOfService http://swagger.io/terms/
-// @contact.name API Support
-// @contact.email support@example.com
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
-// @host localhost:8000
-// @BasePath /api/v1
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
+//	@title						Post Management API
+//	@version					1.0
+//	@description				This is a post management API for creating, reading, updating, and deleting blog posts
+//	@termsOfService				http://swagger.io/terms/
+//	@contact.name				API Support
+//	@contact.email				support@example.com
+//	@license.name				MIT
+//	@license.url				https://opensource.org/licenses/MIT
+//	@host						localhost:8000
+//	@BasePath					/api/v1
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
 type PostController struct {
 	postService ports.PostService
 }
@@ -39,18 +39,18 @@ func NewPostController(postService ports.PostService) *PostController {
 }
 
 // CreatePost handles POST /posts
-// @Summary Create a new post
-// @Description Create a new blog post with the provided information
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param post body requests.CreatePostRequest true "Post creation request"
-// @Success 201 {object} responses.SuccessResponse{data=responses.PostResponse} "Post created successfully"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid input data"
-// @Failure 409 {object} responses.ErrorResponse "Conflict - Post with same slug already exists"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /posts [post]
+//	@Summary		Create a new post
+//	@Description	Create a new blog post with the provided information
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			post	body		requests.CreatePostRequest								true	"Post creation request"
+//	@Success		201		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post created successfully"
+//	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
+//	@Failure		409		{object}	responses.ErrorResponse									"Conflict - Post with same slug already exists"
+//	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/posts [post]
 func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 	var req requests.CreatePostRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -84,17 +84,17 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 }
 
 // GetPostByID handles GET /posts/:id
-// @Summary Get post by ID
-// @Description Retrieve a post by its unique identifier
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param id path string true "Post ID" format(uuid)
-// @Success 200 {object} responses.SuccessResponse{data=responses.PostResponse} "Post found"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid post ID"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Router /posts/{id} [get]
+//	@Summary		Get post by ID
+//	@Description	Retrieve a post by its unique identifier
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Post ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post found"
+//	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
+//	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
+//	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
+//	@Router			/posts/{id} [get]
 func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
@@ -120,17 +120,17 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 }
 
 // GetPostBySlug handles GET /posts/slug/:slug
-// @Summary Get post by slug
-// @Description Retrieve a post by its URL-friendly slug
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param slug path string true "Post slug"
-// @Success 200 {object} responses.SuccessResponse{data=responses.PostResponse} "Post found"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Slug is required"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Router /posts/slug/{slug} [get]
+//	@Summary		Get post by slug
+//	@Description	Retrieve a post by its URL-friendly slug
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string													true	"Post slug"
+//	@Success		200		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post found"
+//	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Slug is required"
+//	@Failure		404		{object}	responses.ErrorResponse									"Not found - Post does not exist"
+//	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
+//	@Router			/posts/slug/{slug} [get]
 func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
 	if slug == "" {
@@ -155,19 +155,19 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 }
 
 // GetPosts handles GET /posts
-// @Summary Get all posts
-// @Description Retrieve a paginated list of posts with optional search and status filtering
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param limit query int false "Number of posts to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Number of posts to skip (default: 0)" default(0) minimum(0)
-// @Param query query string false "Search query to filter posts by title or content"
-// @Param status query string false "Filter posts by status (published, draft, etc.)" Enums(published, draft, archived)
-// @Success 200 {object} responses.SuccessResponse{data=[]responses.PostResponse} "List of posts"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid parameters"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Router /posts [get]
+//	@Summary		Get all posts
+//	@Description	Retrieve a paginated list of posts with optional search and status filtering
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			limit	query		int															false	"Number of posts to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
+//	@Param			offset	query		int															false	"Number of posts to skip (default: 0)"				default(0)	minimum(0)
+//	@Param			query	query		string														false	"Search query to filter posts by title or content"
+//	@Param			status	query		string														false	"Filter posts by status (published, draft, etc.)"	Enums(published, draft, archived)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]responses.PostResponse}	"List of posts"
+//	@Failure		400		{object}	responses.ErrorResponse										"Bad request - Invalid parameters"
+//	@Failure		500		{object}	responses.ErrorResponse										"Internal server error"
+//	@Router			/posts [get]
 func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 	// Get pagination parameters from middleware
 	pagination := middleware.GetPaginationParams(ctx)
@@ -200,19 +200,19 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 }
 
 // GetPostsByAuthor handles GET /posts/author/:authorID
-// @Summary Get posts by author
-// @Description Retrieve all posts written by a specific author
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param authorID path string true "Author ID" format(uuid)
-// @Param limit query int false "Number of posts to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Number of posts to skip (default: 0)" default(0) minimum(0)
-// @Success 200 {object} responses.SuccessResponse{data=[]responses.PostResponse} "List of posts by author"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid author ID"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Author does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Router /posts/author/{authorID} [get]
+//	@Summary		Get posts by author
+//	@Description	Retrieve all posts written by a specific author
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			authorID	path		string														true	"Author ID"											format(uuid)
+//	@Param			limit		query		int															false	"Number of posts to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
+//	@Param			offset		query		int															false	"Number of posts to skip (default: 0)"				default(0)	minimum(0)
+//	@Success		200			{object}	responses.SuccessResponse{data=[]responses.PostResponse}	"List of posts by author"
+//	@Failure		400			{object}	responses.ErrorResponse										"Bad request - Invalid author ID"
+//	@Failure		404			{object}	responses.ErrorResponse										"Not found - Author does not exist"
+//	@Failure		500			{object}	responses.ErrorResponse										"Internal server error"
+//	@Router			/posts/author/{authorID} [get]
 func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 	authorIDParam := ctx.Params("authorID")
 	authorID, err := uuid.Parse(authorIDParam)
@@ -254,19 +254,19 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 }
 
 // UpdatePost handles PUT /posts/:id
-// @Summary Update post
-// @Description Update an existing post's information
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param id path string true "Post ID" format(uuid)
-// @Param post body requests.UpdatePostRequest true "Post update request"
-// @Success 200 {object} responses.SuccessResponse{data=responses.PostResponse} "Post updated successfully"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid input data"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /posts/{id} [put]
+//	@Summary		Update post
+//	@Description	Update an existing post's information
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string													true	"Post ID"	format(uuid)
+//	@Param			post	body		requests.UpdatePostRequest								true	"Post update request"
+//	@Success		200		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
+//	@Failure		404		{object}	responses.ErrorResponse									"Not found - Post does not exist"
+//	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/posts/{id} [put]
 func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
@@ -309,18 +309,18 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 }
 
 // DeletePost handles DELETE /posts/:id
-// @Summary Delete post
-// @Description Delete a post (soft delete)
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param id path string true "Post ID" format(uuid)
-// @Success 200 {object} responses.SuccessResponse "Post deleted successfully"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid post ID"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /posts/{id} [delete]
+//	@Summary		Delete post
+//	@Description	Delete a post (soft delete)
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string						true	"Post ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse	"Post deleted successfully"
+//	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid post ID"
+//	@Failure		404	{object}	responses.ErrorResponse		"Not found - Post does not exist"
+//	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/posts/{id} [delete]
 func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
@@ -346,18 +346,18 @@ func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 }
 
 // PublishPost handles PUT /posts/:id/publish
-// @Summary Publish post
-// @Description Publish a draft post to make it publicly visible
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param id path string true "Post ID" format(uuid)
-// @Success 200 {object} responses.SuccessResponse{data=responses.PostResponse} "Post published successfully"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid post ID"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /posts/{id}/publish [put]
+//	@Summary		Publish post
+//	@Description	Publish a draft post to make it publicly visible
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Post ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post published successfully"
+//	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
+//	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
+//	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/posts/{id}/publish [put]
 func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
@@ -383,18 +383,18 @@ func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 }
 
 // UnpublishPost handles PUT /posts/:id/unpublish
-// @Summary Unpublish post
-// @Description Unpublish a post to make it a draft (not publicly visible)
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param id path string true "Post ID" format(uuid)
-// @Success 200 {object} responses.SuccessResponse{data=responses.PostResponse} "Post unpublished successfully"
-// @Failure 400 {object} responses.ErrorResponse "Bad request - Invalid post ID"
-// @Failure 404 {object} responses.ErrorResponse "Not found - Post does not exist"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /posts/{id}/unpublish [put]
+//	@Summary		Unpublish post
+//	@Description	Unpublish a post to make it a draft (not publicly visible)
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Post ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post unpublished successfully"
+//	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
+//	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
+//	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/posts/{id}/unpublish [put]
 func (c *PostController) UnpublishPost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)

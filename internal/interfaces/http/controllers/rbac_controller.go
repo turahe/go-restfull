@@ -18,15 +18,15 @@ func NewRBACController(rbacService services.RBACService) *RBACController {
 }
 
 // GetPolicy godoc
-// @Summary Get all RBAC policies
-// @Description Retrieve all RBAC policies from the system
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} responses.CommonResponse{data=[][]string}
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/policies [get]
+//	@Summary		Get all RBAC policies
+//	@Description	Retrieve all RBAC policies from the system
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	responses.CommonResponse{data=[][]string}
+//	@Failure		500	{object}	responses.CommonResponse
+//	@Router			/rbac/policies [get]
 func (c *RBACController) GetPolicy(ctx *fiber.Ctx) error {
 	policies, err := c.rbacService.GetPolicy()
 	if err != nil {
@@ -44,17 +44,17 @@ func (c *RBACController) GetPolicy(ctx *fiber.Ctx) error {
 }
 
 // AddPolicy godoc
-// @Summary Add a new RBAC policy
-// @Description Add a new policy rule to the RBAC system
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param policy body AddPolicyRequest true "Policy to add"
-// @Success 200 {object} responses.CommonResponse
-// @Failure 400 {object} responses.CommonResponse
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/policies [post]
+//	@Summary		Add a new RBAC policy
+//	@Description	Add a new policy rule to the RBAC system
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			policy	body		AddPolicyRequest	true	"Policy to add"
+//	@Success		200		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/policies [post]
 func (c *RBACController) AddPolicy(ctx *fiber.Ctx) error {
 	var req AddPolicyRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -79,17 +79,17 @@ func (c *RBACController) AddPolicy(ctx *fiber.Ctx) error {
 }
 
 // RemovePolicy godoc
-// @Summary Remove an RBAC policy
-// @Description Remove a policy rule from the RBAC system
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param policy body RemovePolicyRequest true "Policy to remove"
-// @Success 200 {object} responses.CommonResponse
-// @Failure 400 {object} responses.CommonResponse
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/policies [delete]
+//	@Summary		Remove an RBAC policy
+//	@Description	Remove a policy rule from the RBAC system
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			policy	body		RemovePolicyRequest	true	"Policy to remove"
+//	@Success		200		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/policies [delete]
 func (c *RBACController) RemovePolicy(ctx *fiber.Ctx) error {
 	var req RemovePolicyRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -114,16 +114,16 @@ func (c *RBACController) RemovePolicy(ctx *fiber.Ctx) error {
 }
 
 // GetRolesForUser godoc
-// @Summary Get roles for a user
-// @Description Retrieve all roles assigned to a specific user
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param user path string true "User ID"
-// @Success 200 {object} responses.CommonResponse{data=[]string}
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/users/{user}/roles [get]
+//	@Summary		Get roles for a user
+//	@Description	Retrieve all roles assigned to a specific user
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			user	path		string	true	"User ID"
+//	@Success		200		{object}	responses.CommonResponse{data=[]string}
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/users/{user}/roles [get]
 func (c *RBACController) GetRolesForUser(ctx *fiber.Ctx) error {
 	userID := ctx.Params("user")
 	if userID == "" {
@@ -149,18 +149,18 @@ func (c *RBACController) GetRolesForUser(ctx *fiber.Ctx) error {
 }
 
 // AddRoleForUser godoc
-// @Summary Add role to user
-// @Description Assign a role to a specific user
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param user path string true "User ID"
-// @Param role path string true "Role name"
-// @Success 200 {object} responses.CommonResponse
-// @Failure 400 {object} responses.CommonResponse
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/users/{user}/roles/{role} [post]
+//	@Summary		Add role to user
+//	@Description	Assign a role to a specific user
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			user	path		string	true	"User ID"
+//	@Param			role	path		string	true	"Role name"
+//	@Success		200		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/users/{user}/roles/{role} [post]
 func (c *RBACController) AddRoleForUser(ctx *fiber.Ctx) error {
 	userID := ctx.Params("user")
 	role := ctx.Params("role")
@@ -187,18 +187,18 @@ func (c *RBACController) AddRoleForUser(ctx *fiber.Ctx) error {
 }
 
 // RemoveRoleForUser godoc
-// @Summary Remove role from user
-// @Description Remove a role from a specific user
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param user path string true "User ID"
-// @Param role path string true "Role name"
-// @Success 200 {object} responses.CommonResponse
-// @Failure 400 {object} responses.CommonResponse
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/users/{user}/roles/{role} [delete]
+//	@Summary		Remove role from user
+//	@Description	Remove a role from a specific user
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			user	path		string	true	"User ID"
+//	@Param			role	path		string	true	"Role name"
+//	@Success		200		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/users/{user}/roles/{role} [delete]
 func (c *RBACController) RemoveRoleForUser(ctx *fiber.Ctx) error {
 	userID := ctx.Params("user")
 	role := ctx.Params("role")
@@ -225,16 +225,16 @@ func (c *RBACController) RemoveRoleForUser(ctx *fiber.Ctx) error {
 }
 
 // GetUsersForRole godoc
-// @Summary Get users for a role
-// @Description Retrieve all users assigned to a specific role
-// @Tags rbac
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param role path string true "Role name"
-// @Success 200 {object} responses.CommonResponse{data=[]string}
-// @Failure 500 {object} responses.CommonResponse
-// @Router /rbac/roles/{role}/users [get]
+//	@Summary		Get users for a role
+//	@Description	Retrieve all users assigned to a specific role
+//	@Tags			rbac
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			role	path		string	true	"Role name"
+//	@Success		200		{object}	responses.CommonResponse{data=[]string}
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/rbac/roles/{role}/users [get]
 func (c *RBACController) GetUsersForRole(ctx *fiber.Ctx) error {
 	role := ctx.Params("role")
 	if role == "" {

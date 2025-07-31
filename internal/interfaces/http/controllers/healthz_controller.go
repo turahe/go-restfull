@@ -37,14 +37,14 @@ func NewHealthzHTTPHandler() *HealthzHTTPHandler {
 }
 
 // Healthz godoc
-// @Summary Health check endpoint
-// @Description Check if the API and all services are running and healthy
-// @Tags health
-// @Accept json
-// @Produce json
-// @Success 200 {object} HealthResponse
-// @Success 503 {object} HealthResponse
-// @Router /healthz [get]
+//	@Summary		Health check endpoint
+//	@Description	Check if the API and all services are running and healthy
+//	@Tags			health
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	HealthResponse
+//	@Success		503	{object}	HealthResponse
+//	@Router			/healthz [get]
 func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

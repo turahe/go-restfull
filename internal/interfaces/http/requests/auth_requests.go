@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 )
 
 // RegisterRequest represents the request for user registration
@@ -17,86 +19,92 @@ type RegisterRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
 
-// Validate validates the RegisterRequest (basic validation only)
-func (r *RegisterRequest) Validate() error {
-	if r.Username == "" {
-		return errors.New("username is required")
-	}
-	if len(r.Username) < 3 || len(r.Username) > 32 {
-		return errors.New("username must be between 3 and 32 characters")
-	}
-	if r.Email == "" {
-		return errors.New("email is required")
-	}
-	if r.Phone == "" {
-		return errors.New("phone is required")
-	}
-	if r.Password == "" {
-		return errors.New("password is required")
-	}
-	if len(r.Password) < 8 || len(r.Password) > 32 {
-		return errors.New("password must be between 8 and 32 characters")
-	}
-	if r.Password != r.ConfirmPassword {
-		return errors.New("password confirmation does not match")
+// Validate validates the RegisterRequest with Laravel-style error responses
+func (r *RegisterRequest) Validate() (*responses.ValidationErrorBuilder, error) {
+	validator := validation.NewValidator()
+
+	// Validate username
+	validator.ValidateRequired("username", r.Username)
+	if r.Username != "" {
+		validator.ValidateBetween("username", r.Username, 3, 32)
+		validator.ValidateUsername("username", r.Username)
 	}
 
-	// Validate email format
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(r.Email) {
-		return errors.New("invalid email format")
+	// Validate email
+	validator.ValidateRequired("email", r.Email)
+	validator.ValidateEmail("email", r.Email)
+
+	// Validate phone
+	validator.ValidateRequired("phone", r.Phone)
+	validator.ValidatePhone("phone", r.Phone)
+
+	// Validate password
+	validator.ValidateRequired("password", r.Password)
+	if r.Password != "" {
+		validator.ValidateBetween("password", r.Password, 8, 32)
 	}
 
-	// Validate username format (alphanumeric and underscore only)
-	usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-	if !usernameRegex.MatchString(r.Username) {
-		return errors.New("username can only contain letters, numbers, and underscores")
+	// Validate password confirmation
+	validator.ValidateRequired("confirm_password", r.ConfirmPassword)
+	validator.ValidateConfirmed("password", r.Password, r.ConfirmPassword)
+
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
 	}
 
-	// Validate phone format (international format)
-	phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
-	if !phoneRegex.MatchString(r.Phone) {
-		return errors.New("invalid phone number format")
-	}
-
-	return nil
+	return validator.GetErrorBuilder(), nil
 }
 
-// ValidateWithDatabase validates the RegisterRequest and checks database uniqueness
-func (r *RegisterRequest) ValidateWithDatabase(ctx context.Context, userRepo repositories.UserRepository) error {
+// ValidateWithDatabase validates the RegisterRequest and checks database uniqueness with Laravel-style errors
+func (r *RegisterRequest) ValidateWithDatabase(ctx context.Context, userRepo repositories.UserRepository) (*responses.ValidationErrorBuilder, error) {
 	// First, do basic validation
-	if err := r.Validate(); err != nil {
-		return err
+	validator := validation.NewValidator()
+
+	// Validate username
+	validator.ValidateRequired("username", r.Username)
+	if r.Username != "" {
+		validator.ValidateBetween("username", r.Username, 3, 32)
+		validator.ValidateUsername("username", r.Username)
 	}
 
-	// Check if username already exists
-	exists, err := userRepo.ExistsByUsername(ctx, r.Username)
-	if err != nil {
-		return errors.New("failed to validate username")
-	}
-	if exists {
-		return errors.New("username already exists")
+	// Validate email
+	validator.ValidateRequired("email", r.Email)
+	validator.ValidateEmail("email", r.Email)
+
+	// Validate phone
+	validator.ValidateRequired("phone", r.Phone)
+	validator.ValidatePhone("phone", r.Phone)
+
+	// Validate password
+	validator.ValidateRequired("password", r.Password)
+	if r.Password != "" {
+		validator.ValidateBetween("password", r.Password, 8, 32)
 	}
 
-	// Check if email already exists
-	exists, err = userRepo.ExistsByEmail(ctx, r.Email)
-	if err != nil {
-		return errors.New("failed to validate email")
-	}
-	if exists {
-		return errors.New("email already exists")
+	// Validate password confirmation
+	validator.ValidateRequired("confirm_password", r.ConfirmPassword)
+	validator.ValidateConfirmed("password", r.Password, r.ConfirmPassword)
+
+	// Check database uniqueness if basic validation passes
+	if !validator.HasErrors() {
+		// Check if username already exists
+		exists, err := userRepo.ExistsByUsername(ctx, r.Username)
+		validator.ValidateUnique("username", r.Username, exists, err)
+
+		// Check if email already exists
+		exists, err = userRepo.ExistsByEmail(ctx, r.Email)
+		validator.ValidateUnique("email", r.Email, exists, err)
+
+		// Check if phone already exists
+		exists, err = userRepo.ExistsByPhone(ctx, r.Phone)
+		validator.ValidateUnique("phone", r.Phone, exists, err)
 	}
 
-	// Check if phone already exists
-	exists, err = userRepo.ExistsByPhone(ctx, r.Phone)
-	if err != nil {
-		return errors.New("failed to validate phone")
-	}
-	if exists {
-		return errors.New("phone number already exists")
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
 	}
 
-	return nil
+	return validator.GetErrorBuilder(), nil
 }
 
 // RefreshTokenRequest represents the request for refreshing access token
@@ -104,12 +112,18 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
-// Validate validates the RefreshTokenRequest
-func (r *RefreshTokenRequest) Validate() error {
-	if r.RefreshToken == "" {
-		return errors.New("refresh token is required")
+// Validate validates the RefreshTokenRequest with Laravel-style error responses
+func (r *RefreshTokenRequest) Validate() (*responses.ValidationErrorBuilder, error) {
+	validator := validation.NewValidator()
+
+	// Validate refresh token
+	validator.ValidateRequired("refresh_token", r.RefreshToken)
+
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
 	}
-	return nil
+
+	return validator.GetErrorBuilder(), nil
 }
 
 // ForgetPasswordRequest represents the request for password reset
@@ -117,26 +131,33 @@ type ForgetPasswordRequest struct {
 	Identifier string `json:"identifier" validate:"required"` // Can be username, email, or phone
 }
 
-// Validate validates the ForgetPasswordRequest
-func (r *ForgetPasswordRequest) Validate() error {
-	if r.Identifier == "" {
-		return errors.New("identifier is required")
-	}
+// Validate validates the ForgetPasswordRequest with Laravel-style error responses
+func (r *ForgetPasswordRequest) Validate() (*responses.ValidationErrorBuilder, error) {
+	validator := validation.NewValidator()
+
+	// Validate identifier is required
+	validator.ValidateRequired("identifier", r.Identifier)
 
 	// Validate that the identifier is either a valid email, username, or phone number
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-	phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
+	if r.Identifier != "" {
+		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+		usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+		phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
 
-	isEmail := emailRegex.MatchString(r.Identifier)
-	isUsername := usernameRegex.MatchString(r.Identifier)
-	isPhone := phoneRegex.MatchString(r.Identifier)
+		isEmail := emailRegex.MatchString(r.Identifier)
+		isUsername := usernameRegex.MatchString(r.Identifier)
+		isPhone := phoneRegex.MatchString(r.Identifier)
 
-	if !isEmail && !isUsername && !isPhone {
-		return errors.New("identifier must be a valid email, username, or phone number")
+		if !isEmail && !isUsername && !isPhone {
+			validator.ValidateCustom("identifier", "The identifier must be a valid email, username, or phone number.")
+		}
 	}
 
-	return nil
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
+	}
+
+	return validator.GetErrorBuilder(), nil
 }
 
 // ResetPasswordRequest represents the request for password reset with OTP
@@ -147,29 +168,30 @@ type ResetPasswordRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
 
-// Validate validates the ResetPasswordRequest
-func (r *ResetPasswordRequest) Validate() error {
-	if r.Email == "" {
-		return errors.New("email is required")
-	}
-	if r.OTP == "" {
-		return errors.New("OTP is required")
-	}
-	if r.Password == "" {
-		return errors.New("password is required")
-	}
-	if len(r.Password) < 8 || len(r.Password) > 32 {
-		return errors.New("password must be between 8 and 32 characters")
-	}
-	if r.Password != r.ConfirmPassword {
-		return errors.New("password confirmation does not match")
+// Validate validates the ResetPasswordRequest with Laravel-style error responses
+func (r *ResetPasswordRequest) Validate() (*responses.ValidationErrorBuilder, error) {
+	validator := validation.NewValidator()
+
+	// Validate email
+	validator.ValidateRequired("email", r.Email)
+	validator.ValidateEmail("email", r.Email)
+
+	// Validate OTP
+	validator.ValidateRequired("otp", r.OTP)
+
+	// Validate password
+	validator.ValidateRequired("password", r.Password)
+	if r.Password != "" {
+		validator.ValidateBetween("password", r.Password, 8, 32)
 	}
 
-	// Validate email format
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(r.Email) {
-		return errors.New("invalid email format")
+	// Validate password confirmation
+	validator.ValidateRequired("confirm_password", r.ConfirmPassword)
+	validator.ValidateConfirmed("password", r.Password, r.ConfirmPassword)
+
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
 	}
 
-	return nil
+	return validator.GetErrorBuilder(), nil
 }

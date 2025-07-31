@@ -23,6 +23,18 @@ func NewTaxonomyController(taxonomyService ports.TaxonomyService) *TaxonomyContr
 	}
 }
 
+// CreateTaxonomy godoc
+//	@Summary		Create a new taxonomy
+//	@Description	Create a new taxonomy with optional parent taxonomy
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		requests.CreateTaxonomyRequest						true	"Taxonomy creation request"
+//	@Success		201		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy created successfully"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies [post]
+//	@Security		BearerAuth
 func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 	var req requests.CreateTaxonomyRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -72,6 +84,18 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyByID godoc
+//	@Summary		Get taxonomy by ID
+//	@Description	Retrieve a taxonomy by its unique identifier
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
+//	@Failure		404	{object}	responses.ErrorResponse								"Taxonomy not found"
+//	@Router			/api/v1/taxonomies/{id} [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -96,6 +120,18 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyBySlug godoc
+//	@Summary		Get taxonomy by slug
+//	@Description	Retrieve a taxonomy by its slug identifier
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string												true	"Taxonomy slug"
+//	@Success		200		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Slug is required"
+//	@Failure		404		{object}	responses.ErrorResponse								"Taxonomy not found"
+//	@Router			/api/v1/taxonomies/slug/{slug} [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
 	if slug == "" {
@@ -119,6 +155,19 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomies godoc
+//	@Summary		Get all taxonomies
+//	@Description	Retrieve all taxonomies with pagination
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomies found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid pagination parameters"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 	limitStr := ctx.Query("limit", "10")
 	offsetStr := ctx.Query("offset", "0")
@@ -153,6 +202,16 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetRootTaxonomies godoc
+//	@Summary		Get root taxonomies
+//	@Description	Retrieve all root taxonomies (taxonomies without parent)
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Root taxonomies found"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/root [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 	taxonomies, err := c.taxonomyService.GetRootTaxonomies(ctx.Context())
 	if err != nil {
@@ -168,6 +227,16 @@ func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyHierarchy godoc
+//	@Summary		Get taxonomy hierarchy
+//	@Description	Retrieve the complete taxonomy hierarchy tree
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy hierarchy found"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/hierarchy [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
 	taxonomies, err := c.taxonomyService.GetTaxonomyHierarchy(ctx.Context())
 	if err != nil {
@@ -183,6 +252,18 @@ func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyChildren godoc
+//	@Summary		Get taxonomy children
+//	@Description	Retrieve direct children of a taxonomy
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy children found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/{id}/children [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -207,6 +288,18 @@ func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyDescendants godoc
+//	@Summary		Get taxonomy descendants
+//	@Description	Retrieve all descendants of a taxonomy (children, grandchildren, etc.)
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy descendants found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/{id}/descendants [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -231,6 +324,18 @@ func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomyAncestors godoc
+//	@Summary		Get taxonomy ancestors
+//	@Description	Retrieve all ancestors of a taxonomy (parent, grandparent, etc.)
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy ancestors found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/{id}/ancestors [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -255,6 +360,18 @@ func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTaxonomySiblings godoc
+//	@Summary		Get taxonomy siblings
+//	@Description	Retrieve all siblings of a taxonomy (taxonomies with the same parent)
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy siblings found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
+//	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/{id}/siblings [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -279,6 +396,20 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 	})
 }
 
+// SearchTaxonomies godoc
+//	@Summary		Search taxonomies
+//	@Description	Search taxonomies by name, slug, or description with pagination
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			q		query		string												true	"Search query"
+//	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomies found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Search query is required"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/search [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 	query := ctx.Query("q", "")
 	if query == "" {
@@ -321,22 +452,22 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 	})
 }
 
-// SearchTaxonomiesWithPagination handles GET /v1/taxonomies/search requests with unified response
-// @Summary Search taxonomies with pagination
-// @Description Search taxonomies with pagination and return unified response
-// @Tags taxonomies
-// @Accept json
-// @Produce json
-// @Param query query string false "Search query"
-// @Param page query int false "Page number (default: 1)"
-// @Param per_page query int false "Items per page (default: 10, max: 100)"
-// @Param sort_by query string false "Sort field (default: record_left)"
-// @Param sort_desc query bool false "Sort descending (default: false)"
-// @Success 200 {object} pagination.TaxonomySearchResponse "Taxonomies with pagination"
-// @Failure 400 {object} responses.ErrorResponse "Bad request"
-// @Failure 500 {object} responses.ErrorResponse "Internal server error"
-// @Security BearerAuth
-// @Router /taxonomies/search [get]
+// SearchTaxonomiesWithPagination godoc
+//	@Summary		Search taxonomies with pagination
+//	@Description	Search taxonomies with advanced pagination and sorting options
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			query		query		string																false	"Search query"
+//	@Param			page		query		int																	false	"Page number (default: 1)"					default(1)
+//	@Param			per_page	query		int																	false	"Items per page (default: 10, max: 100)"	default(10)
+//	@Param			sort_by		query		string																false	"Sort field (default: record_left)"			default(record_left)
+//	@Param			sort_desc	query		bool																false	"Sort descending (default: false)"			default(false)
+//	@Success		200			{object}	responses.SuccessResponse{data=pagination.TaxonomySearchResponse}	"Taxonomies with pagination"
+//	@Failure		400			{object}	responses.ErrorResponse												"Bad request"
+//	@Failure		500			{object}	responses.ErrorResponse												"Internal server error"
+//	@Router			/api/v1/taxonomies/search/advanced [get]
+//	@Security		BearerAuth
 func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) error {
 	// Parse query parameters
 	query := ctx.Query("query", "")
@@ -387,6 +518,19 @@ func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) erro
 	})
 }
 
+// UpdateTaxonomy godoc
+//	@Summary		Update a taxonomy
+//	@Description	Update an existing taxonomy by ID
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string												true	"Taxonomy ID"	format(uuid)
+//	@Param			request	body		requests.UpdateTaxonomyRequest						true	"Taxonomy update request"
+//	@Success		200		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/taxonomies/{id} [put]
+//	@Security		BearerAuth
 func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -446,6 +590,18 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 	})
 }
 
+// DeleteTaxonomy godoc
+//	@Summary		Delete a taxonomy
+//	@Description	Delete a taxonomy by its ID
+//	@Tags			taxonomies
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string						true	"Taxonomy ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse	"Taxonomy deleted successfully"
+//	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid taxonomy ID format"
+//	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
+//	@Router			/api/v1/taxonomies/{id} [delete]
+//	@Security		BearerAuth
 func (c *TaxonomyController) DeleteTaxonomy(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)

@@ -1,4 +1,4 @@
-basePath: /api
+basePath: /api/v1
 definitions:
   controllers.AddPolicyRequest:
     properties:
@@ -42,6 +42,142 @@ definitions:
       object:
         type: string
       subject:
+        type: string
+    type: object
+  entities.Address:
+    properties:
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      address_type:
+        $ref: '#/definitions/entities.AddressType'
+      addressable_id:
+        type: string
+      addressable_type:
+        $ref: '#/definitions/entities.AddressableType'
+      city:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      is_primary:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      postal_code:
+        type: string
+      state:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.AddressType:
+    enum:
+    - home
+    - work
+    - billing
+    - shipping
+    - other
+    type: string
+    x-enum-varnames:
+    - AddressTypeHome
+    - AddressTypeWork
+    - AddressTypeBilling
+    - AddressTypeShipping
+    - AddressTypeOther
+  entities.AddressableType:
+    enum:
+    - user
+    - organization
+    type: string
+    x-enum-varnames:
+    - AddressableTypeUser
+    - AddressableTypeOrganization
+  entities.Role:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.Taxonomy:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/entities.Taxonomy'
+        type: array
+      code:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parent:
+        allOf:
+        - $ref: '#/definitions/entities.Taxonomy'
+        description: Relationships
+      parent_id:
+        type: string
+      record_depth:
+        type: integer
+      record_left:
+        type: integer
+      record_right:
+        type: integer
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      email_verified_at:
+        type: string
+      id:
+        type: string
+      phone:
+        type: string
+      phone_verified_at:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/entities.Role'
+        type: array
+      updated_at:
+        type: string
+      username:
         type: string
     type: object
   pagination.PaginationResponse:
@@ -118,6 +254,66 @@ definitions:
       old_password:
         type: string
     type: object
+  requests.CreateAddressRequest:
+    properties:
+      address_line1:
+        maxLength: 255
+        minLength: 1
+        type: string
+      address_line2:
+        maxLength: 255
+        type: string
+      address_type:
+        enum:
+        - home
+        - work
+        - billing
+        - shipping
+        - other
+        type: string
+      addressable_id:
+        type: string
+      addressable_type:
+        enum:
+        - user
+        - organization
+        type: string
+      city:
+        maxLength: 255
+        minLength: 1
+        type: string
+      country:
+        maxLength: 255
+        minLength: 1
+        type: string
+      is_primary:
+        type: boolean
+      latitude:
+        maximum: 90
+        minimum: -90
+        type: number
+      longitude:
+        maximum: 180
+        minimum: -180
+        type: number
+      postal_code:
+        maxLength: 20
+        minLength: 1
+        type: string
+      state:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - address_line1
+    - address_type
+    - addressable_id
+    - addressable_type
+    - city
+    - country
+    - postal_code
+    - state
+    type: object
   requests.CreateCommentRequest:
     properties:
       content:
@@ -188,6 +384,28 @@ definitions:
       slug:
         type: string
     type: object
+  requests.CreateTaxonomyRequest:
+    properties:
+      code:
+        maxLength: 50
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      parent_id:
+        type: string
+      slug:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   requests.CreateUserRequest:
     properties:
       email:
@@ -201,10 +419,11 @@ definitions:
     type: object
   requests.ForgetPasswordRequest:
     properties:
-      email:
+      identifier:
+        description: Can be username, email, or phone
         type: string
     required:
-    - email
+    - identifier
     type: object
   requests.LoginRequest:
     properties:
@@ -268,6 +487,19 @@ definitions:
     - otp
     - password
     type: object
+  requests.SetAddressTypeRequest:
+    properties:
+      address_type:
+        enum:
+        - home
+        - work
+        - billing
+        - shipping
+        - other
+        type: string
+    required:
+    - address_type
+    type: object
   requests.SetOrganizationStatusRequest:
     properties:
       status:
@@ -278,6 +510,63 @@ definitions:
         type: string
     required:
     - status
+    type: object
+  requests.SetPrimaryAddressRequest:
+    properties:
+      addressable_id:
+        type: string
+      addressable_type:
+        enum:
+        - user
+        - organization
+        type: string
+    required:
+    - addressable_id
+    - addressable_type
+    type: object
+  requests.UpdateAddressRequest:
+    properties:
+      address_line1:
+        maxLength: 255
+        minLength: 1
+        type: string
+      address_line2:
+        maxLength: 255
+        type: string
+      address_type:
+        enum:
+        - home
+        - work
+        - billing
+        - shipping
+        - other
+        type: string
+      city:
+        maxLength: 255
+        minLength: 1
+        type: string
+      country:
+        maxLength: 255
+        minLength: 1
+        type: string
+      is_primary:
+        type: boolean
+      latitude:
+        maximum: 90
+        minimum: -90
+        type: number
+      longitude:
+        maximum: 180
+        minimum: -180
+        type: number
+      postal_code:
+        maxLength: 20
+        minLength: 1
+        type: string
+      state:
+        maxLength: 255
+        minLength: 1
+        type: string
     type: object
   requests.UpdateCommentRequest:
     properties:
@@ -336,6 +625,25 @@ definitions:
       name:
         type: string
       slug:
+        type: string
+    type: object
+  requests.UpdateTaxonomyRequest:
+    properties:
+      code:
+        maxLength: 50
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      parent_id:
+        type: string
+      slug:
+        maxLength: 255
+        minLength: 1
         type: string
     type: object
   requests.UpdateUserRequest:
@@ -450,6 +758,1359 @@ info:
   title: Go RESTful API - Hexagonal Architecture
   version: "1.0"
 paths:
+  /api/v1/addressables/{addressable_type}/{addressable_id}/addresses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all addresses for a specific user or organization
+      parameters:
+      - description: Addressable entity ID
+        format: uuid
+        in: path
+        name: addressable_id
+        required: true
+        type: string
+      - description: Addressable entity type
+        enum:
+        - user
+        - organization
+        in: path
+        name: addressable_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get addresses by addressable entity
+      tags:
+      - addresses
+  /api/v1/addressables/{addressable_type}/{addressable_id}/addresses/primary:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the primary address for a specific user or organization
+      parameters:
+      - description: Addressable entity ID
+        format: uuid
+        in: path
+        name: addressable_id
+        required: true
+        type: string
+      - description: Addressable entity type
+        enum:
+        - user
+        - organization
+        in: path
+        name: addressable_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Primary address found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Address'
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Primary address not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get primary address by addressable entity
+      tags:
+      - addresses
+  /api/v1/addressables/{addressable_type}/{addressable_id}/addresses/type/{address_type}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve addresses for a specific user or organization filtered
+        by address type
+      parameters:
+      - description: Addressable entity ID
+        format: uuid
+        in: path
+        name: addressable_id
+        required: true
+        type: string
+      - description: Addressable entity type
+        enum:
+        - user
+        - organization
+        in: path
+        name: addressable_type
+        required: true
+        type: string
+      - description: Address type
+        enum:
+        - home
+        - work
+        - billing
+        - shipping
+        - other
+        in: path
+        name: address_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get addresses by addressable entity and type
+      tags:
+      - addresses
+  /api/v1/addresses:
+    post:
+      consumes:
+      - application/json
+      description: Create a new address for a user or organization
+      parameters:
+      - description: Address creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Address created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Address'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new address
+      tags:
+      - addresses
+  /api/v1/addresses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an address by its ID
+      parameters:
+      - description: Address ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address deleted successfully
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid address ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an address
+      tags:
+      - addresses
+    get:
+      consumes:
+      - application/json
+      description: Retrieve an address by its unique identifier
+      parameters:
+      - description: Address ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Address'
+              type: object
+        "400":
+          description: Bad request - Invalid address ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Address not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get address by ID
+      tags:
+      - addresses
+    put:
+      consumes:
+      - application/json
+      description: Update an existing address by ID
+      parameters:
+      - description: Address ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Address update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Address'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Address not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an address
+      tags:
+      - addresses
+  /api/v1/addresses/{id}/primary:
+    put:
+      consumes:
+      - application/json
+      description: Set a specific address as the primary address for an addressable
+        entity
+      parameters:
+      - description: Address ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Set primary address request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.SetPrimaryAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address set as primary successfully
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set address as primary
+      tags:
+      - addresses
+  /api/v1/addresses/{id}/type:
+    put:
+      consumes:
+      - application/json
+      description: Update the type of an address
+      parameters:
+      - description: Address ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Set address type request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.SetAddressTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Address type updated successfully
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set address type
+      tags:
+      - addresses
+  /api/v1/addresses/search/city:
+    get:
+      consumes:
+      - application/json
+      description: Search for addresses in a specific city with pagination
+      parameters:
+      - description: City name to search for
+        in: query
+        name: city
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search addresses by city
+      tags:
+      - addresses
+  /api/v1/addresses/search/country:
+    get:
+      consumes:
+      - application/json
+      description: Search for addresses in a specific country with pagination
+      parameters:
+      - description: Country name to search for
+        in: query
+        name: country
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search addresses by country
+      tags:
+      - addresses
+  /api/v1/addresses/search/postal-code:
+    get:
+      consumes:
+      - application/json
+      description: Search for addresses with a specific postal code with pagination
+      parameters:
+      - description: Postal code to search for
+        in: query
+        name: postal_code
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search addresses by postal code
+      tags:
+      - addresses
+  /api/v1/addresses/search/state:
+    get:
+      consumes:
+      - application/json
+      description: Search for addresses in a specific state with pagination
+      parameters:
+      - description: State name to search for
+        in: query
+        name: state
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Addresses found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Address'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search addresses by state
+      tags:
+      - addresses
+  /api/v1/roles/{role_id}/users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all users assigned to a specific role with pagination
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: role_id
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role users retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.User'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid role ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get role users
+      tags:
+      - Authentication & Authorization
+  /api/v1/roles/{role_id}/users/count:
+    get:
+      consumes:
+      - application/json
+      description: Get the total number of users assigned to a specific role
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User count for role retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  properties:
+                    count:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid role ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user count for role
+      tags:
+      - Authentication & Authorization
+  /api/v1/taxonomies:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all taxonomies with pagination
+      parameters:
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomies found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid pagination parameters
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all taxonomies
+      tags:
+      - taxonomies
+    post:
+      consumes:
+      - application/json
+      description: Create a new taxonomy with optional parent taxonomy
+      parameters:
+      - description: Taxonomy creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateTaxonomyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Taxonomy created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Taxonomy'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new taxonomy
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a taxonomy by its ID
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy deleted successfully
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a taxonomy
+      tags:
+      - taxonomies
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a taxonomy by its unique identifier
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Taxonomy'
+              type: object
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Taxonomy not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy by ID
+      tags:
+      - taxonomies
+    put:
+      consumes:
+      - application/json
+      description: Update an existing taxonomy by ID
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Taxonomy update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateTaxonomyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Taxonomy'
+              type: object
+        "400":
+          description: Bad request - Invalid input data
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a taxonomy
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/{id}/ancestors:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all ancestors of a taxonomy (parent, grandparent, etc.)
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy ancestors found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy ancestors
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/{id}/children:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve direct children of a taxonomy
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy children found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy children
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/{id}/descendants:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all descendants of a taxonomy (children, grandchildren,
+        etc.)
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy descendants found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy descendants
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/{id}/siblings:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all siblings of a taxonomy (taxonomies with the same parent)
+      parameters:
+      - description: Taxonomy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy siblings found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid taxonomy ID format
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy siblings
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/hierarchy:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the complete taxonomy hierarchy tree
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy hierarchy found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy hierarchy
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/root:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all root taxonomies (taxonomies without parent)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Root taxonomies found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get root taxonomies
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/search:
+    get:
+      consumes:
+      - application/json
+      description: Search taxonomies by name, slug, or description with pagination
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 10
+        description: 'Number of results to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 'Number of results to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomies found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Taxonomy'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Search query is required
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search taxonomies
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/search/advanced:
+    get:
+      consumes:
+      - application/json
+      description: Search taxonomies with advanced pagination and sorting options
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - default: 1
+        description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: per_page
+        type: integer
+      - default: record_left
+        description: 'Sort field (default: record_left)'
+        in: query
+        name: sort_by
+        type: string
+      - default: false
+        description: 'Sort descending (default: false)'
+        in: query
+        name: sort_desc
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomies with pagination
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/pagination.TaxonomySearchResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search taxonomies with pagination
+      tags:
+      - taxonomies
+  /api/v1/taxonomies/slug/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a taxonomy by its slug identifier
+      parameters:
+      - description: Taxonomy slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Taxonomy found
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Taxonomy'
+              type: object
+        "400":
+          description: Bad request - Slug is required
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Taxonomy not found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get taxonomy by slug
+      tags:
+      - taxonomies
+  /api/v1/users/{user_id}/roles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all roles assigned to a specific user
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User roles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entities.Role'
+                  type: array
+              type: object
+        "400":
+          description: Bad request - Invalid user ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user roles
+      tags:
+      - Authentication & Authorization
+  /api/v1/users/{user_id}/roles/{role_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a specific role from a user
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Role ID
+        format: uuid
+        in: path
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role removed from user successfully
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad request - Invalid user ID or role ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove role from user
+      tags:
+      - Authentication & Authorization
+    post:
+      consumes:
+      - application/json
+      description: Assign a specific role to a user
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Role ID
+        format: uuid
+        in: path
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role assigned to user successfully
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "400":
+          description: Bad request - Invalid user ID or role ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - Authentication & Authorization
+  /api/v1/users/{user_id}/roles/{role_id}/check:
+    get:
+      consumes:
+      - application/json
+      description: Check if a specific user has a specific role
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Role ID
+        format: uuid
+        in: path
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role check completed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.CommonResponse'
+            - properties:
+                data:
+                  properties:
+                    has_role:
+                      type: boolean
+                  type: object
+              type: object
+        "400":
+          description: Bad request - Invalid user ID or role ID
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/responses.CommonResponse'
+      security:
+      - BearerAuth: []
+      summary: Check if user has role
+      tags:
+      - Authentication & Authorization
   /auth/forget-password:
     post:
       consumes:
@@ -3290,52 +4951,6 @@ paths:
       summary: Search tags
       tags:
       - tags
-  /taxonomies/search:
-    get:
-      consumes:
-      - application/json
-      description: Search taxonomies with pagination and return unified response
-      parameters:
-      - description: Search query
-        in: query
-        name: query
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        name: page
-        type: integer
-      - description: 'Items per page (default: 10, max: 100)'
-        in: query
-        name: per_page
-        type: integer
-      - description: 'Sort field (default: record_left)'
-        in: query
-        name: sort_by
-        type: string
-      - description: 'Sort descending (default: false)'
-        in: query
-        name: sort_desc
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Taxonomies with pagination
-          schema:
-            $ref: '#/definitions/pagination.TaxonomySearchResponse'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/responses.ErrorResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/responses.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Search taxonomies with pagination
-      tags:
-      - taxonomies
   /users:
     get:
       consumes:

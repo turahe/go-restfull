@@ -15,7 +15,7 @@ var createRolesTable20250708232037 = &Migration{
 	Up: func() error {
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE IF NOT EXISTS roles (
-				"id" UUID NOT NULL,
+				"id" UUID NOT NULL DEFAULT gen_random_uuid(),
 				"name" VARCHAR(255) NOT NULL,
 				"slug" VARCHAR(255) NOT NULL UNIQUE,
 				"description" TEXT NULL,
@@ -28,6 +28,13 @@ var createRolesTable20250708232037 = &Migration{
 				"deleted_by" VARCHAR(255) NULL,
 				CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
 			);
+
+			INSERT INTO roles (name, slug, description, is_active) VALUES
+			('Admin', 'admin', 'Admin role', TRUE),
+			('User', 'user', 'User role', TRUE),
+			('Moderator', 'moderator', 'Moderator role', TRUE),
+			('Editor', 'editor', 'Editor role', TRUE),
+			('Viewer', 'viewer', 'Viewer role', TRUE);
 		`)
 
 		if err != nil {

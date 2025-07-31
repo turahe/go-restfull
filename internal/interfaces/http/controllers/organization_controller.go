@@ -24,16 +24,16 @@ func NewOrganizationController(organizationService ports.OrganizationService) *O
 }
 
 // CreateOrganization godoc
-// @Summary Create a new organization
-// @Description Create a new organization, optionally with a parent
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param organization body requests.CreateOrganizationRequest true "Organization to create"
-// @Success 201 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations [post]
+//	@Summary		Create a new organization
+//	@Description	Create a new organization, optionally with a parent
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			organization	body		requests.CreateOrganizationRequest	true	"Organization to create"
+//	@Success		201				{object}	responses.SuccessResponse
+//	@Failure		400				{object}	responses.ErrorResponse
+//	@Failure		500				{object}	responses.ErrorResponse
+//	@Router			/organizations [post]
 func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 	var req requests.CreateOrganizationRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -88,16 +88,16 @@ func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationByID godoc
-// @Summary Get organization by ID
-// @Description Get a single organization by its ID
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
-// @Router /organizations/{id} [get]
+//	@Summary		Get organization by ID
+//	@Description	Get a single organization by its ID
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		404	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id} [get]
 func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -123,17 +123,17 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 }
 
 // GetAllOrganizations godoc
-// @Summary Get all organizations
-// @Description Get a paginated list of all organizations
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param limit query int false "Limit"
-// @Param offset query int false "Offset"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations [get]
+//	@Summary		Get all organizations
+//	@Description	Get a paginated list of all organizations
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			limit	query		int	false	"Limit"
+//	@Param			offset	query		int	false	"Offset"
+//	@Success		200		{object}	responses.SuccessResponse
+//	@Failure		400		{object}	responses.ErrorResponse
+//	@Failure		500		{object}	responses.ErrorResponse
+//	@Router			/organizations [get]
 func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 	limitStr := ctx.Query("limit", "10")
 	offsetStr := ctx.Query("offset", "0")
@@ -169,17 +169,17 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 }
 
 // UpdateOrganization godoc
-// @Summary Update an organization
-// @Description Update an organization's details
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Param organization body requests.UpdateOrganizationRequest true "Organization update data"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id} [put]
+//	@Summary		Update an organization
+//	@Description	Update an organization's details
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string								true	"Organization ID"
+//	@Param			organization	body		requests.UpdateOrganizationRequest	true	"Organization update data"
+//	@Success		200				{object}	responses.SuccessResponse
+//	@Failure		400				{object}	responses.ErrorResponse
+//	@Failure		500				{object}	responses.ErrorResponse
+//	@Router			/organizations/{id} [put]
 func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -231,16 +231,16 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 }
 
 // DeleteOrganization godoc
-// @Summary Delete an organization
-// @Description Delete an organization by its ID
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id} [delete]
+//	@Summary		Delete an organization
+//	@Description	Delete an organization by its ID
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id} [delete]
 func (c *OrganizationController) DeleteOrganization(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -266,14 +266,14 @@ func (c *OrganizationController) DeleteOrganization(ctx *fiber.Ctx) error {
 }
 
 // GetRootOrganizations godoc
-// @Summary Get root organizations
-// @Description Get all root organizations (organizations without a parent)
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/root [get]
+//	@Summary		Get root organizations
+//	@Description	Get all root organizations (organizations without a parent)
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/root [get]
 func (c *OrganizationController) GetRootOrganizations(ctx *fiber.Ctx) error {
 	organizations, err := c.organizationService.GetRootOrganizations(ctx.Context())
 	if err != nil {
@@ -290,16 +290,16 @@ func (c *OrganizationController) GetRootOrganizations(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationChildren godoc
-// @Summary Get children of an organization
-// @Description Get direct children of an organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/children [get]
+//	@Summary		Get children of an organization
+//	@Description	Get direct children of an organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/children [get]
 func (c *OrganizationController) GetOrganizationChildren(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -325,16 +325,16 @@ func (c *OrganizationController) GetOrganizationChildren(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationDescendants godoc
-// @Summary Get descendants of an organization
-// @Description Get all descendant organizations of an organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/descendants [get]
+//	@Summary		Get descendants of an organization
+//	@Description	Get all descendant organizations of an organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/descendants [get]
 func (c *OrganizationController) GetOrganizationDescendants(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -360,16 +360,16 @@ func (c *OrganizationController) GetOrganizationDescendants(ctx *fiber.Ctx) erro
 }
 
 // GetOrganizationAncestors godoc
-// @Summary Get ancestors of an organization
-// @Description Get all ancestor organizations of an organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/ancestors [get]
+//	@Summary		Get ancestors of an organization
+//	@Description	Get all ancestor organizations of an organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/ancestors [get]
 func (c *OrganizationController) GetOrganizationAncestors(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -395,16 +395,16 @@ func (c *OrganizationController) GetOrganizationAncestors(ctx *fiber.Ctx) error 
 }
 
 // GetOrganizationSiblings godoc
-// @Summary Get siblings of an organization
-// @Description Get all sibling organizations of an organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/siblings [get]
+//	@Summary		Get siblings of an organization
+//	@Description	Get all sibling organizations of an organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/siblings [get]
 func (c *OrganizationController) GetOrganizationSiblings(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -430,16 +430,16 @@ func (c *OrganizationController) GetOrganizationSiblings(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationPath godoc
-// @Summary Get path to an organization
-// @Description Get the path from the root to the specified organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/path [get]
+//	@Summary		Get path to an organization
+//	@Description	Get the path from the root to the specified organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/path [get]
 func (c *OrganizationController) GetOrganizationPath(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -465,14 +465,14 @@ func (c *OrganizationController) GetOrganizationPath(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationTree godoc
-// @Summary Get the full organization tree
-// @Description Get the entire organization tree structure
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/tree [get]
+//	@Summary		Get the full organization tree
+//	@Description	Get the entire organization tree structure
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/tree [get]
 func (c *OrganizationController) GetOrganizationTree(ctx *fiber.Ctx) error {
 	organizations, err := c.organizationService.GetOrganizationTree(ctx.Context())
 	if err != nil {
@@ -489,16 +489,16 @@ func (c *OrganizationController) GetOrganizationTree(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationSubtree godoc
-// @Summary Get a subtree of an organization
-// @Description Get the subtree rooted at the specified organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/subtree [get]
+//	@Summary		Get a subtree of an organization
+//	@Description	Get the subtree rooted at the specified organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/subtree [get]
 func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -524,17 +524,17 @@ func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 }
 
 // AddOrganizationChild godoc
-// @Summary Add a child organization
-// @Description Add a new child organization to a parent
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Parent Organization ID"
-// @Param organization body requests.CreateOrganizationRequest true "Child organization to create"
-// @Success 201 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/children [post]
+//	@Summary		Add a child organization
+//	@Description	Add a new child organization to a parent
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string								true	"Parent Organization ID"
+//	@Param			organization	body		requests.CreateOrganizationRequest	true	"Child organization to create"
+//	@Success		201				{object}	responses.SuccessResponse
+//	@Failure		400				{object}	responses.ErrorResponse
+//	@Failure		500				{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/children [post]
 func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 	parentIDStr := ctx.Params("id")
 	parentID, err := uuid.Parse(parentIDStr)
@@ -587,17 +587,17 @@ func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 }
 
 // MoveOrganizationSubtree godoc
-// @Summary Move an organization subtree
-// @Description Move an organization and all its descendants to a new parent
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Param move body requests.MoveOrganizationRequest true "Move request"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/move [post]
+//	@Summary		Move an organization subtree
+//	@Description	Move an organization and all its descendants to a new parent
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string								true	"Organization ID"
+//	@Param			move	body		requests.MoveOrganizationRequest	true	"Move request"
+//	@Success		200		{object}	responses.SuccessResponse
+//	@Failure		400		{object}	responses.ErrorResponse
+//	@Failure		500		{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/move [post]
 func (c *OrganizationController) MoveOrganizationSubtree(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -646,16 +646,16 @@ func (c *OrganizationController) MoveOrganizationSubtree(ctx *fiber.Ctx) error {
 }
 
 // DeleteOrganizationSubtree godoc
-// @Summary Delete an organization subtree
-// @Description Delete an organization and all its descendants
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/subtree [delete]
+//	@Summary		Delete an organization subtree
+//	@Description	Delete an organization and all its descendants
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/subtree [delete]
 func (c *OrganizationController) DeleteOrganizationSubtree(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -681,17 +681,17 @@ func (c *OrganizationController) DeleteOrganizationSubtree(ctx *fiber.Ctx) error
 }
 
 // SetOrganizationStatus godoc
-// @Summary Set organization status
-// @Description Set the status of an organization
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Param status body requests.SetOrganizationStatusRequest true "Status request"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/status [put]
+//	@Summary		Set organization status
+//	@Description	Set the status of an organization
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string									true	"Organization ID"
+//	@Param			status	body		requests.SetOrganizationStatusRequest	true	"Status request"
+//	@Success		200		{object}	responses.SuccessResponse
+//	@Failure		400		{object}	responses.ErrorResponse
+//	@Failure		500		{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/status [put]
 func (c *OrganizationController) SetOrganizationStatus(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -733,18 +733,18 @@ func (c *OrganizationController) SetOrganizationStatus(ctx *fiber.Ctx) error {
 }
 
 // SearchOrganizations godoc
-// @Summary Search organizations
-// @Description Search organizations by query string
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param query query string false "Search query"
-// @Param page query int false "Page number"
-// @Param per_page query int false "Results per page"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/search [get]
+//	@Summary		Search organizations
+//	@Description	Search organizations by query string
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			query		query		string	false	"Search query"
+//	@Param			page		query		int		false	"Page number"
+//	@Param			per_page	query		int		false	"Results per page"
+//	@Success		200			{object}	responses.SuccessResponse
+//	@Failure		400			{object}	responses.ErrorResponse
+//	@Failure		500			{object}	responses.ErrorResponse
+//	@Router			/organizations/search [get]
 func (c *OrganizationController) SearchOrganizations(ctx *fiber.Ctx) error {
 	var req requests.SearchOrganizationsRequest
 	if err := ctx.QueryParser(&req); err != nil {
@@ -784,16 +784,16 @@ func (c *OrganizationController) SearchOrganizations(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationStats godoc
-// @Summary Get organization statistics
-// @Description Get statistics for an organization (children and descendants count)
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param id path string true "Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /organizations/{id}/stats [get]
+//	@Summary		Get organization statistics
+//	@Description	Get statistics for an organization (children and descendants count)
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Organization ID"
+//	@Success		200	{object}	responses.SuccessResponse
+//	@Failure		400	{object}	responses.ErrorResponse
+//	@Failure		500	{object}	responses.ErrorResponse
+//	@Router			/organizations/{id}/stats [get]
 func (c *OrganizationController) GetOrganizationStats(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -832,16 +832,16 @@ func (c *OrganizationController) GetOrganizationStats(ctx *fiber.Ctx) error {
 }
 
 // ValidateOrganizationHierarchy godoc
-// @Summary Validate organization hierarchy
-// @Description Validate if a parent-child relationship is valid
-// @Tags organizations
-// @Accept json
-// @Produce json
-// @Param parent_id query string true "Parent Organization ID"
-// @Param child_id query string true "Child Organization ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Router /organizations/validate-hierarchy [get]
+//	@Summary		Validate organization hierarchy
+//	@Description	Validate if a parent-child relationship is valid
+//	@Tags			organizations
+//	@Accept			json
+//	@Produce		json
+//	@Param			parent_id	query		string	true	"Parent Organization ID"
+//	@Param			child_id	query		string	true	"Child Organization ID"
+//	@Success		200			{object}	responses.SuccessResponse
+//	@Failure		400			{object}	responses.ErrorResponse
+//	@Router			/organizations/validate-hierarchy [get]
 func (c *OrganizationController) ValidateOrganizationHierarchy(ctx *fiber.Ctx) error {
 	parentIDStr := ctx.Query("parent_id")
 	childIDStr := ctx.Query("child_id")

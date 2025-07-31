@@ -10,20 +10,20 @@ import (
 )
 
 // MenuController handles HTTP requests for menu operations
-// @title Menu Management API
-// @version 1.0
-// @description This is a menu management API for creating, reading, updating, and deleting hierarchical menu structures
-// @termsOfService http://swagger.io/terms/
-// @contact.name API Support
-// @contact.email support@example.com
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
-// @host localhost:8000
-// @BasePath /api/v1
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
+//	@title						Menu Management API
+//	@version					1.0
+//	@description				This is a menu management API for creating, reading, updating, and deleting hierarchical menu structures
+//	@termsOfService				http://swagger.io/terms/
+//	@contact.name				API Support
+//	@contact.email				support@example.com
+//	@license.name				MIT
+//	@license.url				https://opensource.org/licenses/MIT
+//	@host						localhost:8000
+//	@BasePath					/api/v1
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
 type MenuController struct {
 	menuService ports.MenuService
 }
@@ -35,20 +35,20 @@ func NewMenuController(menuService ports.MenuService) *MenuController {
 }
 
 // GetMenus handles GET /v1/menus requests
-// @Summary Get all menus
-// @Description Retrieve a paginated list of menus with optional filtering
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param limit query int false "Number of menus to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Number of menus to skip (default: 0)" default(0) minimum(0)
-// @Param active query string false "Filter by active status (true/false)" Enums(true, false)
-// @Param visible query string false "Filter by visible status (true/false)" Enums(true, false)
-// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of menus"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid parameters"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus [get]
+//	@Summary		Get all menus
+//	@Description	Retrieve a paginated list of menus with optional filtering
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			limit	query		int												false	"Number of menus to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
+//	@Param			offset	query		int												false	"Number of menus to skip (default: 0)"				default(0)	minimum(0)
+//	@Param			active	query		string											false	"Filter by active status (true/false)"				Enums(true, false)
+//	@Param			visible	query		string											false	"Filter by visible status (true/false)"				Enums(true, false)
+//	@Success		200		{object}	responses.CommonResponse{data=[]interface{}}	"List of menus"
+//	@Failure		400		{object}	responses.CommonResponse						"Bad request - Invalid parameters"
+//	@Failure		500		{object}	responses.CommonResponse						"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus [get]
 func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 	// Get pagination parameters
 	limit, _ := strconv.Atoi(ctx.Query("limit", "10"))
@@ -83,18 +83,18 @@ func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 }
 
 // GetMenuByID handles GET /v1/menus/:id requests
-// @Summary Get menu by ID
-// @Description Retrieve a specific menu by its unique identifier
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu details"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id} [get]
+//	@Summary		Get menu by ID
+//	@Description	Retrieve a specific menu by its unique identifier
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu details"
+//	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id} [get]
 func (c *MenuController) GetMenuByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -122,18 +122,18 @@ func (c *MenuController) GetMenuByID(ctx *fiber.Ctx) error {
 }
 
 // GetMenuBySlug handles GET /v1/menus/slug/:slug requests
-// @Summary Get menu by slug
-// @Description Retrieve a menu by its URL-friendly slug
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param slug path string true "Menu slug"
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu details"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Slug is required"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/slug/{slug} [get]
+//	@Summary		Get menu by slug
+//	@Description	Retrieve a menu by its URL-friendly slug
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string													true	"Menu slug"
+//	@Success		200		{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu details"
+//	@Failure		400		{object}	responses.CommonResponse								"Bad request - Slug is required"
+//	@Failure		404		{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500		{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/slug/{slug} [get]
 func (c *MenuController) GetMenuBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
 	if slug == "" {
@@ -161,15 +161,15 @@ func (c *MenuController) GetMenuBySlug(ctx *fiber.Ctx) error {
 }
 
 // GetRootMenus handles GET /v1/menus/root requests
-// @Summary Get root menus
-// @Description Retrieve all root-level menus (top-level menu items)
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of root menus"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/root [get]
+//	@Summary		Get root menus
+//	@Description	Retrieve all root-level menus (top-level menu items)
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.CommonResponse{data=[]interface{}}	"List of root menus"
+//	@Failure		500	{object}	responses.CommonResponse						"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/root [get]
 func (c *MenuController) GetRootMenus(ctx *fiber.Ctx) error {
 	menus, err := c.menuService.GetRootMenus(ctx.Context())
 	if err != nil {
@@ -188,15 +188,15 @@ func (c *MenuController) GetRootMenus(ctx *fiber.Ctx) error {
 }
 
 // GetMenuHierarchy handles GET /v1/menus/hierarchy requests
-// @Summary Get menu hierarchy
-// @Description Retrieve the complete menu hierarchy with nested structure
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "Menu hierarchy"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/hierarchy [get]
+//	@Summary		Get menu hierarchy
+//	@Description	Retrieve the complete menu hierarchy with nested structure
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.CommonResponse{data=[]interface{}}	"Menu hierarchy"
+//	@Failure		500	{object}	responses.CommonResponse						"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/hierarchy [get]
 func (c *MenuController) GetMenuHierarchy(ctx *fiber.Ctx) error {
 	menus, err := c.menuService.GetMenuHierarchy(ctx.Context())
 	if err != nil {
@@ -215,18 +215,18 @@ func (c *MenuController) GetMenuHierarchy(ctx *fiber.Ctx) error {
 }
 
 // GetUserMenus handles GET /v1/users/:user_id/menus requests
-// @Summary Get user menus
-// @Description Retrieve all menus accessible to a specific user based on their roles
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param user_id path string true "User ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of user menus"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid user ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - User does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /users/{user_id}/menus [get]
+//	@Summary		Get user menus
+//	@Description	Retrieve all menus accessible to a specific user based on their roles
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			user_id	path		string											true	"User ID"	format(uuid)
+//	@Success		200		{object}	responses.CommonResponse{data=[]interface{}}	"List of user menus"
+//	@Failure		400		{object}	responses.CommonResponse						"Bad request - Invalid user ID"
+//	@Failure		404		{object}	responses.CommonResponse						"Not found - User does not exist"
+//	@Failure		500		{object}	responses.CommonResponse						"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/users/{user_id}/menus [get]
 func (c *MenuController) GetUserMenus(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
@@ -254,19 +254,19 @@ func (c *MenuController) GetUserMenus(ctx *fiber.Ctx) error {
 }
 
 // SearchMenus handles GET /v1/menus/search requests
-// @Summary Search menus
-// @Description Search menus by name or description
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param q query string true "Search query"
-// @Param limit query int false "Number of menus to return (default: 10, max: 100)" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Number of menus to skip (default: 0)" default(0) minimum(0)
-// @Success 200 {object} responses.CommonResponse{data=[]interface{}} "List of matching menus"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Search query is required"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/search [get]
+//	@Summary		Search menus
+//	@Description	Search menus by name or description
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			q		query		string											true	"Search query"
+//	@Param			limit	query		int												false	"Number of menus to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
+//	@Param			offset	query		int												false	"Number of menus to skip (default: 0)"				default(0)	minimum(0)
+//	@Success		200		{object}	responses.CommonResponse{data=[]interface{}}	"List of matching menus"
+//	@Failure		400		{object}	responses.CommonResponse						"Bad request - Search query is required"
+//	@Failure		500		{object}	responses.CommonResponse						"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/search [get]
 func (c *MenuController) SearchMenus(ctx *fiber.Ctx) error {
 	query := ctx.Query("q")
 	if query == "" {
@@ -297,18 +297,18 @@ func (c *MenuController) SearchMenus(ctx *fiber.Ctx) error {
 }
 
 // CreateMenu handles POST /v1/menus requests
-// @Summary Create a new menu
-// @Description Create a new menu item with the provided information
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param menu body object true "Menu creation request" SchemaExample({"name": "Dashboard", "slug": "dashboard", "url": "/dashboard", "parent_id": "00000000-0000-0000-0000-000000000000"})
-// @Success 201 {object} responses.CommonResponse{data=map[string]interface{}} "Menu created successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid input data"
-// @Failure 409 {object} responses.CommonResponse "Conflict - Menu with same slug already exists"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus [post]
+//	@Summary		Create a new menu
+//	@Description	Create a new menu item with the provided information
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			menu	body		object													true	"Menu creation request"	SchemaExample({"name": "Dashboard", "slug": "dashboard", "url": "/dashboard", "parent_id": "00000000-0000-0000-0000-000000000000"})
+//	@Success		201		{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu created successfully"
+//	@Failure		400		{object}	responses.CommonResponse								"Bad request - Invalid input data"
+//	@Failure		409		{object}	responses.CommonResponse								"Conflict - Menu with same slug already exists"
+//	@Failure		500		{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus [post]
 func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 	var request struct {
 		Name           string     `json:"name"`
@@ -346,19 +346,19 @@ func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 }
 
 // UpdateMenu handles PUT /v1/menus/:id requests
-// @Summary Update menu
-// @Description Update an existing menu's information
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Param menu body object true "Menu update request" SchemaExample({"name": "Dashboard", "slug": "dashboard", "url": "/dashboard", "parent_id": "00000000-0000-0000-0000-000000000000"})
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu updated successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid input data"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id} [put]
+//	@Summary		Update menu
+//	@Description	Update an existing menu's information
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string													true	"Menu ID"				format(uuid)
+//	@Param			menu	body		object													true	"Menu update request"	SchemaExample({"name": "Dashboard", "slug": "dashboard", "url": "/dashboard", "parent_id": "00000000-0000-0000-0000-000000000000"})
+//	@Success		200		{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu updated successfully"
+//	@Failure		400		{object}	responses.CommonResponse								"Bad request - Invalid input data"
+//	@Failure		404		{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500		{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id} [put]
 func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -405,18 +405,18 @@ func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 }
 
 // DeleteMenu handles DELETE /v1/menus/:id requests
-// @Summary Delete menu
-// @Description Delete a menu item (soft delete)
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse "Menu deleted successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id} [delete]
+//	@Summary		Delete menu
+//	@Description	Delete a menu item (soft delete)
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string						true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse	"Menu deleted successfully"
+//	@Failure		400	{object}	responses.CommonResponse	"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse	"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse	"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id} [delete]
 func (c *MenuController) DeleteMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -444,18 +444,18 @@ func (c *MenuController) DeleteMenu(ctx *fiber.Ctx) error {
 }
 
 // ActivateMenu handles PATCH /v1/menus/:id/activate requests
-// @Summary Activate menu
-// @Description Activate a deactivated menu item
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu activated successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id}/activate [patch]
+//	@Summary		Activate menu
+//	@Description	Activate a deactivated menu item
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu activated successfully"
+//	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id}/activate [patch]
 func (c *MenuController) ActivateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -483,18 +483,18 @@ func (c *MenuController) ActivateMenu(ctx *fiber.Ctx) error {
 }
 
 // DeactivateMenu handles PATCH /v1/menus/:id/deactivate requests
-// @Summary Deactivate menu
-// @Description Deactivate an active menu item
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu deactivated successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id}/deactivate [patch]
+//	@Summary		Deactivate menu
+//	@Description	Deactivate an active menu item
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu deactivated successfully"
+//	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id}/deactivate [patch]
 func (c *MenuController) DeactivateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -522,18 +522,18 @@ func (c *MenuController) DeactivateMenu(ctx *fiber.Ctx) error {
 }
 
 // ShowMenu handles PATCH /v1/menus/:id/show requests
-// @Summary Show menu
-// @Description Make a hidden menu item visible
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu shown successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id}/show [patch]
+//	@Summary		Show menu
+//	@Description	Make a hidden menu item visible
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu shown successfully"
+//	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id}/show [patch]
 func (c *MenuController) ShowMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -561,18 +561,18 @@ func (c *MenuController) ShowMenu(ctx *fiber.Ctx) error {
 }
 
 // HideMenu handles PATCH /v1/menus/:id/hide requests
-// @Summary Hide menu
-// @Description Make a visible menu item hidden
-// @Tags menus
-// @Accept json
-// @Produce json
-// @Param id path string true "Menu ID" format(uuid)
-// @Success 200 {object} responses.CommonResponse{data=map[string]interface{}} "Menu hidden successfully"
-// @Failure 400 {object} responses.CommonResponse "Bad request - Invalid menu ID"
-// @Failure 404 {object} responses.CommonResponse "Not found - Menu does not exist"
-// @Failure 500 {object} responses.CommonResponse "Internal server error"
-// @Security BearerAuth
-// @Router /menus/{id}/hide [patch]
+//	@Summary		Hide menu
+//	@Description	Make a visible menu item hidden
+//	@Tags			menus
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string													true	"Menu ID"	format(uuid)
+//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Menu hidden successfully"
+//	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid menu ID"
+//	@Failure		404	{object}	responses.CommonResponse								"Not found - Menu does not exist"
+//	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/menus/{id}/hide [patch]
 func (c *MenuController) HideMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {

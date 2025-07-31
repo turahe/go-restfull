@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/helper/utils"
@@ -24,21 +25,21 @@ func NewCommentController(commentService ports.CommentService) *CommentControlle
 }
 
 // GetComments godoc
-// @Summary      List comments
-// @Description  Get all comments with optional filtering
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        post_id   query     string  false  "Filter by post ID"
-// @Param        user_id   query     string  false  "Filter by user ID"
-// @Param        parent_id query     string  false  "Filter by parent comment ID"
-// @Param        status    query     string  false  "Filter by status (approved, pending, rejected)"
-// @Param        limit     query     int     false  "Number of comments to return (default: 10, max: 100)"
-// @Param        offset    query     int     false  "Number of comments to skip (default: 0)"
-// @Success      200       {object}  responses.CommonResponse
-// @Failure      400       {object}  responses.CommonResponse
-// @Failure      500       {object}  responses.CommonResponse
-// @Router       /v1/comments [get]
+//	@Summary		List comments
+//	@Description	Get all comments with optional filtering
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			post_id		query		string	false	"Filter by post ID"
+//	@Param			user_id		query		string	false	"Filter by user ID"
+//	@Param			parent_id	query		string	false	"Filter by parent comment ID"
+//	@Param			status		query		string	false	"Filter by status (approved, pending, rejected)"
+//	@Param			limit		query		int		false	"Number of comments to return (default: 10, max: 100)"
+//	@Param			offset		query		int		false	"Number of comments to skip (default: 0)"
+//	@Success		200			{object}	responses.CommonResponse
+//	@Failure		400			{object}	responses.CommonResponse
+//	@Failure		500			{object}	responses.CommonResponse
+//	@Router			/v1/comments [get]
 func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 	// Parse query parameters
 	var queryParams requests.CommentQueryParams
@@ -100,17 +101,17 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 }
 
 // GetCommentByID godoc
-// @Summary      Get comment by ID
-// @Description  Get a single comment by its ID
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Comment ID"
-// @Success      200  {object}  responses.CommonResponse
-// @Failure      400  {object}  responses.CommonResponse
-// @Failure      404  {object}  responses.CommonResponse
-// @Failure      500  {object}  responses.CommonResponse
-// @Router       /v1/comments/{id} [get]
+//	@Summary		Get comment by ID
+//	@Description	Get a single comment by its ID
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	responses.CommonResponse
+//	@Failure		400	{object}	responses.CommonResponse
+//	@Failure		404	{object}	responses.CommonResponse
+//	@Failure		500	{object}	responses.CommonResponse
+//	@Router			/v1/comments/{id} [get]
 func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 	// Parse comment ID from path
 	commentIDStr := ctx.Params("id")
@@ -148,17 +149,17 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 }
 
 // CreateComment godoc
-// @Summary      Create comment
-// @Description  Create a new comment
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        comment  body      requests.CreateCommentRequest  true  "Comment info"
-// @Success      201      {object}  responses.CommonResponse
-// @Failure      400      {object}  responses.CommonResponse
-// @Failure      401      {object}  responses.CommonResponse
-// @Failure      500      {object}  responses.CommonResponse
-// @Router       /v1/comments [post]
+//	@Summary		Create comment
+//	@Description	Create a new comment
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			comment	body		requests.CreateCommentRequest	true	"Comment info"
+//	@Success		201		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		401		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/v1/comments [post]
 func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	userID, err := utils.GetUserID(ctx)
@@ -198,19 +199,19 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 }
 
 // UpdateComment godoc
-// @Summary      Update comment
-// @Description  Update an existing comment
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        id      path      string  true  "Comment ID"
-// @Param        comment body      requests.UpdateCommentRequest  true  "Comment info"
-// @Success      200     {object}  responses.CommonResponse
-// @Failure      400     {object}  responses.CommonResponse
-// @Failure      401     {object}  responses.CommonResponse
-// @Failure      404     {object}  responses.CommonResponse
-// @Failure      500     {object}  responses.CommonResponse
-// @Router       /v1/comments/{id} [put]
+//	@Summary		Update comment
+//	@Description	Update an existing comment
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string							true	"Comment ID"
+//	@Param			comment	body		requests.UpdateCommentRequest	true	"Comment info"
+//	@Success		200		{object}	responses.CommonResponse
+//	@Failure		400		{object}	responses.CommonResponse
+//	@Failure		401		{object}	responses.CommonResponse
+//	@Failure		404		{object}	responses.CommonResponse
+//	@Failure		500		{object}	responses.CommonResponse
+//	@Router			/v1/comments/{id} [put]
 func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
@@ -268,18 +269,18 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 }
 
 // DeleteComment godoc
-// @Summary      Delete comment
-// @Description  Delete a comment by its ID
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Comment ID"
-// @Success      200  {object}  responses.CommonResponse
-// @Failure      400  {object}  responses.CommonResponse
-// @Failure      401  {object}  responses.CommonResponse
-// @Failure      404  {object}  responses.CommonResponse
-// @Failure      500  {object}  responses.CommonResponse
-// @Router       /v1/comments/{id} [delete]
+//	@Summary		Delete comment
+//	@Description	Delete a comment by its ID
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	responses.CommonResponse
+//	@Failure		400	{object}	responses.CommonResponse
+//	@Failure		401	{object}	responses.CommonResponse
+//	@Failure		404	{object}	responses.CommonResponse
+//	@Failure		500	{object}	responses.CommonResponse
+//	@Router			/v1/comments/{id} [delete]
 func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
@@ -327,18 +328,18 @@ func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 }
 
 // ApproveComment godoc
-// @Summary      Approve comment
-// @Description  Approve a comment by its ID
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Comment ID"
-// @Success      200  {object}  responses.CommonResponse
-// @Failure      400  {object}  responses.CommonResponse
-// @Failure      401  {object}  responses.CommonResponse
-// @Failure      404  {object}  responses.CommonResponse
-// @Failure      500  {object}  responses.CommonResponse
-// @Router       /v1/comments/{id}/approve [put]
+//	@Summary		Approve comment
+//	@Description	Approve a comment by its ID
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	responses.CommonResponse
+//	@Failure		400	{object}	responses.CommonResponse
+//	@Failure		401	{object}	responses.CommonResponse
+//	@Failure		404	{object}	responses.CommonResponse
+//	@Failure		500	{object}	responses.CommonResponse
+//	@Router			/v1/comments/{id}/approve [put]
 func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
@@ -386,18 +387,18 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 }
 
 // RejectComment godoc
-// @Summary      Reject comment
-// @Description  Reject a comment by its ID
-// @Tags         comments
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Comment ID"
-// @Success      200  {object}  responses.CommonResponse
-// @Failure      400  {object}  responses.CommonResponse
-// @Failure      401  {object}  responses.CommonResponse
-// @Failure      404  {object}  responses.CommonResponse
-// @Failure      500  {object}  responses.CommonResponse
-// @Router       /v1/comments/{id}/reject [put]
+//	@Summary		Reject comment
+//	@Description	Reject a comment by its ID
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	responses.CommonResponse
+//	@Failure		400	{object}	responses.CommonResponse
+//	@Failure		401	{object}	responses.CommonResponse
+//	@Failure		404	{object}	responses.CommonResponse
+//	@Failure		500	{object}	responses.CommonResponse
+//	@Router			/v1/comments/{id}/reject [put]
 func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
@@ -423,7 +424,7 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	// Reject comment
 	err = c.commentService.RejectComment(ctx.Context(), commentID)
 	if err != nil {
-		if err == exception.DataNotFoundError {
+		if errors.Is(err, exception.DataNotFoundError) {
 			return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
 				ResponseCode:    fiber.StatusNotFound,
 				ResponseMessage: "Comment not found",

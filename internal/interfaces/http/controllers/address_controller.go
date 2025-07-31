@@ -23,6 +23,18 @@ func NewAddressController(addressService ports.AddressService) *AddressControlle
 	}
 }
 
+// CreateAddress godoc
+//	@Summary		Create a new address
+//	@Description	Create a new address for a user or organization
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		requests.CreateAddressRequest						true	"Address creation request"
+//	@Success		201		{object}	responses.SuccessResponse{data=entities.Address}	"Address created successfully"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses [post]
+//	@Security		BearerAuth
 func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 	var req requests.CreateAddressRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -78,6 +90,18 @@ func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetAddressByID godoc
+//	@Summary		Get address by ID
+//	@Description	Retrieve an address by its unique identifier
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string												true	"Address ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse{data=entities.Address}	"Address found"
+//	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid address ID format"
+//	@Failure		404	{object}	responses.ErrorResponse								"Address not found"
+//	@Router			/api/v1/addresses/{id} [get]
+//	@Security		BearerAuth
 func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -102,6 +126,20 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 	})
 }
 
+// UpdateAddress godoc
+//	@Summary		Update an address
+//	@Description	Update an existing address by ID
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string												true	"Address ID"	format(uuid)
+//	@Param			request	body		requests.UpdateAddressRequest						true	"Address update request"
+//	@Success		200		{object}	responses.SuccessResponse{data=entities.Address}	"Address updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		404		{object}	responses.ErrorResponse								"Address not found"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses/{id} [put]
+//	@Security		BearerAuth
 func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -214,6 +252,18 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 	})
 }
 
+// DeleteAddress godoc
+//	@Summary		Delete an address
+//	@Description	Delete an address by its ID
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string						true	"Address ID"	format(uuid)
+//	@Success		200	{object}	responses.SuccessResponse	"Address deleted successfully"
+//	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid address ID format"
+//	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
+//	@Router			/api/v1/addresses/{id} [delete]
+//	@Security		BearerAuth
 func (c *AddressController) DeleteAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -238,6 +288,19 @@ func (c *AddressController) DeleteAddress(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetAddressesByAddressable godoc
+//	@Summary		Get addresses by addressable entity
+//	@Description	Retrieve all addresses for a specific user or organization
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
+//	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
+//	@Success		200					{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500					{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses [get]
+//	@Security		BearerAuth
 func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 	addressableIDStr := ctx.Params("addressable_id")
 	addressableTypeStr := ctx.Params("addressable_type")
@@ -272,6 +335,19 @@ func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetPrimaryAddressByAddressable godoc
+//	@Summary		Get primary address by addressable entity
+//	@Description	Retrieve the primary address for a specific user or organization
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
+//	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
+//	@Success		200					{object}	responses.SuccessResponse{data=entities.Address}	"Primary address found"
+//	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		404					{object}	responses.ErrorResponse								"Primary address not found"
+//	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses/primary [get]
+//	@Security		BearerAuth
 func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error {
 	addressableIDStr := ctx.Params("addressable_id")
 	addressableTypeStr := ctx.Params("addressable_type")
@@ -306,6 +382,20 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 	})
 }
 
+// GetAddressesByAddressableAndType godoc
+//	@Summary		Get addresses by addressable entity and type
+//	@Description	Retrieve addresses for a specific user or organization filtered by address type
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
+//	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
+//	@Param			address_type		path		string												true	"Address type"				Enums(home, work, billing, shipping, other)
+//	@Success		200					{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500					{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses/type/{address_type} [get]
+//	@Security		BearerAuth
 func (c *AddressController) GetAddressesByAddressableAndType(ctx *fiber.Ctx) error {
 	addressableIDStr := ctx.Params("addressable_id")
 	addressableTypeStr := ctx.Params("addressable_type")
@@ -351,6 +441,19 @@ func (c *AddressController) GetAddressesByAddressableAndType(ctx *fiber.Ctx) err
 	})
 }
 
+// SetPrimaryAddress godoc
+//	@Summary		Set address as primary
+//	@Description	Set a specific address as the primary address for an addressable entity
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string								true	"Address ID"	format(uuid)
+//	@Param			request	body		requests.SetPrimaryAddressRequest	true	"Set primary address request"
+//	@Success		200		{object}	responses.SuccessResponse			"Address set as primary successfully"
+//	@Failure		400		{object}	responses.ErrorResponse				"Bad request - Invalid input data"
+//	@Failure		500		{object}	responses.ErrorResponse				"Internal server error"
+//	@Router			/api/v1/addresses/{id}/primary [put]
+//	@Security		BearerAuth
 func (c *AddressController) SetPrimaryAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -400,6 +503,19 @@ func (c *AddressController) SetPrimaryAddress(ctx *fiber.Ctx) error {
 	})
 }
 
+// SetAddressType godoc
+//	@Summary		Set address type
+//	@Description	Update the type of an address
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string							true	"Address ID"	format(uuid)
+//	@Param			request	body		requests.SetAddressTypeRequest	true	"Set address type request"
+//	@Success		200		{object}	responses.SuccessResponse		"Address type updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse			"Bad request - Invalid input data"
+//	@Failure		500		{object}	responses.ErrorResponse			"Internal server error"
+//	@Router			/api/v1/addresses/{id}/type [put]
+//	@Security		BearerAuth
 func (c *AddressController) SetAddressType(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
@@ -441,6 +557,20 @@ func (c *AddressController) SetAddressType(ctx *fiber.Ctx) error {
 	})
 }
 
+// SearchAddressesByCity godoc
+//	@Summary		Search addresses by city
+//	@Description	Search for addresses in a specific city with pagination
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			city	query		string												true	"City name to search for"
+//	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses/search/city [get]
+//	@Security		BearerAuth
 func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 	city := ctx.Query("city")
 	if city == "" {
@@ -483,6 +613,20 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 	})
 }
 
+// SearchAddressesByState godoc
+//	@Summary		Search addresses by state
+//	@Description	Search for addresses in a specific state with pagination
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			state	query		string												true	"State name to search for"
+//	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses/search/state [get]
+//	@Security		BearerAuth
 func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 	state := ctx.Query("state")
 	if state == "" {
@@ -525,6 +669,20 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 	})
 }
 
+// SearchAddressesByCountry godoc
+//	@Summary		Search addresses by country
+//	@Description	Search for addresses in a specific country with pagination
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			country	query		string												true	"Country name to search for"
+//	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses/search/country [get]
+//	@Security		BearerAuth
 func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 	country := ctx.Query("country")
 	if country == "" {
@@ -567,6 +725,20 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 	})
 }
 
+// SearchAddressesByPostalCode godoc
+//	@Summary		Search addresses by postal code
+//	@Description	Search for addresses with a specific postal code with pagination
+//	@Tags			addresses
+//	@Accept			json
+//	@Produce		json
+//	@Param			postal_code	query		string												true	"Postal code to search for"
+//	@Param			limit		query		int													false	"Number of results to return (default: 10)"	default(10)
+//	@Param			offset		query		int													false	"Number of results to skip (default: 0)"	default(0)
+//	@Success		200			{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Failure		400			{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
+//	@Failure		500			{object}	responses.ErrorResponse								"Internal server error"
+//	@Router			/api/v1/addresses/search/postal-code [get]
+//	@Security		BearerAuth
 func (c *AddressController) SearchAddressesByPostalCode(ctx *fiber.Ctx) error {
 	postalCode := ctx.Query("postal_code")
 	if postalCode == "" {

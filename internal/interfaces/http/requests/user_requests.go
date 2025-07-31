@@ -3,6 +3,9 @@ package requests
 import (
 	"errors"
 	"regexp"
+
+	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 )
 
 // CreateUserRequest represents the request for creating a user
@@ -89,14 +92,19 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// Validate validates the LoginRequest
-func (r *LoginRequest) Validate() error {
-	if r.Username == "" {
-		return errors.New("username is required")
-	}
-	if r.Password == "" {
-		return errors.New("password is required")
+// Validate validates the LoginRequest with Laravel-style error responses
+func (r *LoginRequest) Validate() (*responses.ValidationErrorBuilder, error) {
+	validator := validation.NewValidator()
+
+	// Validate username
+	validator.ValidateRequired("username", r.Username)
+
+	// Validate password
+	validator.ValidateRequired("password", r.Password)
+
+	if validator.HasErrors() {
+		return validator.GetErrorBuilder(), errors.New("validation failed")
 	}
 
-	return nil
+	return validator.GetErrorBuilder(), nil
 }
