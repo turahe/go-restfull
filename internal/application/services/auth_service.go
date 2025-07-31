@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/rabbitmq"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/helper/utils"
-	"github.com/turahe/go-restfull/internal/rabbitmq"
 )
 
 // authService implements the AuthService interface

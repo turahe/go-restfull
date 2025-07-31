@@ -3,20 +3,19 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"log"
 	"os"
 	"time"
 
 	internal_minio "github.com/turahe/go-restfull/pkg/minio"
 
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/db/pgx"
-	"github.com/turahe/go-restfull/internal/db/rdb"
-	"github.com/turahe/go-restfull/internal/logger"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/db/rdb"
 	"go.uber.org/zap"
 )
 

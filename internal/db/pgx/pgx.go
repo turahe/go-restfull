@@ -3,13 +3,12 @@ package pgx
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"sync"
-
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/turahe/go-restfull/config"
 	"go.uber.org/zap"
 )
 

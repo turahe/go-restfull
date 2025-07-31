@@ -10,6 +10,7 @@ import (
 	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
 	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/pkg/email"
+	"github.com/turahe/go-restfull/pkg/rabbitmq"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -54,6 +55,7 @@ type Container struct {
 	PasswordService   domainservices.PasswordService
 	RBACService       domainservices.RBACService
 	PaginationService domainservices.PaginationService
+	RabbitMQService   *rabbitmq.Service
 
 	// Controllers
 	UserController         *controllers.UserController
@@ -95,6 +97,9 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	// Initialize pagination service
 	container.PaginationService = domainservices.NewPaginationService()
 
+	// Initialize RabbitMQ service
+	container.RabbitMQService = rabbitmq.NewService()
+
 	// Initialize repositories using existing adapters
 	container.UserRepository = adapters.NewPostgresUserRepository(db, redisClient)
 	container.PostRepository = adapters.NewPostgresPostRepository(db, redisClient)
@@ -121,7 +126,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.AuthService = appservices.NewAuthService(
 		container.UserRepository,
 		container.PasswordService,
-		container.EmailService,
+		container.RabbitMQService,
 	)
 	container.PostService = appservices.NewPostService(container.PostRepository)
 	container.MediaService = appservices.NewMediaService(container.MediaRepository)
@@ -139,7 +144,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 
 	// Initialize controllers
 	container.UserController = controllers.NewUserController(container.UserService, container.PaginationService)
-	container.AuthController = controllers.NewAuthController(container.AuthService)
+	container.AuthController = controllers.NewAuthController(container.AuthService, container.UserRepository)
 	container.PostController = controllers.NewPostController(container.PostService)
 	container.MediaController = controllers.NewMediaController(container.MediaService)
 	container.TagController = controllers.NewTagController(container.TagService)

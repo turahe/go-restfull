@@ -3,10 +3,10 @@ package logger
 import (
 	"os"
 
+	"github.com/turahe/go-restfull/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"github.com/turahe/go-restfull/config"
 )
 
 func newZapLogger() *zap.Logger {

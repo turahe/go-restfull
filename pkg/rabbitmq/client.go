@@ -3,13 +3,12 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"sync"
 	"time"
 
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
-
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/turahe/go-restfull/config"
 	"go.uber.org/zap"
 )
 

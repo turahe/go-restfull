@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"context"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"net/http"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
-	"github.com/turahe/go-restfull/internal/logger"
-
-	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 

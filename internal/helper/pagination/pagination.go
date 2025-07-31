@@ -2,10 +2,9 @@ package pagination
 
 import (
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"math"
 	"strconv"
-
-	"github.com/turahe/go-restfull/internal/logger"
 
 	"go.uber.org/zap"
 )

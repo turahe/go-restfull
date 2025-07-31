@@ -1,11 +1,10 @@
 package logger_test
 
 import (
+	"github.com/turahe/go-restfull/pkg/logger"
 	"testing"
 
 	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
-
 	"go.uber.org/zap/zapcore"
 )
 

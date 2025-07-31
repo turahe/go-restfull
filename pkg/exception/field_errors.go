@@ -2,10 +2,10 @@ package exception
 
 import (
 	"fmt"
+	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/turahe/go-restfull/internal/http/validation"
 )
 
 // NewValidationFailedErrors reads ValidationErrors and converts to format of ExceptionErrors.

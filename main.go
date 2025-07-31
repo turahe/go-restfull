@@ -22,19 +22,18 @@
 package main
 
 import (
+	"github.com/turahe/go-restfull/pkg/logger"
 	"log"
 	"os"
-
-	"github.com/turahe/go-restfull/cmd"
-	"github.com/turahe/go-restfull/internal/db/pgx"
-	"github.com/turahe/go-restfull/internal/infrastructure/container"
-	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
-	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
+	"github.com/turahe/go-restfull/cmd"
+	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/infrastructure/container"
+	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 

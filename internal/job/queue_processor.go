@@ -2,9 +2,8 @@ package job
 
 import (
 	"context"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"time"
-
-	"github.com/turahe/go-restfull/internal/logger"
 
 	"go.uber.org/zap"
 )

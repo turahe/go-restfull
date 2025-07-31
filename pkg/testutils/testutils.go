@@ -4,19 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"log"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/require"
 	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/db/pgx"
 	"github.com/turahe/go-restfull/internal/db/rdb"
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
-	"github.com/turahe/go-restfull/internal/logger"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/require"
 )
 
 // TestSetup contains all test dependencies

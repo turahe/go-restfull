@@ -1,9 +1,9 @@
-package response
+package responses
 
 import (
-	"math"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/helper/pagination"
+	"math"
 )
 
 // ConvertTaxonomyEntityToDTO converts a taxonomy entity to DTO

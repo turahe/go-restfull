@@ -107,7 +107,7 @@ If you need to change the Docker Hub username or repository name:
 1. **Update Makefile**
    ```makefile
    # Change these lines in Makefile
-   docker build --target production -t YOUR_USERNAME/YOUR_REPO:latest .
+   docker build --target production -t YOUR_USERNAME/YOUR_REPO:latest ..
    ```
 
 2. **Update Script**

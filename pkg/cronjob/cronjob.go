@@ -1,9 +1,8 @@
 package cronjob
 
 import (
+	"github.com/turahe/go-restfull/pkg/logger"
 	"time"
-
-	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/go-co-op/gocron/v2"
 	"go.uber.org/zap"

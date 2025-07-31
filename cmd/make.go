@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/turahe/go-restfull/pkg/logger"
 	"os"
 	"strings"
 	"time"
@@ -8,7 +9,6 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"github.com/turahe/go-restfull/internal/logger"
 )
 
 func init() {

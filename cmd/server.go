@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"net"
 	"net/http"
 	"os/signal"
@@ -11,8 +13,6 @@ import (
 	"time"
 
 	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/http/validation"
-	"github.com/turahe/go-restfull/internal/logger"
 	"github.com/turahe/go-restfull/internal/router"
 
 	"github.com/spf13/cobra"

@@ -1,14 +1,13 @@
 package cmd
 
 import (
+	"github.com/turahe/go-restfull/pkg/scheduler"
 	"os"
-
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/scheduler"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/lnquy/cron"
 	"github.com/spf13/cobra"
+	"github.com/turahe/go-restfull/config"
 )
 
 func init() {

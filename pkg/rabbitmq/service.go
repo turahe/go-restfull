@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"sync"
 	"time"
 
 	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
-
 	"go.uber.org/zap"
 )
 

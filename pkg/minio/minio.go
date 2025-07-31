@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"go.uber.org/zap"
 	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap"
 )
 
 var (

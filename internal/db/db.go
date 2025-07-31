@@ -3,12 +3,11 @@ package db
 import (
 	"context"
 	"fmt"
-
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/db/pgx"
-	"github.com/turahe/go-restfull/internal/logger"
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/turahe/go-restfull/config"
+	"github.com/turahe/go-restfull/internal/db/pgx"
 	"go.uber.org/zap"
 )
 

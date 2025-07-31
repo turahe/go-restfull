@@ -2,9 +2,9 @@ package exception_test
 
 import (
 	"errors"
+	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 	"testing"
 
-	"github.com/turahe/go-restfull/internal/http/validation"
 	. "github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/go-playground/validator/v10"

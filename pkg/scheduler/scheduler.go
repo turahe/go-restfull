@@ -2,14 +2,13 @@ package scheduler
 
 import (
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"time"
 	_ "time/tzdata"
 
+	"github.com/go-co-op/gocron"
 	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/job"
-	"github.com/turahe/go-restfull/internal/logger"
-
-	"github.com/go-co-op/gocron"
 	"go.uber.org/zap"
 )
 

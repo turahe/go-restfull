@@ -3,15 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"os"
 	"sort"
 
+	"github.com/spf13/cobra"
 	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/db/migrations"
 	"github.com/turahe/go-restfull/internal/db/pgx"
-	"github.com/turahe/go-restfull/internal/logger"
-
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"io"
 	"net"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/bytedance/sonic"
-	"github.com/turahe/go-restfull/internal/logger"
 )
 
 var bufferPool = sync.Pool{

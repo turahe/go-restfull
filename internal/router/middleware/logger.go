@@ -1,11 +1,11 @@
 package middleware
 
 import (
+	"github.com/turahe/go-restfull/pkg/logger"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"github.com/turahe/go-restfull/internal/logger"
 )
 
 func Logger() fiber.Handler {

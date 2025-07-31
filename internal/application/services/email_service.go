@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/rabbitmq"
 	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
-	"github.com/turahe/go-restfull/internal/rabbitmq"
 )
 
 // EmailService handles email operations using RabbitMQ

@@ -3,13 +3,12 @@ package rdb
 import (
 	"context"
 	"fmt"
+	"github.com/turahe/go-restfull/pkg/logger"
 	"sync"
 	"time"
 
-	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
-
 	"github.com/redis/go-redis/v9"
+	"github.com/turahe/go-restfull/config"
 	"go.uber.org/zap"
 )
 
