@@ -123,17 +123,19 @@ func NewContainer(db *pgxpool.Pool) *Container {
 		container.PasswordService,
 		container.EmailService,
 	)
+	container.RoleService = appservices.NewRoleService(container.RoleRepository)
+	container.UserRoleService = appservices.NewUserRoleService(container.UserRoleRepository)
 	container.AuthService = appservices.NewAuthService(
 		container.UserRepository,
 		container.PasswordService,
-		container.RabbitMQService,
+		container.EmailService,
+		container.RoleService,
+		container.UserRoleService,
 	)
 	container.PostService = appservices.NewPostService(container.PostRepository)
 	container.MediaService = appservices.NewMediaService(container.MediaRepository)
 	container.TagService = appservices.NewTagService(container.TagRepository)
 	container.CommentService = appservices.NewCommentService(container.CommentRepository)
-	container.RoleService = appservices.NewRoleService(container.RoleRepository)
-	container.UserRoleService = appservices.NewUserRoleService(container.UserRoleRepository)
 	container.MenuService = appservices.NewMenuService(container.MenuRepository)
 	container.MenuRoleService = appservices.NewMenuRoleService(container.MenuRoleRepository)
 	container.TaxonomyService = appservices.NewTaxonomyService(container.TaxonomyRepository)

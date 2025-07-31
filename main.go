@@ -22,9 +22,10 @@
 package main
 
 import (
-	"github.com/turahe/go-restfull/pkg/logger"
 	"log"
 	"os"
+
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -32,6 +33,7 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/turahe/go-restfull/cmd"
 	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/db/seeds"
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
 	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -78,6 +80,11 @@ func main() {
 	db := pgx.GetPgxPool()
 	container := container.NewContainer(db)
 
+	// Ensure default roles exist
+	if err := ensureDefaultRoles(); err != nil {
+		log.Printf("Warning: Failed to ensure default roles: %v", err)
+	}
+
 	// Setup Fiber app with enhanced configuration
 	app := fiber.New(fiber.Config{
 		ErrorHandler:          customErrorHandler,
@@ -97,6 +104,11 @@ func main() {
 
 	// Start the server
 	log.Fatal(app.Listen(":8000"))
+}
+
+// ensureDefaultRoles ensures that default roles exist in the database
+func ensureDefaultRoles() error {
+	return seeds.EnsureDefaultUserRole()
 }
 
 // customErrorHandler handles application errors

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -52,7 +53,7 @@ func (r *RoleRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entiti
 			  FROM roles WHERE id = $1 AND deleted_at IS NULL`
 
 	var role entities.Role
-	var createdBy, updatedBy string
+	var createdBy, updatedBy *string
 
 	err := r.pgxPool.QueryRow(ctx, query, id).Scan(
 		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
@@ -69,7 +70,7 @@ func (r *RoleRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*entit
 			  FROM roles WHERE slug = $1 AND deleted_at IS NULL`
 
 	var role entities.Role
-	var createdBy, updatedBy string
+	var createdBy, updatedBy *string
 
 	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(
 		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
@@ -107,7 +108,7 @@ func (r *RoleRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*
 // scanRoleRow is a helper function to scan a role row from database
 func (r *RoleRepositoryImpl) scanRoleRow(rows pgx.Rows) (*entities.Role, error) {
 	var role entities.Role
-	var createdBy, updatedBy string
+	var createdBy, updatedBy *string
 
 	err := rows.Scan(
 		&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
