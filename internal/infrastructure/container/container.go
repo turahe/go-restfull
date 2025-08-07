@@ -21,19 +21,19 @@ import (
 
 type Container struct {
 	// Repositories
-	UserRepository         repositories.UserRepository
-	PostRepository         repositories.PostRepository
-	CommentRepository      repositories.CommentRepository
-	MediaRepository        repositories.MediaRepository
-	RoleRepository         repositories.RoleRepository
-	UserRoleRepository     repositories.UserRoleRepository
-	MenuRepository         repositories.MenuRepository
-	MenuRoleRepository     repositories.MenuEntitiesRepository
-	TagRepository          repositories.TagRepository
-	TaxonomyRepository     repositories.TaxonomyRepository
-	ContentRepository      repositories.ContentRepository
-	SettingRepository      repository.SettingRepository
-	JobRepository          repositories.JobRepository
+	UserRepository     repositories.UserRepository
+	PostRepository     repositories.PostRepository
+	CommentRepository  repositories.CommentRepository
+	MediaRepository    repositories.MediaRepository
+	RoleRepository     repositories.RoleRepository
+	UserRoleRepository repositories.UserRoleRepository
+	MenuRepository     repositories.MenuRepository
+	MenuRoleRepository repositories.MenuEntitiesRepository
+	TagRepository      repositories.TagRepository
+	TaxonomyRepository repositories.TaxonomyRepository
+	ContentRepository  repositories.ContentRepository
+	SettingRepository  repository.SettingRepository
+
 	AddressRepository      repositories.AddressRepository
 	OrganizationRepository repositories.OrganizationRepository
 
@@ -117,7 +117,6 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.TaxonomyRepository = adapters.NewPostgresTaxonomyRepository(db, redisClient)
 	container.ContentRepository = adapters.NewPostgresContentRepository(db)
 	container.SettingRepository = repository.NewSettingRepository(db, redisClient)
-	container.JobRepository = adapters.NewPostgresJobRepository(repository.NewJobRepository(db, redisClient))
 	container.AddressRepository = adapters.NewAddressRepository(db)
 	container.OrganizationRepository = adapters.NewOrganizationRepository(db)
 

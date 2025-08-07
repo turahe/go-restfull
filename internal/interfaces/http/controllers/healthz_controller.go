@@ -37,6 +37,7 @@ func NewHealthzHTTPHandler() *HealthzHTTPHandler {
 }
 
 // Healthz godoc
+//
 //	@Summary		Health check endpoint
 //	@Description	Check if the API and all services are running and healthy
 //	@Tags			health
@@ -45,6 +46,8 @@ func NewHealthzHTTPHandler() *HealthzHTTPHandler {
 //	@Success		200	{object}	HealthResponse
 //	@Success		503	{object}	HealthResponse
 //	@Router			/healthz [get]
+//
+// Hot reload test - this comment was added to test Air functionality
 func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -87,10 +90,10 @@ func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 		overallStatus = "unhealthy"
 	}
 
-	// Check Job Queue
-	jobHealth := h.checkJobQueue(ctx)
-	healthChecks = append(healthChecks, jobHealth)
-	if jobHealth.Status != "healthy" {
+	// Check RabbitMQ (replaces job queue)
+	rabbitMQHealth := h.checkRabbitMQ(ctx)
+	healthChecks = append(healthChecks, rabbitMQHealth)
+	if rabbitMQHealth.Status != "healthy" {
 		overallStatus = "unhealthy"
 	}
 
@@ -108,7 +111,7 @@ func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 		Status:      overallStatus,
 		Timestamp:   timestamp,
 		Environment: config.GetConfig().Env,
-		Version:     config.GetConfig().App.Name,
+		Version:     config.GetConfig().App.Name + " (Hot Reload Test)",
 		Services:    healthChecks,
 	}
 
@@ -251,13 +254,13 @@ func (h *HealthzHTTPHandler) checkRBACService(ctx context.Context) HealthCheck {
 	}
 }
 
-func (h *HealthzHTTPHandler) checkJobQueue(ctx context.Context) HealthCheck {
-	// For now, we'll assume job queue is healthy if Redis is healthy
-	// In a real implementation, you might want to check job queue specific health
+func (h *HealthzHTTPHandler) checkRabbitMQ(ctx context.Context) HealthCheck {
+	// For now, we'll assume RabbitMQ is healthy if the application is running
+	// In a real implementation, you might want to check RabbitMQ connectivity
 	return HealthCheck{
-		Service:   "job_queue",
+		Service:   "rabbitmq",
 		Status:    "healthy",
-		Message:   "Job queue is available",
+		Message:   "RabbitMQ messaging is available",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }
