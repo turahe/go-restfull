@@ -1,0 +1,266 @@
+erDiagram
+    %% Core User Management
+    users {
+        UUID id PK
+        VARCHAR username UK
+        VARCHAR email UK
+        VARCHAR phone UK
+        VARCHAR password
+        TIMESTAMP email_verified_at
+        TIMESTAMP phone_verified_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at
+    }
+
+    roles {
+        UUID id PK
+        VARCHAR name
+        VARCHAR slug UK
+        TEXT description
+        BOOLEAN is_active
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at
+        VARCHAR created_by
+        VARCHAR updated_by
+        VARCHAR deleted_by
+    }
+
+    user_roles {
+        UUID id PK
+        UUID user_id FK
+        UUID role_id FK
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    %% Content Management
+    posts {
+        UUID id PK
+        VARCHAR slug UK
+        VARCHAR title
+        VARCHAR subtitle
+        TEXT description
+        VARCHAR type
+        BOOLEAN is_sticky
+        BIGINT published_at
+        VARCHAR language
+        VARCHAR layout
+        INT record_ordering
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    contents {
+        UUID id PK
+        VARCHAR model_type
+        UUID model_id
+        TEXT content_raw
+        TEXT content_html
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    comments {
+        UUID id PK
+        VARCHAR model_type
+        UUID model_id
+        VARCHAR title
+        VARCHAR status
+        UUID parent_id FK
+        INT record_left
+        INT record_right
+        INT record_ordering
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    %% Taxonomy and Categorization
+    taxonomies {
+        UUID id PK
+        VARCHAR name
+        VARCHAR slug UK
+        VARCHAR code
+        TEXT description
+        INT record_left
+        INT record_right
+        INT record_ordering
+        UUID parent_id FK
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    tags {
+        UUID id PK
+        VARCHAR name
+        VARCHAR slug UK
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    taggables {
+        UUID id PK
+        UUID tag_id FK
+        UUID taggable_id
+        VARCHAR taggable_type
+        BIGINT created_at
+    }
+
+    %% Media Management
+    media {
+        UUID id PK
+        VARCHAR name
+        VARCHAR hash
+        VARCHAR file_name
+        VARCHAR disk
+        VARCHAR mime_type
+        INT size
+        INT record_left
+        INT record_right
+        INT record_depth
+        INT record_ordering
+        UUID parent_id FK
+        VARCHAR custom_attributes
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    mediables {
+        UUID media_id FK
+        UUID mediable_id
+        VARCHAR mediable_type
+        VARCHAR group
+    }
+
+    %% Menu System
+    menus {
+        UUID id PK
+        VARCHAR name
+        VARCHAR slug UK
+        TEXT description
+        VARCHAR url
+        VARCHAR icon
+        UUID parent_id FK
+        BIGINT record_left
+        BIGINT record_right
+        BIGINT record_ordering
+        BOOLEAN is_active
+        BOOLEAN is_visible
+        VARCHAR target
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at
+        VARCHAR created_by
+        VARCHAR updated_by
+        VARCHAR deleted_by
+    }
+
+    menu_roles {
+        UUID id PK
+        UUID menu_id FK
+        UUID role_id FK
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    %% Settings and Configuration
+    settings {
+        UUID id PK
+        VARCHAR model_type
+        UUID model_id
+        VARCHAR key
+        VARCHAR value
+        UUID created_by FK
+        UUID updated_by FK
+        UUID deleted_by FK
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    %% Job Queue System
+    jobs {
+        UUID id PK
+        VARCHAR queue
+        VARCHAR handler_name
+        JSONB payload
+        INT max_attempts
+        INT delay
+        VARCHAR status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    failed_jobs {
+        SERIAL id PK
+        UUID job_id UK
+        VARCHAR queue
+        JSONB payload
+        TEXT error
+        TIMESTAMP failed_at
+    }
+
+    %% Relationships
+    users ||--o{ user_roles : "has"
+    roles ||--o{ user_roles : "assigned_to"
+    users ||--o{ posts : "creates"
+    users ||--o{ posts : "updates"
+    users ||--o{ posts : "deletes"
+    users ||--o{ contents : "creates"
+    users ||--o{ contents : "updates"
+    users ||--o{ contents : "deletes"
+    users ||--o{ comments : "creates"
+    users ||--o{ comments : "updates"
+    users ||--o{ comments : "deletes"
+    users ||--o{ taxonomies : "creates"
+    users ||--o{ taxonomies : "updates"
+    users ||--o{ taxonomies : "deletes"
+    users ||--o{ tags : "creates"
+    users ||--o{ tags : "updates"
+    users ||--o{ tags : "deletes"
+    users ||--o{ media : "creates"
+    users ||--o{ media : "updates"
+    users ||--o{ media : "deletes"
+    users ||--o{ settings : "creates"
+    users ||--o{ settings : "updates"
+    users ||--o{ settings : "deletes"
+
+    posts ||--o{ contents : "has"
+    posts ||--o{ comments : "has"
+    taxonomies ||--o{ taxonomies : "parent_child"
+    menus ||--o{ menus : "parent_child"
+    media ||--o{ media : "parent_child"
+    comments ||--o{ comments : "parent_child"
+
+    tags ||--o{ taggables : "used_in"
+    media ||--o{ mediables : "attached_to"
+
+    menus ||--o{ menu_roles : "accessible_by"
+    roles ||--o{ menu_roles : "has_access_to"
+
+    jobs ||--o{ failed_jobs : "may_fail" 

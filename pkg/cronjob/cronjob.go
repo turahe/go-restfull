@@ -1,8 +1,7 @@
 package cronjob
 
 import (
-	"github.com/turahe/go-restfull/pkg/logger"
-	"time"
+	"github.com/turahe/go-restfull/internal/logger"
 
 	"github.com/go-co-op/gocron/v2"
 	"go.uber.org/zap"
@@ -43,29 +42,4 @@ func Start() {
 
 func Shutdown() error {
 	return scheduler.Shutdown()
-}
-
-// MonitorDatabaseTaskChange monitors database for task changes
-// This is a placeholder function - you'll need to implement the actual database logic
-func MonitorDatabaseTaskChange() {
-	_, err := AddJob(gocron.DurationJob(1*time.Minute), func() {
-		// TODO: Implement database monitoring logic
-		// For now, this is a placeholder that logs the monitoring activity
-		logger.Log.Info("Monitoring database for task changes")
-
-		// Example structure for when you implement the actual database logic:
-		// db := database.GetDB()
-		// var resultOfActive, resultOfInactive []entities.SystemTask
-		// db.Model(&entities.SystemTask{}).Where("task_status = ?", "active").Scan(&resultOfActive)
-		// db.Model(&entities.SystemTask{}).Where("task_status = ?", "inactive").Scan(&resultOfInactive)
-
-		for taskID, jobID := range activeTasks {
-			logger.Log.Info("Active task", zap.String("task_id", taskID), zap.String("job_id", jobID))
-		}
-
-	}, gocron.WithName("system"))
-
-	if err != nil {
-		logger.Log.Error("MonitorDatabaseTaskChange error", zap.Error(err))
-	}
 }

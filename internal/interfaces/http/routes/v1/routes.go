@@ -23,8 +23,7 @@ func RegisterV1Routes(v1Group fiber.Router, container *container.Container) {
 	RegisterMediaRoutes(protected, container)
 	RegisterTagRoutes(protected, container)
 	RegisterCommentRoutes(protected, container)
-	RegisterSettingRoutes(protected, container) // TODO: Implement when SettingController is created
+	// RegisterSettingRoutes(protected, container) // Removed - not implemented
 	RegisterRBACRoutes(protected, container)
-	RegisterJobRoutes(protected, container)
 	RegisterBackupRoutes(protected, container)
 }

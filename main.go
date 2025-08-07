@@ -22,6 +22,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -83,6 +84,12 @@ func main() {
 	// Ensure default roles exist
 	if err := ensureDefaultRoles(); err != nil {
 		log.Printf("Warning: Failed to ensure default roles: %v", err)
+	}
+
+	// Start messaging consumers
+	err = container.MessagingService.StartConsumers(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to start messaging consumers: %v", err)
 	}
 
 	// Setup Fiber app with enhanced configuration
