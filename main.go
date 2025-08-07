@@ -22,6 +22,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -78,6 +79,12 @@ func main() {
 	// Initialize the dependency injection container
 	db := pgx.GetPgxPool()
 	container := container.NewContainer(db)
+
+	// Start messaging consumers
+	err = container.MessagingService.StartConsumers(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to start messaging consumers: %v", err)
+	}
 
 	// Setup Fiber app with enhanced configuration
 	app := fiber.New(fiber.Config{

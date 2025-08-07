@@ -1,12 +1,16 @@
 package container
 
 import (
+	"fmt"
+
+	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/application/ports"
 	appservices "github.com/turahe/go-restfull/internal/application/services"
 	"github.com/turahe/go-restfull/internal/db/rdb"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	domainservices "github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
+	"github.com/turahe/go-restfull/internal/infrastructure/messaging"
 	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
 	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/pkg/email"
@@ -45,7 +49,7 @@ type Container struct {
 	TaxonomyService     ports.TaxonomyService
 	ContentService      ports.ContentService
 	AuthService         ports.AuthService
-	JobService          ports.JobService
+	MessagingService    ports.MessagingService
 	AddressService      ports.AddressService
 	OrganizationService ports.OrganizationService
 
@@ -68,7 +72,6 @@ type Container struct {
 	TaxonomyController     *controllers.TaxonomyController
 	AuthController         *controllers.AuthController
 	RBACController         *controllers.RBACController
-	JobController          *controllers.JobController
 	AddressController      *controllers.AddressController
 	OrganizationController *controllers.OrganizationController
 }
@@ -133,7 +136,13 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.MenuRoleService = appservices.NewMenuRoleService(container.MenuRoleRepository)
 	container.TaxonomyService = appservices.NewTaxonomyService(container.TaxonomyRepository)
 	container.ContentService = appservices.NewContentService(container.ContentRepository)
-	container.JobService = appservices.NewJobService(container.JobRepository)
+	// Initialize RabbitMQ client
+	rabbitMQClient, err := messaging.NewRabbitMQClient(config.GetConfig().RabbitMQ)
+	if err != nil {
+		panic(fmt.Errorf("failed to initialize RabbitMQ client: %w", err))
+	}
+
+	container.MessagingService = appservices.NewMessagingService(rabbitMQClient)
 	container.AddressService = appservices.NewAddressService(container.AddressRepository)
 	container.OrganizationService = appservices.NewOrganizationService(container.OrganizationRepository)
 
@@ -150,7 +159,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.MenuRoleController = controllers.NewMenuRoleController(container.MenuRoleService)
 	container.TaxonomyController = controllers.NewTaxonomyController(container.TaxonomyService)
 	container.RBACController = controllers.NewRBACController(container.RBACService)
-	container.JobController = controllers.NewJobController(container.JobService)
+	// JobController is removed - replaced with messaging system
+	// container.JobController = controllers.NewJobController(container.JobService)
 	container.AddressController = controllers.NewAddressController(container.AddressService)
 	container.OrganizationController = controllers.NewOrganizationController(container.OrganizationService)
 
@@ -206,9 +216,10 @@ func (c *Container) GetRBACController() *controllers.RBACController {
 	return c.RBACController
 }
 
-func (c *Container) GetJobController() *controllers.JobController {
-	return c.JobController
-}
+// GetJobController is removed - replaced with messaging system
+// func (c *Container) GetJobController() *controllers.JobController {
+// 	return c.JobController
+// }
 
 func (c *Container) GetAddressController() *controllers.AddressController {
 	return c.AddressController

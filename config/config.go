@@ -17,6 +17,7 @@ type Config struct {
 	Postgres   Postgres   `yaml:"postgres"`
 	Minio      Minio      `yaml:"minio"`
 	Redis      []Redis    `yaml:"redis"`
+	RabbitMQ   RabbitMQ   `yaml:"rabbitmq"`
 	Sentry     Sentry     `yaml:"sentry"`
 	Email      Email      `yaml:"email"`
 	Casbin     Casbin     `yaml:"casbin"`
@@ -120,6 +121,14 @@ type CasbinRedis struct {
 	Password string `yaml:"password"`
 	Database int    `yaml:"db"`
 	Key      string `yaml:"key"`
+}
+
+type RabbitMQ struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	VHost    string `yaml:"vhost"`
 }
 
 type Backup struct {
