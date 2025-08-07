@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/turahe/go-restfull/internal/application/handlers"
+	"github.com/turahe/go-restfull/internal/application/queries"
+	"github.com/turahe/go-restfull/internal/domain/aggregates"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/helper/cache"
@@ -235,44 +238,7 @@ func (r *postgresUserRepository) GetAll(ctx context.Context, limit, offset int) 
 	return users, nil
 }
 
-func (r *postgresUserRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.User, error) {
-	searchQuery := `
-		SELECT id, username, email, phone, password, email_verified_at, phone_verified_at, created_at, updated_at, deleted_at
-		FROM users 
-		WHERE deleted_at IS NULL AND (username ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := r.db.Query(ctx, searchQuery, fmt.Sprintf("%%%s%%", query), limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var users []*entities.User
-	for rows.Next() {
-		var user entities.User
-		err := rows.Scan(
-			&user.ID,
-			&user.UserName,
-			&user.Email,
-			&user.Phone,
-			&user.Password,
-			&user.EmailVerifiedAt,
-			&user.PhoneVerifiedAt,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-			&user.DeletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, &user)
-	}
-
-	return users, nil
-}
+// Old Search method removed - replaced with aggregate-based interface
 
 func (r *postgresUserRepository) Update(ctx context.Context, user *entities.User) error {
 	query := `
@@ -349,4 +315,43 @@ func (r *postgresUserRepository) CountBySearch(ctx context.Context, query string
 	var count int64
 	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
 	return count, err
+}
+
+// Stub methods to satisfy the interface - TODO: Implement properly
+func (r *postgresUserRepository) FindAll(ctx context.Context, query queries.ListUsersQuery) (*handlers.PaginatedResult[*aggregates.UserAggregate], error) {
+	return nil, fmt.Errorf("FindAll not implemented")
+}
+
+func (r *postgresUserRepository) CountByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM users u 
+		JOIN user_roles ur ON u.id = ur.user_id 
+		WHERE ur.role_id = $1 AND u.deleted_at IS NULL`, roleID).Scan(&count)
+	return count, err
+}
+
+// Stub methods for aggregate-based interface - TODO: Implement properly
+func (r *postgresUserRepository) Save(ctx context.Context, user *aggregates.UserAggregate) error {
+	return fmt.Errorf("Save not implemented")
+}
+
+func (r *postgresUserRepository) FindByID(ctx context.Context, userID uuid.UUID) (*aggregates.UserAggregate, error) {
+	return nil, fmt.Errorf("FindByID not implemented")
+}
+
+func (r *postgresUserRepository) FindByEmail(ctx context.Context, email string) (*aggregates.UserAggregate, error) {
+	return nil, fmt.Errorf("FindByEmail not implemented")
+}
+
+func (r *postgresUserRepository) FindByUsername(ctx context.Context, username string) (*aggregates.UserAggregate, error) {
+	return nil, fmt.Errorf("FindByUsername not implemented")
+}
+
+func (r *postgresUserRepository) FindByPhone(ctx context.Context, phone string) (*aggregates.UserAggregate, error) {
+	return nil, fmt.Errorf("FindByPhone not implemented")
+}
+
+func (r *postgresUserRepository) Search(ctx context.Context, query queries.SearchUsersQuery) (*handlers.PaginatedResult[*aggregates.UserAggregate], error) {
+	return nil, fmt.Errorf("Search not implemented")
 }

@@ -10,9 +10,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Uncomment to use external config file
-      # - ./custom.yml:/app/config.yml
-      # - ./custom.yml:/configs/user.yml
+      - ./config/config.prod.yaml:/app/config/config.yaml
     environment:
       - ENV=production
       - TZ=Asia/Jakarta
@@ -21,6 +19,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - rabbitmq
     networks:
       - go-restfull-network
     restart: always
@@ -39,7 +38,7 @@ services:
       POSTGRES_USER: my_user
       POSTGRES_PASSWORD: secret
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -55,7 +54,7 @@ services:
     image: redis:alpine
     container_name: go-restfull-redis-prod
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - go-restfull-network
     restart: always
@@ -69,8 +68,8 @@ services:
     image: minio/minio:latest
     container_name: go-restfull-minio-prod
     ports:
-      - "9000:9000"
-      - "8900:8900"
+      - "9001:9000"
+      - "8901:8900"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -86,12 +85,33 @@ services:
       timeout: 10s
       retries: 3
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: go-restfull-rabbitmq-prod
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5673:5672"   # AMQP port
+      - "15673:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - go-restfull-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: go-restfull-mailpit-prod
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "1026:1025"
+      - "8026:8025"
     networks:
       - go-restfull-network
     restart: always
@@ -99,6 +119,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  rabbitmq_data:
 
 networks:
   go-restfull-network:

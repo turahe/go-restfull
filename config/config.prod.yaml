@@ -1,0 +1,131 @@
+env: "production"
+app:
+  key: "my-app-key"
+  name: "My App"
+  nameSlug: "my-app"
+  jwtSecret: "your-super-secret-jwt-key-here-make-it-long-and-secure"
+  accessTokenExpiration: 24
+
+httpServer:
+  port: 8000
+  swaggerURL: "http://localhost:8000/swagger/"
+
+log:
+  level: "info"
+  stacktraceLevel: "error"
+  fileEnabled: false
+  fileSize: 10
+  filePath: "log/log.log"
+  fileCompress: false
+  maxAge: 1
+  maxBackups: 10
+
+postgres:
+  host: "postgres"
+  port: 5432
+  database: "my_db"
+  schema: "public"
+  username: "my_user"
+  password: "secret"
+  maxConnections: 20
+  maxIdleConnections: 10
+
+Redis:
+  - host: "redis"
+    port: 6379
+    password: ""
+    db: 0
+
+casbin:
+  model: "config/rbac_model.conf"
+  policy: "config/rbac_policy.csv"
+  redis:
+    host: "redis"
+    port: 6379
+    password: ""
+    db: 1
+    key: "casbin_policy"
+
+minio:
+  enable: false
+  endpoint: 'minio:9000'
+  accessKeyID: 'minioadmin'
+  secretAccessKey: 'minioadmin'
+  useSSL: false
+  bucket: 'my-bucket'
+
+sentry:
+  dsn: ""
+  environment: "PRODUCTION"
+  release: "webapi@v0.1.0"
+  debug: false
+
+scheduler:
+  timezone: "Asia/Jakarta"
+
+email:
+  smtpHost: "mailpit"
+  smtpPort: 1025
+  username: ""
+  password: ""
+  fromAddress: "noreply@mailpit.local"
+  fromName: "Mailpit Test"
+
+rabbitmq:
+  enable: true
+  host: "rabbitmq"
+  port: 5672
+  username: "guest"
+  password: "guest"
+  vhost: "/"
+  ssl: false
+  connection:
+    maxRetries: 3
+    retryDelay: 5
+    timeout: 30
+  channel:
+    prefetchCount: 1
+    qos: 1
+  exchanges:
+    - name: "dead_letter_exchange"
+      type: "fanout"
+      durable: true
+      autoDelete: false
+      internal: false
+      arguments: {}
+  queues:
+    - name: "email_queue"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments:
+        x-dead-letter-exchange: "dead_letter_exchange"
+      bindings: []
+    - name: "backup_queue"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments:
+        x-dead-letter-exchange: "dead_letter_exchange"
+      bindings: []
+    - name: "cleanup_queue"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments:
+        x-dead-letter-exchange: "dead_letter_exchange"
+      bindings: []
+    - name: "notification_queue"
+      durable: true
+      autoDelete: false
+      exclusive: false
+      arguments:
+        x-dead-letter-exchange: "dead_letter_exchange"
+      bindings: []
+
+backup:
+  enabled: true
+  directory: "/app/backups"
+  retentionDays: 7
+  cleanupOld: true
+  compressBackup: true

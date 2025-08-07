@@ -56,6 +56,8 @@ RUN mkdir -p /configs
 # Copy default configuration
 COPY config/config.example.yaml config/config.yaml
 COPY config/config.example.yaml /configs/default.yaml
+COPY config/rbac_model.conf config/rbac_model.conf
+COPY config/rbac_policy.csv config/rbac_policy.csv
 
 # Expose port
 EXPOSE 8000
@@ -94,6 +96,8 @@ RUN mkdir -p /configs
 # Copy default configuration for staging
 COPY config/config.example.yaml config/config.yaml
 COPY config/config.example.yaml /configs/default.yaml
+COPY config/rbac_model.conf config/rbac_model.conf
+COPY config/rbac_policy.csv config/rbac_policy.csv
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -138,6 +142,8 @@ RUN mkdir -p /configs
 # Copy default configuration for production
 COPY config/config.example.yaml config/config.yaml
 COPY config/config.example.yaml /configs/default.yaml
+COPY config/rbac_model.conf config/rbac_model.conf
+COPY config/rbac_policy.csv config/rbac_policy.csv
 
 # Set ownership
 RUN chown -R appuser:appgroup /app

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/turahe/go-restfull/internal/logger"
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"go.uber.org/zap"
 )

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/turahe/go-restfull/config"
-	"github.com/turahe/go-restfull/internal/logger"
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -129,7 +129,7 @@ func (r *RabbitMQClient) setupExchangesAndQueues() error {
 	}
 
 	// Declare failed queue
-	_, err := r.channel.QueueDeclare(
+	_, err = r.channel.QueueDeclare(
 		"failed_queue", // name
 		true,           // durable
 		false,          // delete when unused
