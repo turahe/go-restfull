@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,11 +14,8 @@ func RegisterAuthRoutes(public fiber.Router, protected fiber.Router, container *
 
 	// Public auth routes
 	auth := public.Group("/auth")
-	fmt.Printf("Registering public auth routes on router: %T\n", public)
 	auth.Post("/login", authController.Login)
-	fmt.Printf("Registered POST /auth/login\n")
 	auth.Post("/register", authController.Register)
-	fmt.Printf("Registered POST /auth/register\n")
 	auth.Post("/refresh", authController.Refresh)
 	auth.Post("/forget-password", authController.ForgetPassword)
 	auth.Post("/reset-password", authController.ResetPassword)
