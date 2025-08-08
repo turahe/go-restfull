@@ -32,17 +32,21 @@ func NewPostgresPostRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repo
 // Create creates a new post
 func (r *postgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
 	query := `
-		INSERT INTO posts (id, title, content, slug, status, author_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO posts (id, title, slug, subtitle, description, type, is_sticky, language, layout, published_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		post.ID,
 		post.Title,
-		post.Content,
 		post.Slug,
-		post.Status,
-		post.AuthorID,
+		post.Subtitle,
+		post.Description,
+		"post", // default type to satisfy NOT NULL constraint
+		post.IsSticky,
+		post.Language,
+		post.Layout,
+		post.PublishedAt,
 		post.CreatedAt,
 		post.UpdatedAt,
 	)
@@ -67,7 +71,7 @@ func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 	}
 
 	query := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -78,10 +82,12 @@ func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 	err = r.db.QueryRow(ctx, query, id).Scan(
 		&post.ID,
 		&post.Title,
-		&post.Content,
 		&post.Slug,
-		&post.Status,
-		&post.AuthorID,
+		&post.Subtitle,
+		&post.Description,
+		&post.IsSticky,
+		&post.Language,
+		&post.Layout,
 		&publishedAt,
 		&post.CreatedAt,
 		&post.UpdatedAt,
@@ -117,7 +123,7 @@ func (r *postgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 	}
 
 	query := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE slug = $1 AND deleted_at IS NULL
 	`
@@ -128,10 +134,12 @@ func (r *postgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 	err = r.db.QueryRow(ctx, query, slug).Scan(
 		&post.ID,
 		&post.Title,
-		&post.Content,
 		&post.Slug,
-		&post.Status,
-		&post.AuthorID,
+		&post.Subtitle,
+		&post.Description,
+		&post.IsSticky,
+		&post.Language,
+		&post.Layout,
 		&publishedAt,
 		&post.CreatedAt,
 		&post.UpdatedAt,
@@ -158,7 +166,7 @@ func (r *postgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 // GetByAuthor retrieves posts by author ID
 func (r *postgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE author_id = $1 AND deleted_at IS NULL
 		ORDER BY created_at DESC
@@ -180,10 +188,12 @@ func (r *postgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
-			&post.Content,
 			&post.Slug,
-			&post.Status,
-			&post.AuthorID,
+			&post.Subtitle,
+			&post.Description,
+			&post.IsSticky,
+			&post.Language,
+			&post.Layout,
 			&publishedAt,
 			&post.CreatedAt,
 			&post.UpdatedAt,
@@ -209,7 +219,7 @@ func (r *postgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.
 // GetAll retrieves all posts with pagination
 func (r *postgresPostRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
@@ -231,10 +241,12 @@ func (r *postgresPostRepository) GetAll(ctx context.Context, limit, offset int) 
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
-			&post.Content,
 			&post.Slug,
-			&post.Status,
-			&post.AuthorID,
+			&post.Subtitle,
+			&post.Description,
+			&post.IsSticky,
+			&post.Language,
+			&post.Layout,
 			&publishedAt,
 			&post.CreatedAt,
 			&post.UpdatedAt,
@@ -260,7 +272,7 @@ func (r *postgresPostRepository) GetAll(ctx context.Context, limit, offset int) 
 // GetPublished retrieves only published posts
 func (r *postgresPostRepository) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE status = 'published' AND deleted_at IS NULL
 		ORDER BY published_at DESC
@@ -282,10 +294,12 @@ func (r *postgresPostRepository) GetPublished(ctx context.Context, limit, offset
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
-			&post.Content,
 			&post.Slug,
-			&post.Status,
-			&post.AuthorID,
+			&post.Subtitle,
+			&post.Description,
+			&post.IsSticky,
+			&post.Language,
+			&post.Layout,
 			&publishedAt,
 			&post.CreatedAt,
 			&post.UpdatedAt,
@@ -311,9 +325,9 @@ func (r *postgresPostRepository) GetPublished(ctx context.Context, limit, offset
 // Search searches posts by query
 func (r *postgresPostRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
-		WHERE (title ILIKE $1 OR content ILIKE $1) AND deleted_at IS NULL
+		WHERE (title ILIKE $1 OR slug ILIKE $1 OR subtitle ILIKE $1 OR description ILIKE $1) AND deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -334,10 +348,12 @@ func (r *postgresPostRepository) Search(ctx context.Context, query string, limit
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
-			&post.Content,
 			&post.Slug,
-			&post.Status,
-			&post.AuthorID,
+			&post.Subtitle,
+			&post.Description,
+			&post.IsSticky,
+			&post.Language,
+			&post.Layout,
 			&publishedAt,
 			&post.CreatedAt,
 			&post.UpdatedAt,
@@ -364,15 +380,18 @@ func (r *postgresPostRepository) Search(ctx context.Context, query string, limit
 func (r *postgresPostRepository) Update(ctx context.Context, post *entities.Post) error {
 	query := `
 		UPDATE posts
-		SET title = $1, content = $2, slug = $3, status = $4, updated_at = $5
+		SET title = $1, slug = $2, subtitle = $3, description = $4, is_sticky = $5, language = $6, layout = $7, updated_at = $8
 		WHERE id = $6 AND deleted_at IS NULL
 	`
 
 	result, err := r.db.Exec(ctx, query,
 		post.Title,
-		post.Content,
 		post.Slug,
-		post.Status,
+		post.Subtitle,
+		post.Description,
+		post.IsSticky,
+		post.Language,
+		post.Layout,
 		post.UpdatedAt,
 		post.ID,
 	)
@@ -418,7 +437,7 @@ func (r *postgresPostRepository) Delete(ctx context.Context, id uuid.UUID) error
 func (r *postgresPostRepository) Publish(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE posts
-		SET status = 'published', published_at = $1, updated_at = $1
+		SET published_at = $1, updated_at = $1
 		WHERE id = $2 AND deleted_at IS NULL
 	`
 
@@ -441,7 +460,7 @@ func (r *postgresPostRepository) Publish(ctx context.Context, id uuid.UUID) erro
 func (r *postgresPostRepository) Unpublish(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE posts
-		SET status = 'draft', published_at = NULL, updated_at = $1
+		SET published_at = NULL, updated_at = $1
 		WHERE id = $2 AND deleted_at IS NULL
 	`
 
@@ -471,7 +490,7 @@ func (r *postgresPostRepository) Count(ctx context.Context) (int64, error) {
 
 // CountPublished returns the total number of published posts
 func (r *postgresPostRepository) CountPublished(ctx context.Context) (int64, error) {
-	query := `SELECT COUNT(*) FROM posts WHERE status = 'published' AND deleted_at IS NULL`
+	query := `SELECT COUNT(*) FROM posts WHERE published_at IS NOT NULL AND deleted_at IS NULL`
 
 	var count int64
 	err := r.db.QueryRow(ctx, query).Scan(&count)
@@ -483,7 +502,7 @@ func (r *postgresPostRepository) CountBySearch(ctx context.Context, query string
 	searchQuery := `
 		SELECT COUNT(*) FROM posts 
 		WHERE deleted_at IS NULL 
-		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+		AND (title ILIKE $1 OR slug ILIKE $1)
 	`
 	var count int64
 	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
@@ -494,8 +513,7 @@ func (r *postgresPostRepository) CountBySearch(ctx context.Context, query string
 func (r *postgresPostRepository) CountBySearchPublished(ctx context.Context, query string) (int64, error) {
 	searchQuery := `
 		SELECT COUNT(*) FROM posts 
-		WHERE status = 'published' AND deleted_at IS NULL 
-		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+		WHERE published_at IS NOT NULL AND deleted_at IS NULL AND (title ILIKE $1 OR slug ILIKE $1)
 	`
 	var count int64
 	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
@@ -505,10 +523,10 @@ func (r *postgresPostRepository) CountBySearchPublished(ctx context.Context, que
 // SearchPublished searches published posts by query
 func (r *postgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, content, slug, status, author_id, published_at, created_at, updated_at, deleted_at
+		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
 		FROM posts
-		WHERE status = 'published' AND deleted_at IS NULL 
-		AND (title ILIKE $1 OR content ILIKE $1 OR slug ILIKE $1)
+		WHERE published_at IS NOT NULL AND deleted_at IS NULL 
+		AND (title ILIKE $1 OR slug ILIKE $1)
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -528,10 +546,12 @@ func (r *postgresPostRepository) SearchPublished(ctx context.Context, query stri
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
-			&post.Content,
 			&post.Slug,
-			&post.Status,
-			&post.AuthorID,
+			&post.Subtitle,
+			&post.Description,
+			&post.IsSticky,
+			&post.Language,
+			&post.Layout,
 			&publishedAt,
 			&post.CreatedAt,
 			&post.UpdatedAt,

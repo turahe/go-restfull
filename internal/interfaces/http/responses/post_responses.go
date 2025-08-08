@@ -10,10 +10,12 @@ import (
 type PostResponse struct {
 	ID          string     `json:"id"`
 	Title       string     `json:"title"`
-	Content     string     `json:"content"`
 	Slug        string     `json:"slug"`
-	Status      string     `json:"status"`
-	AuthorID    string     `json:"author_id"`
+	Subtitle    string     `json:"subtitle"`
+	Description string     `json:"description"`
+	Language    string     `json:"language"`
+	Layout      string     `json:"layout"`
+	IsSticky    bool       `json:"is_sticky"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
@@ -44,10 +46,12 @@ func NewPostResponse(post *entities.Post) *PostResponse {
 	return &PostResponse{
 		ID:          post.ID.String(),
 		Title:       post.Title,
-		Content:     post.Content,
 		Slug:        post.Slug,
-		Status:      post.Status,
-		AuthorID:    post.AuthorID.String(),
+		Subtitle:    post.Subtitle,
+		Description: post.Description,
+		Language:    post.Language,
+		Layout:      post.Layout,
+		IsSticky:    post.IsSticky,
 		PublishedAt: post.PublishedAt,
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,

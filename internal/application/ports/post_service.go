@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
@@ -11,7 +12,7 @@ import (
 // PostService defines the application service interface for post operations
 type PostService interface {
 	// CreatePost creates a new post
-	CreatePost(ctx context.Context, title, content, slug, status string, authorID uuid.UUID) (*entities.Post, error)
+	CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error)
 
 	// GetPostByID retrieves a post by ID
 	GetPostByID(ctx context.Context, id uuid.UUID) (*entities.Post, error)
@@ -38,7 +39,7 @@ type PostService interface {
 	GetPostsCount(ctx context.Context, search, status string) (int64, error)
 
 	// UpdatePost updates post information
-	UpdatePost(ctx context.Context, id uuid.UUID, title, content, slug, status string) (*entities.Post, error)
+	UpdatePost(ctx context.Context, id uuid.UUID, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error)
 
 	// DeletePost soft deletes a post
 	DeletePost(ctx context.Context, id uuid.UUID) error

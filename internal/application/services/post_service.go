@@ -7,6 +7,7 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
@@ -60,9 +61,9 @@ func NewPostService(postRepo repositories.PostRepository) ports.PostService {
 // Returns:
 //   - *entities.Post: The created post entity
 //   - error: Any error that occurred during the operation
-func (s *postService) CreatePost(ctx context.Context, title, content, slug, status string, authorID uuid.UUID) (*entities.Post, error) {
+func (s *postService) CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
 	// Create post entity with the provided parameters
-	post, err := entities.NewPost(title, content, slug, status, authorID)
+	post, err := entities.NewPost(title, slug, subtitle, description, language, layout, isSticky, publishedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +281,7 @@ func (s *postService) GetPostsCount(ctx context.Context, search, status string) 
 // Returns:
 //   - *entities.Post: The updated post entity
 //   - error: Any error that occurred during the operation
-func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, content, slug, status string) (*entities.Post, error) {
+func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
 	// Retrieve existing post to ensure it exists and is not deleted
 	post, err := s.postRepo.GetByID(ctx, id)
 	if err != nil {
@@ -291,7 +292,7 @@ func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, conte
 	}
 
 	// Update the post entity with new information
-	if err := post.UpdatePost(title, content, slug, status); err != nil {
+	if err := post.UpdatePost(title, slug, subtitle, description, language, layout, isSticky, publishedAt); err != nil {
 		return nil, err
 	}
 

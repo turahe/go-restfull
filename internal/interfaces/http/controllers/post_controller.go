@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
@@ -13,6 +14,7 @@ import (
 )
 
 // PostController handles HTTP requests for post operations
+//
 //	@title						Post Management API
 //	@version					1.0
 //	@description				This is a post management API for creating, reading, updating, and deleting blog posts
@@ -39,6 +41,7 @@ func NewPostController(postService ports.PostService) *PostController {
 }
 
 // CreatePost handles POST /posts
+//
 //	@Summary		Create a new post
 //	@Description	Create a new blog post with the provided information
 //	@Tags			posts
@@ -67,9 +70,13 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 			Message: err.Error(),
 		})
 	}
+	// if slug is not provided, generate it from title
+	if req.Slug == "" {
+		req.Slug = strings.ToLower(strings.ReplaceAll(req.Title, " ", "-"))
+	}
 
 	// Create post
-	post, err := c.postService.CreatePost(ctx.Context(), req.Title, req.Content, req.Slug, req.Status, req.AuthorID)
+	post, err := c.postService.CreatePost(ctx.Context(), req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Layout, req.IsSticky, req.PublishedAt)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -84,6 +91,7 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 }
 
 // GetPostByID handles GET /posts/:id
+//
 //	@Summary		Get post by ID
 //	@Description	Retrieve a post by its unique identifier
 //	@Tags			posts
@@ -120,6 +128,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 }
 
 // GetPostBySlug handles GET /posts/slug/:slug
+//
 //	@Summary		Get post by slug
 //	@Description	Retrieve a post by its URL-friendly slug
 //	@Tags			posts
@@ -155,6 +164,7 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 }
 
 // GetPosts handles GET /posts
+//
 //	@Summary		Get all posts
 //	@Description	Retrieve a paginated list of posts with optional search and status filtering
 //	@Tags			posts
@@ -200,6 +210,7 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 }
 
 // GetPostsByAuthor handles GET /posts/author/:authorID
+//
 //	@Summary		Get posts by author
 //	@Description	Retrieve all posts written by a specific author
 //	@Tags			posts
@@ -254,6 +265,7 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 }
 
 // UpdatePost handles PUT /posts/:id
+//
 //	@Summary		Update post
 //	@Description	Update an existing post's information
 //	@Tags			posts
@@ -294,7 +306,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 	}
 
 	// Update post
-	post, err := c.postService.UpdatePost(ctx.Context(), id, req.Title, req.Content, req.Slug, req.Status)
+	post, err := c.postService.UpdatePost(ctx.Context(), id, req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Layout, req.IsSticky, req.PublishedAt)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -309,6 +321,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 }
 
 // DeletePost handles DELETE /posts/:id
+//
 //	@Summary		Delete post
 //	@Description	Delete a post (soft delete)
 //	@Tags			posts
@@ -346,6 +359,7 @@ func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 }
 
 // PublishPost handles PUT /posts/:id/publish
+//
 //	@Summary		Publish post
 //	@Description	Publish a draft post to make it publicly visible
 //	@Tags			posts
@@ -383,6 +397,7 @@ func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 }
 
 // UnpublishPost handles PUT /posts/:id/unpublish
+//
 //	@Summary		Unpublish post
 //	@Description	Unpublish a post to make it a draft (not publicly visible)
 //	@Tags			posts
