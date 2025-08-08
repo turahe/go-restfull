@@ -84,8 +84,17 @@ func (c *AuthController) Register(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Register user
-	tokenPair, _, err := c.authService.RegisterUser(ctx.Context(), req.Username, req.Email, req.Phone, req.Password)
+	// Get normalized phone number
+	normalizedPhone, err := req.GetNormalizedPhone()
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid phone number format",
+		})
+	}
+
+	// Register user with normalized phone number
+	tokenPair, _, err := c.authService.RegisterUser(ctx.Context(), req.Username, req.Email, normalizedPhone, req.Password)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -137,7 +146,7 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	}
 
 	// Login user
-	tokenPair, _, err := c.authService.LoginUser(ctx.Context(), req.Username, req.Password)
+	tokenPair, _, err := c.authService.LoginUser(ctx.Context(), req.Identity, req.Password)
 	if err != nil {
 		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
 			Status:  "error",

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 
+	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 )
@@ -37,12 +38,53 @@ func (r *CreateUserRequest) Validate() error {
 		return errors.New("invalid email format")
 	}
 
+	// Validate phone number with country code parsing
+	if _, err := valueobjects.NewPhone(r.Phone); err != nil {
+		return errors.New("invalid phone number: " + err.Error())
+	}
+
 	// Validate password strength
 	if len(r.Password) < 8 {
 		return errors.New("password must be at least 8 characters long")
 	}
 
 	return nil
+}
+
+// ParsePhone parses the phone number and returns the phone value object
+func (r *CreateUserRequest) ParsePhone() (*valueobjects.Phone, error) {
+	phone, err := valueobjects.NewPhone(r.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &phone, nil
+}
+
+// GetNormalizedPhone returns the normalized phone number string
+func (r *CreateUserRequest) GetNormalizedPhone() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.String(), nil
+}
+
+// GetPhoneCountryCode returns the country code from the phone number
+func (r *CreateUserRequest) GetPhoneCountryCode() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.CountryCode(), nil
+}
+
+// GetPhoneNationalNumber returns the national number from the phone number
+func (r *CreateUserRequest) GetPhoneNationalNumber() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.NationalNumber(), nil
 }
 
 // UpdateUserRequest represents the request for updating a user
@@ -61,7 +103,26 @@ func (r *UpdateUserRequest) Validate() error {
 		}
 	}
 
+	// Validate phone number if provided
+	if r.Phone != "" {
+		if _, err := valueobjects.NewPhone(r.Phone); err != nil {
+			return errors.New("invalid phone number: " + err.Error())
+		}
+	}
+
 	return nil
+}
+
+// ParsePhone parses the phone number and returns the phone value object
+func (r *UpdateUserRequest) ParsePhone() (*valueobjects.Phone, error) {
+	if r.Phone == "" {
+		return nil, errors.New("phone number is empty")
+	}
+	phone, err := valueobjects.NewPhone(r.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &phone, nil
 }
 
 // ChangePasswordRequest represents the request for changing password
@@ -88,7 +149,7 @@ func (r *ChangePasswordRequest) Validate() error {
 
 // LoginRequest represents the request for user login
 type LoginRequest struct {
-	Username string `json:"username"`
+	Identity string `json:"identity"`
 	Password string `json:"password"`
 }
 
@@ -96,8 +157,8 @@ type LoginRequest struct {
 func (r *LoginRequest) Validate() (*responses.ValidationErrorBuilder, error) {
 	validator := validation.NewValidator()
 
-	// Validate username
-	validator.ValidateRequired("username", r.Username)
+	// Validate identity
+	validator.ValidateRequired("identity", r.Identity)
 
 	// Validate password
 	validator.ValidateRequired("password", r.Password)

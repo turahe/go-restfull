@@ -13,7 +13,7 @@ type AuthService interface {
 	RegisterUser(ctx context.Context, username, email, phone, password string) (*utils.TokenPair, *entities.User, error)
 
 	// LoginUser authenticates a user and returns authentication tokens
-	LoginUser(ctx context.Context, username, password string) (*utils.TokenPair, *entities.User, error)
+	LoginUser(ctx context.Context, identity, password string) (*utils.TokenPair, *entities.User, error)
 
 	// RefreshToken refreshes an access token using a refresh token
 	RefreshToken(ctx context.Context, refreshToken string) (*utils.TokenPair, error)

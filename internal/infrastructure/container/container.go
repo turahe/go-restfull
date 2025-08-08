@@ -125,8 +125,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.UserService = nil
 	container.RoleService = appservices.NewRoleService(container.RoleRepository)
 	container.UserRoleService = appservices.NewUserRoleService(container.UserRoleRepository)
-	// Auth service temporarily disabled due to interface mismatch
-	container.AuthService = nil
+	// Auth service
+	container.AuthService = appservices.NewAuthService(container.UserRepository, container.PasswordService, container.EmailService, container.RoleService, container.UserRoleService)
 	container.PostService = appservices.NewPostService(container.PostRepository)
 	container.MediaService = appservices.NewMediaService(container.MediaRepository)
 	container.TagService = appservices.NewTagService(container.TagRepository)
@@ -148,8 +148,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	// Initialize controllers
 	// User controller temporarily disabled due to interface mismatch
 	container.UserController = nil
-	// Auth controller temporarily disabled due to interface mismatch
-	container.AuthController = nil
+	// Auth controller
+	container.AuthController = controllers.NewAuthController(container.AuthService, container.UserRepository)
 	container.PostController = controllers.NewPostController(container.PostService)
 	container.MediaController = controllers.NewMediaController(container.MediaService)
 	container.TagController = controllers.NewTagController(container.TagService)

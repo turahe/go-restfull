@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strings"
 
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
 )
@@ -14,7 +16,7 @@ import (
 type RegisterRequest struct {
 	Username        string `json:"username" validate:"required,min=3,max=32"`
 	Email           string `json:"email" validate:"required,email"`
-	Phone           string `json:"phone" validate:"required"`
+	Phone           string `json:"phone" validate:"required"` // Full phone number with country code (e.g., +1234567890)
 	Password        string `json:"password" validate:"required,min=8,max=32"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
@@ -34,9 +36,13 @@ func (r *RegisterRequest) Validate() (*responses.ValidationErrorBuilder, error) 
 	validator.ValidateRequired("email", r.Email)
 	validator.ValidateEmail("email", r.Email)
 
-	// Validate phone
+	// Validate phone number with country code parsing
 	validator.ValidateRequired("phone", r.Phone)
-	validator.ValidatePhone("phone", r.Phone)
+	if r.Phone != "" {
+		if _, err := valueobjects.NewPhone(r.Phone); err != nil {
+			validator.ValidateCustom("phone", "invalid phone number: "+err.Error())
+		}
+	}
 
 	// Validate password
 	validator.ValidateRequired("password", r.Password)
@@ -71,9 +77,13 @@ func (r *RegisterRequest) ValidateWithDatabase(ctx context.Context, userRepo rep
 	validator.ValidateRequired("email", r.Email)
 	validator.ValidateEmail("email", r.Email)
 
-	// Validate phone
+	// Validate phone number with country code parsing
 	validator.ValidateRequired("phone", r.Phone)
-	validator.ValidatePhone("phone", r.Phone)
+	if r.Phone != "" {
+		if _, err := valueobjects.NewPhone(r.Phone); err != nil {
+			validator.ValidateCustom("phone", "invalid phone number: "+err.Error())
+		}
+	}
 
 	// Validate password
 	validator.ValidateRequired("password", r.Password)
@@ -95,9 +105,12 @@ func (r *RegisterRequest) ValidateWithDatabase(ctx context.Context, userRepo rep
 		exists, err = userRepo.ExistsByEmail(ctx, r.Email)
 		validator.ValidateUnique("email", r.Email, exists, err)
 
-		// Check if phone already exists
-		exists, err = userRepo.ExistsByPhone(ctx, r.Phone)
-		validator.ValidateUnique("phone", r.Phone, exists, err)
+		// Check if phone already exists (using normalized phone number)
+		normalizedPhone, err := r.GetNormalizedPhone()
+		if err == nil {
+			exists, err = userRepo.ExistsByPhone(ctx, normalizedPhone)
+			validator.ValidateUnique("phone", r.Phone, exists, err)
+		}
 	}
 
 	if validator.HasErrors() {
@@ -105,6 +118,42 @@ func (r *RegisterRequest) ValidateWithDatabase(ctx context.Context, userRepo rep
 	}
 
 	return validator.GetErrorBuilder(), nil
+}
+
+// ParsePhone parses the phone number and returns the phone value object
+func (r *RegisterRequest) ParsePhone() (*valueobjects.Phone, error) {
+	phone, err := valueobjects.NewPhone(r.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &phone, nil
+}
+
+// GetNormalizedPhone returns the normalized phone number string
+func (r *RegisterRequest) GetNormalizedPhone() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.String(), nil
+}
+
+// GetPhoneCountryCode returns the country code from the phone number
+func (r *RegisterRequest) GetPhoneCountryCode() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.CountryCode(), nil
+}
+
+// GetPhoneNationalNumber returns the national number from the phone number
+func (r *RegisterRequest) GetPhoneNationalNumber() (string, error) {
+	phone, err := r.ParsePhone()
+	if err != nil {
+		return "", err
+	}
+	return phone.NationalNumber(), nil
 }
 
 // RefreshTokenRequest represents the request for refreshing access token
@@ -126,7 +175,7 @@ func (r *RefreshTokenRequest) Validate() (*responses.ValidationErrorBuilder, err
 	return validator.GetErrorBuilder(), nil
 }
 
-// ForgetPasswordRequest represents the request for password reset
+// ForgetPasswordRequest represents the request for forgetting password
 type ForgetPasswordRequest struct {
 	Identifier string `json:"identifier" validate:"required"` // Can be username, email, or phone
 }
@@ -135,21 +184,13 @@ type ForgetPasswordRequest struct {
 func (r *ForgetPasswordRequest) Validate() (*responses.ValidationErrorBuilder, error) {
 	validator := validation.NewValidator()
 
-	// Validate identifier is required
+	// Validate identifier
 	validator.ValidateRequired("identifier", r.Identifier)
 
-	// Validate that the identifier is either a valid email, username, or phone number
-	if r.Identifier != "" {
-		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-		usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-		phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
-
-		isEmail := emailRegex.MatchString(r.Identifier)
-		isUsername := usernameRegex.MatchString(r.Identifier)
-		isPhone := phoneRegex.MatchString(r.Identifier)
-
-		if !isEmail && !isUsername && !isPhone {
-			validator.ValidateCustom("identifier", "The identifier must be a valid email, username, or phone number.")
+	// If identifier looks like a phone number, validate it
+	if r.Identifier != "" && (strings.HasPrefix(r.Identifier, "+") || regexp.MustCompile(`^\d{10,15}$`).MatchString(r.Identifier)) {
+		if _, err := valueobjects.NewPhone(r.Identifier); err != nil {
+			validator.ValidateCustom("identifier", "invalid phone number format")
 		}
 	}
 
@@ -160,7 +201,7 @@ func (r *ForgetPasswordRequest) Validate() (*responses.ValidationErrorBuilder, e
 	return validator.GetErrorBuilder(), nil
 }
 
-// ResetPasswordRequest represents the request for password reset with OTP
+// ResetPasswordRequest represents the request for resetting password
 type ResetPasswordRequest struct {
 	Email           string `json:"email" validate:"required,email"`
 	OTP             string `json:"otp" validate:"required"`

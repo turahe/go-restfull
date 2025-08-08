@@ -1,22 +1,22 @@
 MODULE_NAME := myapp
-SRC := $(shell find . -name '*.go')
+SRC := $(shell find . -name '*.go' 2>/dev/null || echo "")
 BUILD_DIR := ./build
 BINARY_NAME := $(BUILD_DIR)/$(MODULE_NAME)
 SONAR_HOST_URL := https://sonarcloud.io
-SONAR_SECRET := $(shell cat .sonar.secret)
-BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
-CHANGE_TARGET := $(shell git rev-parse --abbrev-ref --symbolic-full-name @{u} | sed 's/.*\///')
+SONAR_SECRET := $(shell cat .sonar.secret 2>/dev/null || echo "")
+BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+CHANGE_TARGET := $(shell git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null | sed 's/.*\///' || echo "main")
 # CHANGE_ID := $(shell git rev-parse --short=8 HEAD)
-CHANGE_ID := $(shell whoami)
+CHANGE_ID := $(shell whoami 2>/dev/null || echo "unknown")
 
-.PHONY: all
+.PHONY: all docs
 
 build:
-	go build -v -ldflags="-X 'version.Version=v1.0.0' -X 'version.GitCommit=$(shell git rev-parse --short=8 HEAD)' -X 'build.User=$(shell id -u -n)' -X 'build.Time=$(shell date)'" -o $(BINARY_NAME)
+	go build -v -ldflags="-X 'version.Version=v1.0.0' -X 'version.GitCommit=$(shell git rev-parse --short=8 HEAD 2>/dev/null || echo "unknown")' -X 'build.User=$(shell id -u -n 2>/dev/null || whoami 2>/dev/null || echo "unknown")' -X 'build.Time=$(shell date 2>/dev/null || echo "unknown")'" -o $(BINARY_NAME)
 
 clean:
 	go clean
-	rm -f $(BINARY_NAME)
+	-@rm -f $(BINARY_NAME) 2>/dev/null || true
 
 unit-test:
 	@echo "Running unit tests"
@@ -156,4 +156,6 @@ seed:
 	go run main.go seed
 
 docs:
+	@echo "Generating API documentation..."
 	swag init -g main.go
+	@echo "Documentation generated successfully!"
