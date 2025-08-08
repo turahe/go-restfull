@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"fmt"
-
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,10 +21,6 @@ func RegisterAuthRoutes(public fiber.Router, protected fiber.Router, container *
 	// Protected auth routes (only if protected router is provided)
 	if protected != nil {
 		authProtected := protected.Group("/auth")
-		fmt.Printf("Registering protected auth routes on router: %T\n", protected)
 		authProtected.Post("/logout", authController.Logout)
-		fmt.Printf("Registered POST /auth/logout (protected)\n")
-	} else {
-		fmt.Printf("Skipping protected auth routes (protected router is nil)\n")
 	}
 }

@@ -321,7 +321,68 @@ func (r *postgresUserRepository) CountBySearch(ctx context.Context, query string
 
 // Stub methods to satisfy the interface - TODO: Implement properly
 func (r *postgresUserRepository) FindAll(ctx context.Context, query queries.ListUsersQuery) (*handlers.PaginatedResult[*aggregates.UserAggregate], error) {
-	return nil, fmt.Errorf("FindAll not implemented")
+	// Defaults
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.PageSize <= 0 {
+		query.PageSize = 10
+	}
+
+	// Base WHERE
+	where := "WHERE deleted_at IS NULL"
+	args := []interface{}{}
+	argIdx := 1
+	if query.Search != nil && *query.Search != "" {
+		where += fmt.Sprintf(" AND (username ILIKE $%d OR email ILIKE $%d OR phone ILIKE $%d)", argIdx, argIdx, argIdx)
+		args = append(args, fmt.Sprintf("%%%s%%", *query.Search))
+		argIdx++
+	}
+
+	// Count
+	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM users %s", where)
+	var total int
+	if err := r.db.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, err
+	}
+
+	// Pagination
+	offset := (query.Page - 1) * query.PageSize
+	listSQL := fmt.Sprintf(`SELECT id, username, email, phone, password, email_verified_at, phone_verified_at, created_at, updated_at, deleted_at
+		FROM users %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1)
+	args = append(args, query.PageSize, offset)
+
+	rows, err := r.db.Query(ctx, listSQL, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*aggregates.UserAggregate
+	for rows.Next() {
+		var u entities.User
+		if err := rows.Scan(&u.ID, &u.UserName, &u.Email, &u.Phone, &u.Password, &u.EmailVerifiedAt, &u.PhoneVerifiedAt, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt); err != nil {
+			return nil, err
+		}
+		agg, err := r.convertToAggregate(&u)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, agg)
+	}
+
+	totalPages := 0
+	if query.PageSize > 0 {
+		totalPages = (total + query.PageSize - 1) / query.PageSize
+	}
+
+	return &handlers.PaginatedResult[*aggregates.UserAggregate]{
+		Items:      items,
+		TotalCount: total,
+		Page:       query.Page,
+		PageSize:   query.PageSize,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (r *postgresUserRepository) CountByRole(ctx context.Context, roleID uuid.UUID) (int64, error) {

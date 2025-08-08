@@ -10,9 +10,10 @@ const (
 
 // SuccessResponse represents a successful API response
 type SuccessResponse struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
+	Status     string      `json:"status"`
+	Message    string      `json:"message,omitempty"`
+	Data       interface{} `json:"data,omitempty"`
+	Pagination interface{} `json:"pagination,omitempty"`
 }
 
 // ErrorResponse represents an error API response

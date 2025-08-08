@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/turahe/go-restfull/config"
@@ -104,6 +105,12 @@ func GenerateTokenPair(userID uuid.UUID, username, email string) (*TokenPair, er
 // ValidateToken validates a JWT token and returns the claims
 func ValidateToken(tokenString string) (*TokenClaims, error) {
 	cfg := config.GetConfig()
+
+	// Sanitize token: trim spaces and optional 'Bearer ' prefix
+	tokenString = strings.TrimSpace(tokenString)
+	if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
+		tokenString = strings.TrimSpace(tokenString[7:])
+	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

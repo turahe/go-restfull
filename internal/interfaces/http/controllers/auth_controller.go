@@ -201,7 +201,7 @@ func (c *AuthController) Refresh(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: "Invalid refresh token",
+			Message: err.Error(),
 		})
 	}
 

@@ -121,8 +121,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.OrganizationRepository = adapters.NewOrganizationRepository(db)
 
 	// Initialize application services
-	// User service temporarily disabled due to interface mismatch
-	container.UserService = nil
+	// User service
+	container.UserService = appservices.NewUserService(container.UserRepository, container.PasswordService, container.EmailService)
 	container.RoleService = appservices.NewRoleService(container.RoleRepository)
 	container.UserRoleService = appservices.NewUserRoleService(container.UserRoleRepository)
 	// Auth service
@@ -146,8 +146,8 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.OrganizationService = appservices.NewOrganizationService(container.OrganizationRepository)
 
 	// Initialize controllers
-	// User controller temporarily disabled due to interface mismatch
-	container.UserController = nil
+	// User controller
+	container.UserController = controllers.NewUserController(container.UserService, container.PaginationService)
 	// Auth controller
 	container.AuthController = controllers.NewAuthController(container.AuthService, container.UserRepository)
 	container.PostController = controllers.NewPostController(container.PostService)

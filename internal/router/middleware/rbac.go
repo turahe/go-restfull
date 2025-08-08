@@ -15,6 +15,11 @@ func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		fmt.Printf("=== RBAC middleware triggered for path: %s, method: %s ===\n", c.Path(), c.Method())
 
+		// If RBAC service is not initialized, skip checks
+		if rbacService == nil {
+			return c.Next()
+		}
+
 		// Get user from context (set by JWT middleware)
 		userID := c.Locals("user_id")
 		if userID == nil {
@@ -86,6 +91,11 @@ func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
 // OptionalRBACMiddleware creates a middleware that checks RBAC permissions but doesn't fail if no user is authenticated
 func OptionalRBACMiddleware(rbacService services.RBACService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// If RBAC service is not initialized, skip checks
+		if rbacService == nil {
+			return c.Next()
+		}
+
 		// Get user from context (set by JWT middleware)
 		userID := c.Locals("user_id")
 		if userID == nil {
@@ -152,6 +162,11 @@ func OptionalRBACMiddleware(rbacService services.RBACService) fiber.Handler {
 // RequireRole creates a middleware that requires a specific role
 func RequireRole(rbacService services.RBACService, requiredRole string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// If RBAC service is not initialized, skip checks
+		if rbacService == nil {
+			return c.Next()
+		}
+
 		// Get user from context (set by JWT middleware)
 		userID := c.Locals("user_id")
 		if userID == nil {

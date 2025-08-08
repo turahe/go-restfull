@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,6 +12,11 @@ import (
 func RegisterUserRoutes(protected fiber.Router, container *container.Container) {
 	userController := container.GetUserController()
 	menuController := container.GetMenuController()
+
+	if userController == nil {
+		fmt.Printf("Skipping user routes: userController is nil\n")
+		return
+	}
 
 	// User routes (protected)
 	users := protected.Group("/users")

@@ -14,6 +14,7 @@ import (
 )
 
 // UserController handles HTTP requests for user operations
+//
 //	@title						User Management API
 //	@version					1.0
 //	@description				This is a user management API with authentication and authorization
@@ -42,6 +43,7 @@ func NewUserController(userService ports.UserService, paginationService domainse
 }
 
 // CreateUser handles POST /users
+//
 //	@Summary		Create a new user
 //	@Description	Create a new user account with the provided information
 //	@Tags			users
@@ -86,6 +88,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 }
 
 // GetUserByID handles GET /users/:id
+//
 //	@Summary		Get user by ID
 //	@Description	Retrieve a user by their unique identifier
 //	@Tags			users
@@ -123,6 +126,7 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 }
 
 // GetUsers handles GET /users
+//
 //	@Summary		Get all users
 //	@Description	Retrieve a paginated list of users with optional search and filtering
 //	@Tags			users
@@ -156,15 +160,16 @@ func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
 	}
 
 	// Create paginated response using pagination service
-	paginatedResult := c.paginationService.CreatePaginatedResponse(ctx.Context(), userResponses, total, nil)
-
+	paginated := c.paginationService.CreatePaginatedResponse(ctx.Context(), nil, total, nil)
 	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   paginatedResult,
+		Status:     "success",
+		Data:       userResponses,
+		Pagination: paginated.Pagination,
 	})
 }
 
 // UpdateUser handles PUT /users/:id
+//
 //	@Summary		Update user
 //	@Description	Update an existing user's information
 //	@Tags			users
@@ -220,6 +225,7 @@ func (c *UserController) UpdateUser(ctx *fiber.Ctx) error {
 }
 
 // DeleteUser handles DELETE /users/:id
+//
 //	@Summary		Delete user
 //	@Description	Delete a user account (soft delete)
 //	@Tags			users
@@ -257,6 +263,7 @@ func (c *UserController) DeleteUser(ctx *fiber.Ctx) error {
 }
 
 // ChangePassword handles PUT /users/:id/password
+//
 //	@Summary		Change user password
 //	@Description	Change a user's password with old password verification
 //	@Tags			users
