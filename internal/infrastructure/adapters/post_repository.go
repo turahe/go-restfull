@@ -11,6 +11,7 @@ import (
 	"github.com/turahe/go-restfull/internal/helper/cache"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -61,10 +62,9 @@ func (r *postgresPostRepository) Create(ctx context.Context, post *entities.Post
 
 // GetByID retrieves a post by ID
 func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
-	var post entities.Post
-
 	// Try to get from cache first
 	cacheKey := fmt.Sprintf(cache.KEY_POST_BY_ID, id.String())
+	var post entities.Post
 	err := cache.GetJSON(ctx, cacheKey, &post)
 	if err == nil {
 		return &post, nil
@@ -113,10 +113,9 @@ func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 // GetBySlug retrieves a post by slug
 func (r *postgresPostRepository) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
-	var post entities.Post
-
 	// Try to get from cache first
 	cacheKey := fmt.Sprintf(cache.KEY_POST_BY_SLUG, slug)
+	var post entities.Post
 	err := cache.GetJSON(ctx, cacheKey, &post)
 	if err == nil {
 		return &post, nil
@@ -179,41 +178,7 @@ func (r *postgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.
 	}
 	defer rows.Close()
 
-	var posts []*entities.Post
-	for rows.Next() {
-		var post entities.Post
-		var publishedAt sql.NullTime
-		var deletedAt sql.NullTime
-
-		err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Slug,
-			&post.Subtitle,
-			&post.Description,
-			&post.IsSticky,
-			&post.Language,
-			&post.Layout,
-			&publishedAt,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&deletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if publishedAt.Valid {
-			post.PublishedAt = &publishedAt.Time
-		}
-		if deletedAt.Valid {
-			post.DeletedAt = &deletedAt.Time
-		}
-
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
+	return r.scanPosts(rows)
 }
 
 // GetAll retrieves all posts with pagination
@@ -232,41 +197,7 @@ func (r *postgresPostRepository) GetAll(ctx context.Context, limit, offset int) 
 	}
 	defer rows.Close()
 
-	var posts []*entities.Post
-	for rows.Next() {
-		var post entities.Post
-		var publishedAt sql.NullTime
-		var deletedAt sql.NullTime
-
-		err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Slug,
-			&post.Subtitle,
-			&post.Description,
-			&post.IsSticky,
-			&post.Language,
-			&post.Layout,
-			&publishedAt,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&deletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if publishedAt.Valid {
-			post.PublishedAt = &publishedAt.Time
-		}
-		if deletedAt.Valid {
-			post.DeletedAt = &deletedAt.Time
-		}
-
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
+	return r.scanPosts(rows)
 }
 
 // GetPublished retrieves only published posts
@@ -285,41 +216,7 @@ func (r *postgresPostRepository) GetPublished(ctx context.Context, limit, offset
 	}
 	defer rows.Close()
 
-	var posts []*entities.Post
-	for rows.Next() {
-		var post entities.Post
-		var publishedAt sql.NullTime
-		var deletedAt sql.NullTime
-
-		err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Slug,
-			&post.Subtitle,
-			&post.Description,
-			&post.IsSticky,
-			&post.Language,
-			&post.Layout,
-			&publishedAt,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&deletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if publishedAt.Valid {
-			post.PublishedAt = &publishedAt.Time
-		}
-		if deletedAt.Valid {
-			post.DeletedAt = &deletedAt.Time
-		}
-
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
+	return r.scanPosts(rows)
 }
 
 // Search searches posts by query
@@ -339,50 +236,16 @@ func (r *postgresPostRepository) Search(ctx context.Context, query string, limit
 	}
 	defer rows.Close()
 
-	var posts []*entities.Post
-	for rows.Next() {
-		var post entities.Post
-		var publishedAt sql.NullTime
-		var deletedAt sql.NullTime
-
-		err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Slug,
-			&post.Subtitle,
-			&post.Description,
-			&post.IsSticky,
-			&post.Language,
-			&post.Layout,
-			&publishedAt,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&deletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if publishedAt.Valid {
-			post.PublishedAt = &publishedAt.Time
-		}
-		if deletedAt.Valid {
-			post.DeletedAt = &deletedAt.Time
-		}
-
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
+	return r.scanPosts(rows)
 }
 
 // Update updates an existing post
 func (r *postgresPostRepository) Update(ctx context.Context, post *entities.Post) error {
 	query := `
-		UPDATE posts
-		SET title = $1, slug = $2, subtitle = $3, description = $4, is_sticky = $5, language = $6, layout = $7, updated_at = $8
-		WHERE id = $6 AND deleted_at IS NULL
-	`
+        UPDATE posts
+        SET title = $1, slug = $2, subtitle = $3, description = $4, is_sticky = $5, language = $6, layout = $7, updated_at = $8
+        WHERE id = $9 AND deleted_at IS NULL
+    `
 
 	result, err := r.db.Exec(ctx, query,
 		post.Title,
@@ -571,5 +434,50 @@ func (r *postgresPostRepository) SearchPublished(ctx context.Context, query stri
 		posts = append(posts, &post)
 	}
 
+	return posts, nil
+}
+
+// scanPostFromScanner scans a single post from a row/rows scanner
+func (r *postgresPostRepository) scanPostFromScanner(scanner interface{ Scan(dest ...any) error }) (*entities.Post, error) {
+	var post entities.Post
+	var publishedAt sql.NullTime
+	var deletedAt sql.NullTime
+
+	if err := scanner.Scan(
+		&post.ID,
+		&post.Title,
+		&post.Slug,
+		&post.Subtitle,
+		&post.Description,
+		&post.IsSticky,
+		&post.Language,
+		&post.Layout,
+		&publishedAt,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&deletedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	if publishedAt.Valid {
+		post.PublishedAt = &publishedAt.Time
+	}
+	if deletedAt.Valid {
+		post.DeletedAt = &deletedAt.Time
+	}
+	return &post, nil
+}
+
+// scanPosts scans all rows into a slice of posts
+func (r *postgresPostRepository) scanPosts(rows pgx.Rows) ([]*entities.Post, error) {
+	var posts []*entities.Post
+	for rows.Next() {
+		p, err := r.scanPostFromScanner(rows)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
 	return posts, nil
 }

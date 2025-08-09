@@ -162,34 +162,7 @@ func (r *addressRepository) GetByAddressable(ctx context.Context, addressableID 
 	}
 	defer rows.Close()
 
-	var addresses []*entities.Address
-	for rows.Next() {
-		var address entities.Address
-		err := rows.Scan(
-			&address.ID,
-			&address.AddressableID,
-			&address.AddressableType,
-			&address.AddressLine1,
-			&address.AddressLine2,
-			&address.City,
-			&address.State,
-			&address.PostalCode,
-			&address.Country,
-			&address.Latitude,
-			&address.Longitude,
-			&address.IsPrimary,
-			&address.AddressType,
-			&address.CreatedAt,
-			&address.UpdatedAt,
-			&address.DeletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		addresses = append(addresses, &address)
-	}
-
-	return addresses, nil
+	return r.scanAddresses(rows)
 }
 
 func (r *addressRepository) GetPrimaryByAddressable(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType) (*entities.Address, error) {
@@ -248,34 +221,7 @@ func (r *addressRepository) GetByAddressableAndType(ctx context.Context, address
 	}
 	defer rows.Close()
 
-	var addresses []*entities.Address
-	for rows.Next() {
-		var address entities.Address
-		err := rows.Scan(
-			&address.ID,
-			&address.AddressableID,
-			&address.AddressableType,
-			&address.AddressLine1,
-			&address.AddressLine2,
-			&address.City,
-			&address.State,
-			&address.PostalCode,
-			&address.Country,
-			&address.Latitude,
-			&address.Longitude,
-			&address.IsPrimary,
-			&address.AddressType,
-			&address.CreatedAt,
-			&address.UpdatedAt,
-			&address.DeletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		addresses = append(addresses, &address)
-	}
-
-	return addresses, nil
+	return r.scanAddresses(rows)
 }
 
 func (r *addressRepository) SetPrimary(ctx context.Context, id uuid.UUID, addressableID uuid.UUID, addressableType entities.AddressableType) error {
