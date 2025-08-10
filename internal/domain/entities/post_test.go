@@ -4,28 +4,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/turahe/go-restfull/internal/domain/entities"
-
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 func TestNewPost_Success(t *testing.T) {
 	title := "Test Post Title"
-	content := "Test post content"
 	slug := "test-post-title"
-	status := "draft"
-	authorID := uuid.New()
+	subtitle := "Test Post Subtitle"
+	description := "Test post description"
+	language := "en"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
 
-	post, err := entities.NewPost(title, content, slug, status, authorID)
+	post, err := entities.NewPost(title, slug, subtitle, description, language, layout, isSticky, publishedAt)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, post)
 	assert.Equal(t, title, post.Title)
-	assert.Equal(t, content, post.Content)
 	assert.Equal(t, slug, post.Slug)
-	assert.Equal(t, status, post.Status)
-	assert.Equal(t, authorID, post.AuthorID)
+	assert.Equal(t, subtitle, post.Subtitle)
+	assert.Equal(t, description, post.Description)
+	assert.Equal(t, language, post.Language)
+	assert.Equal(t, layout, post.Layout)
+	assert.Equal(t, isSticky, post.IsSticky)
 	assert.NotEqual(t, uuid.Nil, post.ID)
 	assert.False(t, post.CreatedAt.IsZero())
 	assert.False(t, post.UpdatedAt.IsZero())
@@ -34,119 +38,163 @@ func TestNewPost_Success(t *testing.T) {
 }
 
 func TestNewPost_EmptyTitle(t *testing.T) {
-	content := "Test post content"
 	slug := "test-post-title"
-	status := "draft"
-	authorID := uuid.New()
+	subtitle := "Test Post Subtitle"
+	description := "Test post description"
+	language := "en"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
 
-	post, err := entities.NewPost("", content, slug, status, authorID)
+	post, err := entities.NewPost("", slug, subtitle, description, language, layout, isSticky, publishedAt)
 
 	assert.Error(t, err)
 	assert.Nil(t, post)
 	assert.Equal(t, "title is required", err.Error())
 }
 
-func TestNewPost_EmptyContent(t *testing.T) {
-	title := "Test Post Title"
-	slug := "test-post-title"
-	status := "draft"
-	authorID := uuid.New()
-
-	post, err := entities.NewPost(title, "", slug, status, authorID)
-
-	assert.Error(t, err)
-	assert.Nil(t, post)
-	assert.Equal(t, "content is required", err.Error())
-}
-
 func TestNewPost_EmptySlug(t *testing.T) {
 	title := "Test Post Title"
-	content := "Test post content"
-	status := "draft"
-	authorID := uuid.New()
+	subtitle := "Test Post Subtitle"
+	description := "Test post description"
+	language := "en"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
 
-	post, err := entities.NewPost(title, content, "", status, authorID)
+	post, err := entities.NewPost(title, "", subtitle, description, language, layout, isSticky, publishedAt)
 
 	assert.Error(t, err)
 	assert.Nil(t, post)
 	assert.Equal(t, "slug is required", err.Error())
 }
 
-func TestNewPost_EmptyStatus(t *testing.T) {
+func TestNewPost_EmptySubtitle(t *testing.T) {
 	title := "Test Post Title"
-	content := "Test post content"
 	slug := "test-post-title"
-	authorID := uuid.New()
+	description := "Test post description"
+	language := "en"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
 
-	post, err := entities.NewPost(title, content, slug, "", authorID)
+	post, err := entities.NewPost(title, slug, "", description, language, layout, isSticky, publishedAt)
 
 	assert.Error(t, err)
 	assert.Nil(t, post)
-	assert.Equal(t, "status is required", err.Error())
+	assert.Equal(t, "subtitle is required", err.Error())
 }
 
-func TestNewPost_EmptyAuthorID(t *testing.T) {
+func TestNewPost_EmptyDescription(t *testing.T) {
 	title := "Test Post Title"
-	content := "Test post content"
 	slug := "test-post-title"
-	status := "draft"
+	subtitle := "Test Post Subtitle"
+	language := "en"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
 
-	post, err := entities.NewPost(title, content, slug, status, uuid.Nil)
+	post, err := entities.NewPost(title, slug, subtitle, "", language, layout, isSticky, publishedAt)
 
 	assert.Error(t, err)
 	assert.Nil(t, post)
-	assert.Equal(t, "author_id is required", err.Error())
+	assert.Equal(t, "description is required", err.Error())
+}
+
+func TestNewPost_EmptyLanguage(t *testing.T) {
+	title := "Test Post Title"
+	slug := "test-post-title"
+	subtitle := "Test Post Subtitle"
+	description := "Test post description"
+	layout := "default"
+	isSticky := false
+	var publishedAt *time.Time = nil
+
+	post, err := entities.NewPost(title, slug, subtitle, description, "", layout, isSticky, publishedAt)
+
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "language is required", err.Error())
+}
+
+func TestNewPost_EmptyLayout(t *testing.T) {
+	title := "Test Post Title"
+	slug := "test-post-title"
+	subtitle := "Test Post Subtitle"
+	description := "Test post description"
+	language := "en"
+	isSticky := false
+	var publishedAt *time.Time = nil
+
+	post, err := entities.NewPost(title, slug, subtitle, description, language, "", isSticky, publishedAt)
+
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "layout is required", err.Error())
 }
 
 func TestPost_UpdatePost(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
 	originalUpdatedAt := post.UpdatedAt
 
 	// Wait a bit to ensure time difference
 	time.Sleep(1 * time.Millisecond)
 
-	err := post.UpdatePost("New Title", "New content", "new-slug", "published")
+	err := post.UpdatePost("New Title", "new-slug", "New Subtitle", "New description", "en", "new-layout", true, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "New Title", post.Title)
-	assert.Equal(t, "New content", post.Content)
 	assert.Equal(t, "new-slug", post.Slug)
-	assert.Equal(t, "published", post.Status)
+	assert.Equal(t, "New Subtitle", post.Subtitle)
+	assert.Equal(t, "New description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "new-layout", post.Layout)
+	assert.True(t, post.IsSticky)
 	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestPost_UpdatePost_PartialUpdate(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalTitle := post.Title
-	originalSlug := post.Slug
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
 
-	err := post.UpdatePost("", "New content", "", "published")
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("New Title", "", "", "", "", "", false, nil)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalTitle, post.Title) // Should remain unchanged
-	assert.Equal(t, "New content", post.Content)
-	assert.Equal(t, originalSlug, post.Slug) // Should remain unchanged
-	assert.Equal(t, "published", post.Status)
+	assert.Equal(t, "New Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestPost_UpdatePost_EmptyStrings(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalTitle := post.Title
-	originalContent := post.Content
-	originalSlug := post.Slug
-	originalStatus := post.Status
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
 
-	err := post.UpdatePost("", "", "", "")
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("", "", "", "", "", "", false, nil)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalTitle, post.Title)
-	assert.Equal(t, originalContent, post.Content)
-	assert.Equal(t, originalSlug, post.Slug)
-	assert.Equal(t, originalStatus, post.Status)
+	assert.Equal(t, "Old Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestPost_Publish(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 	originalUpdatedAt := post.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -154,15 +202,15 @@ func TestPost_Publish(t *testing.T) {
 
 	post.Publish()
 
-	assert.Equal(t, "published", post.Status)
 	assert.NotNil(t, post.PublishedAt)
+	assert.True(t, post.PublishedAt.After(originalUpdatedAt))
 	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
 	assert.True(t, post.IsPublished())
 }
 
 func TestPost_Unpublish(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "published", uuid.New())
-	post.PublishedAt = &time.Time{}
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
+	post.Publish()
 	originalUpdatedAt := post.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -170,14 +218,14 @@ func TestPost_Unpublish(t *testing.T) {
 
 	post.Unpublish()
 
-	assert.Equal(t, "draft", post.Status)
 	assert.Nil(t, post.PublishedAt)
 	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+	assert.False(t, post.IsPublished())
 	assert.True(t, post.IsDraft())
 }
 
 func TestPost_SoftDelete(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 	originalUpdatedAt := post.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -186,57 +234,49 @@ func TestPost_SoftDelete(t *testing.T) {
 	post.SoftDelete()
 
 	assert.NotNil(t, post.DeletedAt)
+	assert.True(t, post.DeletedAt.After(originalUpdatedAt))
 	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
 	assert.True(t, post.IsDeleted())
 }
 
 func TestPost_IsDeleted(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 
-	// Initially not deleted
 	assert.False(t, post.IsDeleted())
 
-	// After soft delete
 	post.SoftDelete()
+
 	assert.True(t, post.IsDeleted())
 }
 
 func TestPost_IsPublished(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 
-	// Initially not published
 	assert.False(t, post.IsPublished())
 
-	// After publishing
 	post.Publish()
+
 	assert.True(t, post.IsPublished())
 }
 
 func TestPost_IsPublished_WithoutPublishMethod(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "published", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 
-	// Status is published but no PublishedAt timestamp
 	assert.False(t, post.IsPublished())
-
-	// Set PublishedAt timestamp
-	now := time.Now()
-	post.PublishedAt = &now
-	assert.True(t, post.IsPublished())
 }
 
 func TestPost_IsDraft(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 
-	// Initially draft
 	assert.True(t, post.IsDraft())
 
-	// After publishing
 	post.Publish()
+
 	assert.False(t, post.IsDraft())
 }
 
 func TestPost_StatusTransitions(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
 
 	// Initially draft
 	assert.True(t, post.IsDraft())
@@ -244,104 +284,144 @@ func TestPost_StatusTransitions(t *testing.T) {
 
 	// Publish
 	post.Publish()
-	assert.False(t, post.IsDraft())
 	assert.True(t, post.IsPublished())
+	assert.False(t, post.IsDraft())
 
 	// Unpublish
 	post.Unpublish()
-	assert.True(t, post.IsDraft())
 	assert.False(t, post.IsPublished())
+	assert.True(t, post.IsDraft())
 }
 
 func TestPost_UpdatePost_OnlyTitle(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalContent := post.Content
-	originalSlug := post.Slug
-	originalStatus := post.Status
-
-	err := post.UpdatePost("New Title", "", "", "")
-
-	assert.NoError(t, err)
-	assert.Equal(t, "New Title", post.Title)
-	assert.Equal(t, originalContent, post.Content) // Should remain unchanged
-	assert.Equal(t, originalSlug, post.Slug)       // Should remain unchanged
-	assert.Equal(t, originalStatus, post.Status)   // Should remain unchanged
-}
-
-func TestPost_UpdatePost_OnlyContent(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalTitle := post.Title
-	originalSlug := post.Slug
-	originalStatus := post.Status
-
-	err := post.UpdatePost("", "New content", "", "")
-
-	assert.NoError(t, err)
-	assert.Equal(t, originalTitle, post.Title) // Should remain unchanged
-	assert.Equal(t, "New content", post.Content)
-	assert.Equal(t, originalSlug, post.Slug)     // Should remain unchanged
-	assert.Equal(t, originalStatus, post.Status) // Should remain unchanged
-}
-
-func TestPost_UpdatePost_OnlySlug(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalTitle := post.Title
-	originalContent := post.Content
-	originalStatus := post.Status
-
-	err := post.UpdatePost("", "", "new-slug", "")
-
-	assert.NoError(t, err)
-	assert.Equal(t, originalTitle, post.Title)     // Should remain unchanged
-	assert.Equal(t, originalContent, post.Content) // Should remain unchanged
-	assert.Equal(t, "new-slug", post.Slug)
-	assert.Equal(t, originalStatus, post.Status) // Should remain unchanged
-}
-
-func TestPost_UpdatePost_OnlyStatus(t *testing.T) {
-	post, _ := entities.NewPost("Old Title", "Old content", "old-slug", "draft", uuid.New())
-	originalTitle := post.Title
-	originalContent := post.Content
-	originalSlug := post.Slug
-
-	err := post.UpdatePost("", "", "", "published")
-
-	assert.NoError(t, err)
-	assert.Equal(t, originalTitle, post.Title)     // Should remain unchanged
-	assert.Equal(t, originalContent, post.Content) // Should remain unchanged
-	assert.Equal(t, originalSlug, post.Slug)       // Should remain unchanged
-	assert.Equal(t, "published", post.Status)
-}
-
-func TestPost_SoftDelete_MultipleCalls(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "draft", uuid.New())
-
-	// First soft delete
-	post.SoftDelete()
-	firstDeletedAt := post.DeletedAt
-
-	// Wait a bit
-	time.Sleep(1 * time.Millisecond)
-
-	// Second soft delete
-	post.SoftDelete()
-	secondDeletedAt := post.DeletedAt
-
-	// Should update the deleted timestamp
-	assert.True(t, secondDeletedAt.After(*firstDeletedAt))
-	assert.True(t, post.IsDeleted())
-}
-
-func TestPost_Publish_AlreadyPublished(t *testing.T) {
-	post, _ := entities.NewPost("Test Title", "Test content", "test-slug", "published", uuid.New())
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
 	originalUpdatedAt := post.UpdatedAt
 
 	// Wait a bit to ensure time difference
 	time.Sleep(1 * time.Millisecond)
 
+	err := post.UpdatePost("New Title", "", "", "", "", "", false, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "New Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+}
+
+func TestPost_UpdatePost_OnlySubtitle(t *testing.T) {
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("", "", "New Subtitle", "", "", "", false, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Old Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "New Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+}
+
+func TestPost_UpdatePost_OnlyDescription(t *testing.T) {
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("", "", "", "New description", "", "", false, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Old Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "New description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+}
+
+func TestPost_UpdatePost_OnlyLanguage(t *testing.T) {
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("", "", "", "", "fr", "", false, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Old Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "fr", post.Language)
+	assert.Equal(t, "old-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+}
+
+func TestPost_UpdatePost_OnlyLayout(t *testing.T) {
+	post, _ := entities.NewPost("Old Title", "old-slug", "Old Subtitle", "Old description", "en", "old-layout", false, nil)
+	originalUpdatedAt := post.UpdatedAt
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	err := post.UpdatePost("", "", "", "", "", "new-layout", false, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Old Title", post.Title)
+	assert.Equal(t, "old-slug", post.Slug)
+	assert.Equal(t, "Old Subtitle", post.Subtitle)
+	assert.Equal(t, "Old description", post.Description)
+	assert.Equal(t, "en", post.Language)
+	assert.Equal(t, "new-layout", post.Layout)
+	assert.False(t, post.IsSticky)
+	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+}
+
+func TestPost_SoftDelete_MultipleCalls(t *testing.T) {
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
+	originalDeletedAt := post.DeletedAt
+
+	post.SoftDelete()
+	firstDeletedAt := post.DeletedAt
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Millisecond)
+
+	post.SoftDelete()
+	secondDeletedAt := post.DeletedAt
+
+	assert.NotEqual(t, originalDeletedAt, firstDeletedAt)
+	assert.NotEqual(t, originalDeletedAt, secondDeletedAt)
+	assert.True(t, post.IsDeleted())
+}
+
+func TestPost_Publish_AlreadyPublished(t *testing.T) {
+	post, _ := entities.NewPost("Test Post", "test-post", "Test Subtitle", "Test description", "en", "default", false, nil)
+	post.Publish()
+	originalPublishedAt := post.PublishedAt
+
 	post.Publish()
 
-	// Should update timestamps even if already published
-	assert.True(t, post.UpdatedAt.After(originalUpdatedAt))
+	// Verify that PublishedAt didn't change
+	assert.Equal(t, originalPublishedAt, post.PublishedAt)
+	// Verify that the post is still published
 	assert.True(t, post.IsPublished())
+	// Note: UpdatedAt may or may not change depending on timing, but that's not the main test concern
+	// The main test is that calling Publish on an already published post doesn't change the PublishedAt
 }

@@ -28,6 +28,21 @@ func NewPost(title, slug, subtitle, description, language, layout string, isStic
 	if title == "" {
 		return nil, errors.New("title is required")
 	}
+	if slug == "" {
+		return nil, errors.New("slug is required")
+	}
+	if subtitle == "" {
+		return nil, errors.New("subtitle is required")
+	}
+	if description == "" {
+		return nil, errors.New("description is required")
+	}
+	if language == "" {
+		return nil, errors.New("language is required")
+	}
+	if layout == "" {
+		return nil, errors.New("layout is required")
+	}
 
 	now := time.Now()
 	return &Post{
