@@ -178,6 +178,74 @@ rabbitmq:
         "x-message-ttl": "86400000"  # 24 hours in milliseconds
       bindings: []
 
+# Meilisearch configuration
+meilisearch:
+  enable: true
+  host: "localhost"
+  port: 7700
+  masterKey: "change_me"
+  apiKey: "your-api-key"
+  indexes:
+    # Posts index
+    - name: "posts"
+      uid: "posts"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "title"
+          - "subtitle"
+          - "description"
+          - "content"
+        filterableAttributes:
+          - "status"
+          - "language"
+          - "is_sticky"
+          - "published_at"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+          - "published_at"
+        rankingRules:
+          - "words"
+          - "typo"
+          - "proximity"
+          - "attribute"
+          - "sort"
+          - "exactness"
+    
+    # Users index
+    - name: "users"
+      uid: "users"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "username"
+          - "email"
+          - "first_name"
+          - "last_name"
+        filterableAttributes:
+          - "status"
+          - "role"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+    
+    # Organizations index
+    - name: "organizations"
+      uid: "organizations"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "name"
+          - "description"
+          - "code"
+        filterableAttributes:
+          - "type"
+          - "status"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+
 Redis:
   - host: "localhost"
     port: 6379

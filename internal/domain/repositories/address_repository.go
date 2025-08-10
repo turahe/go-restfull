@@ -25,6 +25,7 @@ type AddressRepository interface {
 	UnsetOtherPrimaries(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType, excludeID uuid.UUID) error
 
 	// Search and filtering
+	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Address, error)
 	SearchByCity(ctx context.Context, city string, limit, offset int) ([]*entities.Address, error)
 	SearchByState(ctx context.Context, state string, limit, offset int) ([]*entities.Address, error)
 	SearchByCountry(ctx context.Context, country string, limit, offset int) ([]*entities.Address, error)

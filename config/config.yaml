@@ -82,3 +82,95 @@ rabbitmq:
   username: "guest"
   password: "guest"
   vhost: "/"
+
+# Meilisearch configuration
+meilisearch:
+  enable: true  # Set to true when Meilisearch is available
+  host: "localhost"
+  port: 7700
+  masterKey: "your-super-secret-master-key-32-chars-long"
+  apiKey: "your-api-key"
+  indexes:
+    # Posts index
+    - name: "posts"
+      uid: "posts"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "title"
+          - "subtitle"
+          - "description"
+          - "content"
+        filterableAttributes:
+          - "status"
+          - "language"
+          - "is_sticky"
+          - "published_at"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+          - "published_at"
+        rankingRules:
+          - "words"
+          - "typo"
+          - "proximity"
+          - "attribute"
+          - "sort"
+          - "exactness"
+    
+    # Users index
+    - name: "users"
+      uid: "users"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "username"
+          - "email"
+          - "first_name"
+          - "last_name"
+        filterableAttributes:
+          - "status"
+          - "role"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+    
+    # Organizations index
+    - name: "organizations"
+      uid: "organizations"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "name"
+          - "description"
+          - "code"
+        filterableAttributes:
+          - "type"
+          - "status"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+    
+    # Content index
+    - name: "content"
+      uid: "content"
+      primaryKey: "id"
+      settings:
+        searchableAttributes:
+          - "content_raw"
+          - "content_html"
+          - "model_type"
+        filterableAttributes:
+          - "model_type"
+          - "created_by"
+          - "updated_by"
+        sortableAttributes:
+          - "created_at"
+          - "updated_at"
+        rankingRules:
+          - "words"
+          - "typo"
+          - "proximity"
+          - "attribute"
+          - "sort"
+          - "exactness"

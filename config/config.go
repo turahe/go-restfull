@@ -8,21 +8,22 @@ var config *Config
 var m sync.Mutex
 
 type Config struct {
-	Env        string           `yaml:"env"`
-	App        App              `yaml:"app"`
-	HttpServer HttpServer       `yaml:"httpServer"`
-	Log        Log              `yaml:"log"`
-	Scheduler  Scheduler        `yaml:"scheduler"`
-	Schedules  []Schedule       `yaml:"schedules"`
-	Postgres   Postgres         `yaml:"postgres"`  // Legacy single database config
-	Databases  []DatabaseConfig `yaml:"databases"` // New multi-database config
-	Minio      Minio            `yaml:"minio"`
-	Redis      []Redis          `yaml:"redis"`
-	RabbitMQ   RabbitMQ         `yaml:"rabbitmq"`
-	Sentry     Sentry           `yaml:"sentry"`
-	Email      Email            `yaml:"email"`
-	Casbin     Casbin           `yaml:"casbin"`
-	Backup     Backup           `yaml:"backup"`
+	Env         string           `yaml:"env"`
+	App         App              `yaml:"app"`
+	HttpServer  HttpServer       `yaml:"httpServer"`
+	Log         Log              `yaml:"log"`
+	Scheduler   Scheduler        `yaml:"scheduler"`
+	Schedules   []Schedule       `yaml:"schedules"`
+	Postgres    Postgres         `yaml:"postgres"`  // Legacy single database config
+	Databases   []DatabaseConfig `yaml:"databases"` // New multi-database config
+	Minio       Minio            `yaml:"minio"`
+	Redis       []Redis          `yaml:"redis"`
+	RabbitMQ    RabbitMQ         `yaml:"rabbitmq"`
+	Meilisearch Meilisearch      `yaml:"meilisearch"`
+	Sentry      Sentry           `yaml:"sentry"`
+	Email       Email            `yaml:"email"`
+	Casbin      Casbin           `yaml:"casbin"`
+	Backup      Backup           `yaml:"backup"`
 }
 
 // RabbitMQ configuration
@@ -198,6 +199,34 @@ type Backup struct {
 	CompressBackup bool   `yaml:"compressBackup"`
 }
 
+// Meilisearch configuration
+type Meilisearch struct {
+	Enable    bool          `yaml:"enable"`
+	Host      string        `yaml:"host"`
+	Port      int           `yaml:"port"`
+	MasterKey string        `yaml:"masterKey"`
+	APIKey    string        `yaml:"apiKey"`
+	Indexes   []IndexConfig `yaml:"indexes"`
+}
+
+// IndexConfig represents a Meilisearch index configuration
+type IndexConfig struct {
+	Name       string        `yaml:"name"`
+	UID        string        `yaml:"uid"`
+	PrimaryKey string        `yaml:"primaryKey"`
+	Settings   IndexSettings `yaml:"settings"`
+}
+
+// IndexSettings represents Meilisearch index settings
+type IndexSettings struct {
+	SearchableAttributes []string            `yaml:"searchableAttributes"`
+	FilterableAttributes []string            `yaml:"filterableAttributes"`
+	SortableAttributes   []string            `yaml:"sortableAttributes"`
+	RankingRules         []string            `yaml:"rankingRules"`
+	StopWords            []string            `yaml:"stopWords"`
+	Synonyms             map[string][]string `yaml:"synonyms"`
+}
+
 func GetConfig() *Config {
 	return config
 }
@@ -301,4 +330,43 @@ func GetAllExchangeConfigs() []ExchangeConfig {
 // GetAllQueueConfigs returns all queue configurations
 func GetAllQueueConfigs() []QueueConfig {
 	return config.RabbitMQ.Queues
+}
+
+// GetMeilisearchConfig returns the Meilisearch configuration
+func GetMeilisearchConfig() *Meilisearch {
+	config := GetConfig()
+	if config == nil {
+		return nil
+	}
+	return &config.Meilisearch
+}
+
+// IsMeilisearchEnabled returns true if Meilisearch is enabled
+func IsMeilisearchEnabled() bool {
+	config := GetMeilisearchConfig()
+	return config != nil && config.Enable
+}
+
+// GetIndexConfig returns the configuration for a specific index
+func GetIndexConfig(name string) *IndexConfig {
+	config := GetMeilisearchConfig()
+	if config == nil {
+		return nil
+	}
+
+	for _, index := range config.Indexes {
+		if index.Name == name {
+			return &index
+		}
+	}
+	return nil
+}
+
+// GetAllIndexConfigs returns all index configurations
+func GetAllIndexConfigs() []IndexConfig {
+	config := GetMeilisearchConfig()
+	if config == nil {
+		return []IndexConfig{}
+	}
+	return config.Indexes
 }

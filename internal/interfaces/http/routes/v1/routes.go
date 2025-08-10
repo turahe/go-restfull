@@ -26,4 +26,7 @@ func RegisterV1Routes(v1Group fiber.Router, container *container.Container) {
 	// RegisterSettingRoutes(protected, container) // Removed - not implemented
 	RegisterRBACRoutes(protected, container)
 	RegisterBackupRoutes(protected, container)
+
+	// Register search routes (public access for now)
+	RegisterSearchRoutes(v1Group, container)
 }

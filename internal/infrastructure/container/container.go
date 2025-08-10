@@ -61,6 +61,11 @@ type Container struct {
 	PaginationService domainservices.PaginationService
 	RabbitMQService   *rabbitmq.Service
 
+	// Search Service
+	SearchService       ports.SearchService
+	HybridSearchService *appservices.HybridSearchService
+	IndexerService      *appservices.IndexerService
+
 	// Controllers
 	UserController         *controllers.UserController
 	PostController         *controllers.PostController
@@ -101,6 +106,32 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	// Initialize pagination service
 	container.PaginationService = domainservices.NewPaginationService()
 
+	// Initialize search service
+	searchService, err := appservices.NewSearchService(config.GetMeilisearchConfig())
+	if err != nil {
+		// Log the error but don't panic - search service is optional
+		fmt.Printf("Warning: Failed to initialize search service: %v\n", err)
+		container.SearchService = nil
+	} else {
+		container.SearchService = searchService
+	}
+
+	// Initialize hybrid search service
+	container.HybridSearchService = appservices.NewHybridSearchService(
+		container.SearchService,
+		container.PostRepository,
+		container.UserRepository,
+		container.OrganizationRepository,
+		container.TagRepository,
+		container.TaxonomyRepository,
+		container.MediaRepository,
+		container.MenuRepository,
+		container.RoleRepository,
+		container.ContentRepository,
+		container.AddressRepository,
+		container.CommentRepository,
+	)
+
 	// Initialize RabbitMQ service
 	container.RabbitMQService = rabbitmq.NewService()
 
@@ -136,7 +167,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.MenuService = appservices.NewMenuService(container.MenuRepository)
 	container.MenuRoleService = appservices.NewMenuRoleService(container.MenuRoleRepository)
 	container.TaxonomyService = appservices.NewTaxonomyService(container.TaxonomyRepository)
-	container.ContentService = appservices.NewContentService(container.ContentRepository)
+	container.ContentService = appservices.NewContentService(container.ContentRepository, container.HybridSearchService, container.IndexerService)
 	// Initialize RabbitMQ client
 	rabbitMQClient, err := messaging.NewRabbitMQClient(config.GetConfig().RabbitMQ)
 	if err != nil {
@@ -146,6 +177,22 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.MessagingService = appservices.NewMessagingService(rabbitMQClient)
 	container.AddressService = appservices.NewAddressService(container.AddressRepository)
 	container.OrganizationService = appservices.NewOrganizationService(container.OrganizationRepository)
+
+	// Initialize indexer service
+	container.IndexerService = appservices.NewIndexerService(
+		container.SearchService,
+		container.PostRepository,
+		container.UserRepository,
+		container.OrganizationRepository,
+		container.TagRepository,
+		container.TaxonomyRepository,
+		container.MediaRepository,
+		container.MenuRepository,
+		container.RoleRepository,
+		container.ContentRepository,
+		container.AddressRepository,
+		container.CommentRepository,
+	)
 
 	// Initialize controllers
 	// User controller
@@ -232,4 +279,19 @@ func (c *Container) GetAddressController() *controllers.AddressController {
 
 func (c *Container) GetOrganizationController() *controllers.OrganizationController {
 	return c.OrganizationController
+}
+
+// GetSearchService returns the search service
+func (c *Container) GetSearchService() ports.SearchService {
+	return c.SearchService
+}
+
+// GetHybridSearchService returns the hybrid search service
+func (c *Container) GetHybridSearchService() *appservices.HybridSearchService {
+	return c.HybridSearchService
+}
+
+// GetIndexerService returns the indexer service
+func (c *Container) GetIndexerService() *appservices.IndexerService {
+	return c.IndexerService
 }

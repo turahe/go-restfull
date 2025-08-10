@@ -18,6 +18,7 @@ type CommentRepository interface {
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Comment, error)
 	GetApproved(ctx context.Context, limit, offset int) ([]*entities.Comment, error)
 	GetPending(ctx context.Context, limit, offset int) ([]*entities.Comment, error)
+	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Comment, error)
 	Update(ctx context.Context, comment *entities.Comment) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Approve(ctx context.Context, id uuid.UUID) error

@@ -179,3 +179,9 @@ func (r *PostgresCommentRepository) CountPending(ctx context.Context) (int64, er
 
 	return count, nil
 }
+
+// Search searches for comments based on query and filters
+func (r *PostgresCommentRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Comment, error) {
+	// Use the repository's Search method which searches by model_type and status
+	return r.repo.Search(ctx, query, limit, offset)
+}

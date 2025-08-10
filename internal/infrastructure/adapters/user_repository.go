@@ -584,8 +584,85 @@ func (r *postgresUserRepository) FindByPhone(ctx context.Context, phone string) 
 }
 
 func (r *postgresUserRepository) Search(ctx context.Context, query queries.SearchUsersQuery) (*handlers.PaginatedResult[*aggregates.UserAggregate], error) {
-	// TODO: Implement search functionality
-	return nil, fmt.Errorf("Search not implemented")
+	// Build search query
+	searchQuery := `
+		SELECT id, username, email, phone, password, email_verified_at, phone_verified_at, created_at, updated_at, deleted_at
+		FROM users 
+		WHERE deleted_at IS NULL
+		  AND (username ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	// Count total results for pagination
+	countQuery := `
+		SELECT COUNT(*)
+		FROM users 
+		WHERE deleted_at IS NULL
+		  AND (username ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)
+	`
+
+	searchTerm := "%" + query.Query + "%"
+	offset := (query.Page - 1) * query.PageSize
+
+	// Get total count
+	var total int64
+	err := r.db.QueryRow(ctx, countQuery, searchTerm).Scan(&total)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count search results: %w", err)
+	}
+
+	// Get paginated results
+	rows, err := r.db.Query(ctx, searchQuery, searchTerm, query.PageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*aggregates.UserAggregate
+	for rows.Next() {
+		var user entities.User
+		err := rows.Scan(
+			&user.ID,
+			&user.UserName,
+			&user.Email,
+			&user.Phone,
+			&user.Password,
+			&user.EmailVerifiedAt,
+			&user.PhoneVerifiedAt,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.DeletedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		// Convert to aggregate
+		userAgg, err := r.convertToAggregate(&user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert user to aggregate: %w", err)
+		}
+		users = append(users, userAgg)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", err)
+	}
+
+	// Calculate pagination info
+	totalPages := 0
+	if query.PageSize > 0 {
+		totalPages = (int(total) + query.PageSize - 1) / query.PageSize
+	}
+
+	return &handlers.PaginatedResult[*aggregates.UserAggregate]{
+		Items:      users,
+		TotalCount: int(total),
+		Page:       query.Page,
+		PageSize:   query.PageSize,
+		TotalPages: totalPages,
+	}, nil
 }
 
 // convertToAggregate converts an entities.User to aggregates.UserAggregate

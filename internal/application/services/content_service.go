@@ -6,6 +6,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
@@ -20,7 +21,9 @@ import (
 // content versioning, soft delete operations, and content search capabilities
 // while enforcing business rules and data integrity.
 type ContentService struct {
-	contentRepository repositories.ContentRepository
+	contentRepository   repositories.ContentRepository
+	hybridSearchService ports.HybridSearchService
+	indexerService      *IndexerService
 }
 
 // NewContentService creates a new content service instance with the provided repository.
@@ -29,12 +32,16 @@ type ContentService struct {
 //
 // Parameters:
 //   - contentRepository: Repository interface for content data access operations
+//   - hybridSearchService: Hybrid search service for MeiliSearch integration
+//   - indexerService: Indexer service for MeiliSearch indexing operations
 //
 // Returns:
 //   - ports.ContentService: The content service interface implementation
-func NewContentService(contentRepository repositories.ContentRepository) ports.ContentService {
+func NewContentService(contentRepository repositories.ContentRepository, hybridSearchService ports.HybridSearchService, indexerService *IndexerService) ports.ContentService {
 	return &ContentService{
-		contentRepository: contentRepository,
+		contentRepository:   contentRepository,
+		hybridSearchService: hybridSearchService,
+		indexerService:      indexerService,
 	}
 }
 
@@ -78,6 +85,15 @@ func (s *ContentService) CreateContent(ctx context.Context, modelType string, mo
 	err := s.contentRepository.Create(ctx, content)
 	if err != nil {
 		return nil, err
+	}
+
+	// Index the content in MeiliSearch if available
+	if s.hybridSearchService.IsMeilisearchAvailable() && s.indexerService != nil {
+		if err := s.indexerService.IndexContent(ctx, content); err != nil {
+			log.Printf("Warning: Failed to index content in MeiliSearch: %v", err)
+		} else {
+			log.Printf("Content created successfully, indexed in MeiliSearch: %s", content.ID)
+		}
 	}
 
 	return content, nil
@@ -227,6 +243,15 @@ func (s *ContentService) UpdateContent(ctx context.Context, id uuid.UUID, conten
 		return nil, err
 	}
 
+	// Index the updated content in MeiliSearch if available
+	if s.hybridSearchService.IsMeilisearchAvailable() && s.indexerService != nil {
+		if err := s.indexerService.UpdateContent(ctx, content); err != nil {
+			log.Printf("Warning: Failed to update content in MeiliSearch: %v", err)
+		} else {
+			log.Printf("Content updated successfully, re-indexed in MeiliSearch: %s", content.ID)
+		}
+	}
+
 	return content, nil
 }
 
@@ -259,7 +284,21 @@ func (s *ContentService) DeleteContent(ctx context.Context, id uuid.UUID, delete
 	}
 
 	// Perform soft delete by marking the content as deleted
-	return s.contentRepository.Delete(ctx, id, deletedBy)
+	err = s.contentRepository.Delete(ctx, id, deletedBy)
+	if err != nil {
+		return err
+	}
+
+	// Remove the content from MeiliSearch index if available
+	if s.hybridSearchService.IsMeilisearchAvailable() && s.indexerService != nil {
+		if err := s.indexerService.RemoveContent(ctx, id.String()); err != nil {
+			log.Printf("Warning: Failed to remove content from MeiliSearch: %v", err)
+		} else {
+			log.Printf("Content deleted successfully, removed from MeiliSearch: %s", id)
+		}
+	}
+
+	return nil
 }
 
 // HardDeleteContent permanently removes content from the database.
@@ -314,8 +353,22 @@ func (s *ContentService) RestoreContent(ctx context.Context, id uuid.UUID, updat
 		return nil, err
 	}
 
-	// Retrieve and return the restored content
-	return s.contentRepository.GetByID(ctx, id)
+	// Retrieve the restored content
+	restoredContent, err := s.contentRepository.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Re-index the restored content in MeiliSearch if available
+	if s.hybridSearchService.IsMeilisearchAvailable() && s.indexerService != nil {
+		if err := s.indexerService.IndexContent(ctx, restoredContent); err != nil {
+			log.Printf("Warning: Failed to re-index restored content in MeiliSearch: %v", err)
+		} else {
+			log.Printf("Content restored successfully, re-indexed in MeiliSearch: %s", id)
+		}
+	}
+
+	return restoredContent, nil
 }
 
 // GetContentCount returns the total number of content items in the system.
@@ -351,13 +404,15 @@ func (s *ContentService) GetContentCountByModelType(ctx context.Context, modelTy
 }
 
 // SearchContent searches for content items based on a query string.
-// This method supports full-text search capabilities with pagination.
+// This method supports full-text search capabilities with pagination using MeiliSearch
+// when available, falling back to SQL search when not.
 //
 // Business Rules:
 //   - Search query must be provided and validated
 //   - Default limit of 10 items if not specified
 //   - Offset must be non-negative
 //   - Deleted content is automatically filtered out
+//   - MeiliSearch is used as primary search engine when available
 //
 // Parameters:
 //   - ctx: Context for the operation
@@ -382,7 +437,8 @@ func (s *ContentService) SearchContent(ctx context.Context, query string, limit,
 		offset = 0
 	}
 
-	contents, err := s.contentRepository.Search(ctx, query, limit, offset)
+	// Use hybrid search service for MeiliSearch integration
+	contents, err := s.hybridSearchService.SearchContent(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,7 @@ type ContentRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Content, error)
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Content, error)
 	GetByModelTypeAndID(ctx context.Context, modelType string, modelID uuid.UUID) ([]*entities.Content, error)
+	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Content, error)
 	Update(ctx context.Context, content *entities.Content) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Count(ctx context.Context) (int64, error)
@@ -88,6 +89,31 @@ func (r *ContentRepositoryImpl) GetByModelTypeAndID(ctx context.Context, modelTy
 			  ORDER BY created_at ASC`
 
 	rows, err := r.pgxPool.Query(ctx, query, modelType, modelID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var contents []*entities.Content
+	for rows.Next() {
+		content, err := r.scanContentRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		contents = append(contents, content)
+	}
+
+	return contents, nil
+}
+
+func (r *ContentRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Content, error) {
+	searchQuery := `SELECT id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at
+			  FROM contents 
+			  WHERE (content_raw ILIKE $1 OR content_html ILIKE $1)
+			  ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+
+	searchTerm := "%" + query + "%"
+	rows, err := r.pgxPool.Query(ctx, searchQuery, searchTerm, limit, offset)
 	if err != nil {
 		return nil, err
 	}

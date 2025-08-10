@@ -16,6 +16,7 @@ type CommentRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error)
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Comment, error)
 	GetByPostID(ctx context.Context, postID uuid.UUID, limit, offset int) ([]*entities.Comment, error)
+	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Comment, error)
 	Update(ctx context.Context, comment *entities.Comment) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Approve(ctx context.Context, id uuid.UUID) error
@@ -146,6 +147,32 @@ func (r *CommentRepositoryImpl) Reject(ctx context.Context, id uuid.UUID) error 
 	query := `UPDATE comments SET status = 'rejected', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
 	_, err := r.pgxPool.Exec(ctx, query, id.String())
 	return err
+}
+
+func (r *CommentRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Comment, error) {
+	searchQuery := `SELECT id, model_type, model_id, parent_id, status, created_by, updated_by, created_at, updated_at, deleted_at
+					FROM comments 
+					WHERE deleted_at IS NULL
+					  AND (model_type ILIKE $1 OR status ILIKE $1)
+					ORDER BY created_at DESC 
+					LIMIT $2 OFFSET $3`
+
+	searchTerm := "%" + query + "%"
+	rows, err := r.pgxPool.Query(ctx, searchQuery, searchTerm, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []*entities.Comment
+	for rows.Next() {
+		comment, err := r.scanCommentRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+	return comments, nil
 }
 
 func (r *CommentRepositoryImpl) Count(ctx context.Context) (int64, error) {

@@ -264,6 +264,28 @@ func (r *addressRepository) UnsetOtherPrimaries(ctx context.Context, addressable
 	return err
 }
 
+func (r *addressRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Address, error) {
+	searchQuery := `
+		SELECT id, addressable_id, addressable_type, address_line1, address_line2,
+			   city, state, postal_code, country, latitude, longitude,
+			   is_primary, address_type, created_at, updated_at, deleted_at
+		FROM addresses
+		WHERE deleted_at IS NULL
+		  AND (address_line1 ILIKE $1 OR address_line2 ILIKE $1 OR city ILIKE $1 OR state ILIKE $1 OR postal_code ILIKE $1 OR country ILIKE $1)
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	searchTerm := "%" + query + "%"
+	rows, err := r.db.Query(ctx, searchQuery, searchTerm, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanAddresses(rows)
+}
+
 func (r *addressRepository) SearchByCity(ctx context.Context, city string, limit, offset int) ([]*entities.Address, error) {
 	query := `
 		SELECT id, addressable_id, addressable_type, address_line1, address_line2,

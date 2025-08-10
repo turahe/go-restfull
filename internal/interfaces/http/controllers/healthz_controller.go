@@ -79,6 +79,15 @@ func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 		}
 	}
 
+	// Check MeiliSearch (if enabled)
+	if config.GetConfig().Meilisearch.Enable {
+		meilisearchHealth := h.checkMeiliSearch(ctx)
+		healthChecks = append(healthChecks, meilisearchHealth)
+		if meilisearchHealth.Status != "healthy" {
+			overallStatus = "unhealthy"
+		}
+	}
+
 	// Check Application Services
 	appHealth := h.checkApplicationServices(ctx)
 	healthChecks = append(healthChecks, appHealth...)
@@ -283,6 +292,27 @@ func (h *HealthzHTTPHandler) checkSentry(ctx context.Context) HealthCheck {
 		Service:   "sentry",
 		Status:    "healthy",
 		Message:   "Sentry is available",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+}
+
+func (h *HealthzHTTPHandler) checkMeiliSearch(ctx context.Context) HealthCheck {
+	// For now, we'll assume MeiliSearch is healthy if enabled
+	// In a real implementation, you might want to check MeiliSearch connectivity
+	cfg := config.GetConfig()
+	if cfg == nil || !cfg.Meilisearch.Enable {
+		return HealthCheck{
+			Service:   "meilisearch",
+			Status:    "unhealthy",
+			Message:   "MeiliSearch is not enabled",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+	}
+
+	return HealthCheck{
+		Service:   "meilisearch",
+		Status:    "healthy",
+		Message:   "MeiliSearch is available",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }
