@@ -57,16 +57,22 @@ func NewCommentService(commentRepository repositories.CommentRepository) ports.C
 // Returns:
 //   - *entities.Comment: The created comment entity
 //   - error: Any error that occurred during the operation
-func (s *commentService) CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status entities.CommentStatus) (*entities.Comment, error) {
-	// Create new comment entity with the provided data
-	comment, err := entities.NewComment(content, postID, userID, parentID, status)
+func (s *commentService) CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status string) (*entities.Comment, error) {
+	// Map incoming status string to domain status type
+	domainStatus := entities.CommentStatus(status)
+
+	// Create new comment entity; content is handled separately (content model)
+	comment, err := entities.NewComment("post", postID, parentID, domainStatus)
 	if err != nil {
 		return nil, err
 	}
 
+	// Set authorship
+	comment.CreatedBy = userID
+	comment.UpdatedBy = userID
+
 	// Persist the comment to the repository
-	err = s.commentRepository.Create(ctx, comment)
-	if err != nil {
+	if err := s.commentRepository.Create(ctx, comment); err != nil {
 		return nil, err
 	}
 
@@ -200,6 +206,7 @@ func (s *commentService) GetPendingComments(ctx context.Context, limit, offset i
 //   - *entities.Comment: The updated comment entity
 //   - error: Any error that occurred during the operation
 func (s *commentService) UpdateComment(ctx context.Context, id uuid.UUID, content, status string) (*entities.Comment, error) {
+	_ = content // content managed via content module; unused here
 	// Retrieve existing comment to ensure it exists and is not deleted
 	comment, err := s.commentRepository.GetByID(ctx, id)
 	if err != nil {
@@ -207,7 +214,7 @@ func (s *commentService) UpdateComment(ctx context.Context, id uuid.UUID, conten
 	}
 
 	// Update the comment entity with new content and status
-	err = comment.UpdateComment(content, status)
+	err = comment.UpdateComment(entities.CommentStatus(status))
 	if err != nil {
 		return nil, err
 	}

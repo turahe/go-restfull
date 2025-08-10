@@ -10,7 +10,7 @@ import (
 
 // CommentService defines the application service interface for comment operations
 type CommentService interface {
-	CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status string) (*entities.Comment, error)
+	CreateComment(ctx context.Context, modelType string, modelID uuid.UUID, userID uuid.UUID, parentID *uuid.UUID, status string) (*entities.Comment, error)
 	GetCommentByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error)
 	GetCommentsByPostID(ctx context.Context, postID uuid.UUID, limit, offset int) ([]*entities.Comment, error)
 	GetCommentsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Comment, error)

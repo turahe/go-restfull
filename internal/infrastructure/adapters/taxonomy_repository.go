@@ -34,18 +34,21 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 	// If this is a root taxonomy (no parent)
 	if taxonomy.ParentID == nil {
 		// Get the maximum right value and add 1 for the new node
-		var maxRight int64
+		var maxRight uint64
 		err = tx.QueryRow(ctx, `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies WHERE deleted_at IS NULL`).Scan(&maxRight)
 		if err != nil {
 			return err
 		}
 
-		taxonomy.RecordLeft = &maxRight + 1
-		taxonomy.RecordRight = &maxRight + 2
-		taxonomy.RecordDepth = &maxRight + 1
+		left := maxRight + 1
+		right := maxRight + 2
+		depth := uint64(0)
+		taxonomy.RecordLeft = &left
+		taxonomy.RecordRight = &right
+		taxonomy.RecordDepth = &depth
 	} else {
 		// Get the parent's right value
-		var parentRight int64
+		var parentRight uint64
 		err = tx.QueryRow(ctx, `SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentRight)
 		if err != nil {
 			return err
@@ -68,9 +71,17 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 			return err
 		}
 
-		taxonomy.RecordLeft = &parentRight
-		taxonomy.RecordRight = &parentRight + 1
-		taxonomy.RecordDepth = &parentRight + 1 // Will be calculated based on parent
+		left := parentRight
+		right := parentRight + 1
+		// Depth should be parent's depth + 1; fetch parent's depth
+		var parentDepth uint64
+		if err := tx.QueryRow(ctx, `SELECT record_depth FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentDepth); err != nil {
+			return err
+		}
+		depth := parentDepth + 1
+		taxonomy.RecordLeft = &left
+		taxonomy.RecordRight = &right
+		taxonomy.RecordDepth = &depth
 	}
 
 	// Insert the new taxonomy

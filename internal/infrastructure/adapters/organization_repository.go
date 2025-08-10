@@ -36,10 +36,10 @@ func (r *organizationRepository) Create(ctx context.Context, organization *entit
 	`
 
 	// Calculate nested set values
-	var left, right, depth, ordering int
+	var left, right, depth, ordering uint64
 	if organization.ParentID != nil {
 		// Get parent's nested set values
-		var parentLeft, parentRight, parentDepth int
+		var parentLeft, parentRight, parentDepth int64
 		err := r.db.QueryRow(ctx, `
 			SELECT record_left, record_right, record_depth 
 			FROM organizations WHERE id = $1
@@ -67,13 +67,13 @@ func (r *organizationRepository) Create(ctx context.Context, organization *entit
 			return fmt.Errorf("failed to update nested set values: %w", err)
 		}
 
-		left = parentRight
-		right = parentRight + 1
-		depth = parentDepth + 1
+		left = uint64(parentRight)
+		right = uint64(parentRight) + 1
+		depth = uint64(parentDepth) + 1
 		ordering = 1 // Default ordering
 	} else {
 		// Root node
-		var maxRight int
+		var maxRight int64
 		err := r.db.QueryRow(ctx, `
 			SELECT COALESCE(MAX(record_right), 0) FROM organizations
 		`).Scan(&maxRight)
@@ -81,13 +81,17 @@ func (r *organizationRepository) Create(ctx context.Context, organization *entit
 			return fmt.Errorf("failed to get max right value: %w", err)
 		}
 
-		left = maxRight + 1
-		right = maxRight + 2
+		left = uint64(maxRight) + 1
+		right = uint64(maxRight) + 2
 		depth = 0
 		ordering = 1
 	}
 
-	// organization.SetNestedSetValues(left, right, depth, ordering)
+	// Assign computed nested set values to the entity
+	organization.RecordLeft = &left
+	organization.RecordRight = &right
+	organization.RecordDepth = &depth
+	organization.RecordOrdering = &ordering
 
 	_, err := r.db.Exec(ctx, query,
 		organization.ID, organization.Name, organization.Description,

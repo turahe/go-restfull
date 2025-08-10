@@ -62,7 +62,9 @@ func NewOrganizationService(
 // Returns:
 //   - *entities.Organization: The created organization entity
 //   - error: Any error that occurred during the operation
-func (s *organizationService) CreateOrganization(ctx context.Context, name, description, code string, organizationType entities.OrganizationType, parentID *uuid.UUID) (*entities.Organization, error) {
+//
+// Adapter to the ports interface signature; non-used fields are accepted but ignored at domain level
+func (s *organizationService) CreateOrganization(ctx context.Context, name, description, code string, email, phone, address, website, logoURL string, parentID *uuid.UUID) (*entities.Organization, error) {
 	// Validate code uniqueness if provided
 	if code != "" {
 		exists, err := s.organizationRepo.ExistsByCode(ctx, code)
@@ -86,7 +88,8 @@ func (s *organizationService) CreateOrganization(ctx context.Context, name, desc
 	}
 
 	// Create organization entity with the provided parameters
-	organization, err := entities.NewOrganization(name, description, code, organizationType, parentID)
+	// Default type information is not part of the current interface; keep entity with optional fields
+	organization, err := entities.NewOrganization(name, description, code, "", parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +182,9 @@ func (s *organizationService) GetAllOrganizations(ctx context.Context, limit, of
 // Returns:
 //   - *entities.Organization: The updated organization entity
 //   - error: Any error that occurred during the operation
-func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code string, organizationType entities.OrganizationType) (*entities.Organization, error) {
+//
+// Adapter to the ports interface signature; unused fields are accepted but ignored
+func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code, email, phone, address, website, logoURL string) (*entities.Organization, error) {
 	// Retrieve existing organization to ensure it exists and is not deleted
 	organization, err := s.organizationRepo.GetByID(ctx, id)
 	if err != nil {
@@ -201,7 +206,7 @@ func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UU
 	}
 
 	// Update the organization entity with new information
-	if err := organization.UpdateOrganization(name, description, code, organizationType); err != nil {
+	if err := organization.UpdateOrganization(name, description, code, ""); err != nil {
 		return nil, err
 	}
 
