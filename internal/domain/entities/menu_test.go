@@ -16,10 +16,9 @@ func TestNewMenu_Success(t *testing.T) {
 	description := "Main dashboard menu"
 	url := "/dashboard"
 	icon := "dashboard-icon"
-	recordOrdering := int64(1)
 	parentID := uuid.New()
 
-	menu := entities.NewMenu(name, slug, description, url, icon, recordOrdering, &parentID)
+	menu := entities.NewMenu(name, slug, description, url, icon, &parentID)
 
 	assert.NotNil(t, menu)
 	assert.Equal(t, name, menu.Name)
@@ -28,7 +27,6 @@ func TestNewMenu_Success(t *testing.T) {
 	assert.Equal(t, url, menu.URL)
 	assert.Equal(t, icon, menu.Icon)
 	assert.Equal(t, &parentID, menu.ParentID)
-	assert.Equal(t, recordOrdering, menu.RecordOrdering)
 	assert.NotEqual(t, uuid.Nil, menu.ID)
 	assert.False(t, menu.CreatedAt.IsZero())
 	assert.False(t, menu.UpdatedAt.IsZero())
@@ -48,9 +46,8 @@ func TestNewMenu_WithoutParentID(t *testing.T) {
 	description := "Main dashboard menu"
 	url := "/dashboard"
 	icon := "dashboard-icon"
-	recordOrdering := int64(1)
 
-	menu := entities.NewMenu(name, slug, description, url, icon, recordOrdering, nil)
+	menu := entities.NewMenu(name, slug, description, url, icon, nil)
 
 	assert.NotNil(t, menu)
 	assert.Equal(t, name, menu.Name)
@@ -59,7 +56,6 @@ func TestNewMenu_WithoutParentID(t *testing.T) {
 	assert.Equal(t, url, menu.URL)
 	assert.Equal(t, icon, menu.Icon)
 	assert.Nil(t, menu.ParentID)
-	assert.Equal(t, recordOrdering, menu.RecordOrdering)
 	assert.NotEqual(t, uuid.Nil, menu.ID)
 	assert.False(t, menu.CreatedAt.IsZero())
 	assert.False(t, menu.UpdatedAt.IsZero())
@@ -74,27 +70,26 @@ func TestNewMenu_WithoutParentID(t *testing.T) {
 }
 
 func TestMenu_UpdateMenu(t *testing.T) {
-	menu := entities.NewMenu("Old Name", "old-slug", "Old description", "/old-url", "old-icon", 1, nil)
+	menu := entities.NewMenu("Old Name", "old-slug", "Old description", "/old-url", "old-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
 	time.Sleep(1 * time.Millisecond)
 
 	newParentID := uuid.New()
-	menu.UpdateMenu("New Name", "new-slug", "New description", "/new-url", "new-icon", 2, &newParentID)
+	menu.UpdateMenu("New Name", "new-slug", "New description", "/new-url", "new-icon", &newParentID)
 
 	assert.Equal(t, "New Name", menu.Name)
 	assert.Equal(t, "new-slug", menu.Slug)
 	assert.Equal(t, "New description", menu.Description)
 	assert.Equal(t, "/new-url", menu.URL)
 	assert.Equal(t, "new-icon", menu.Icon)
-	assert.Equal(t, int64(2), menu.RecordOrdering)
 	assert.Equal(t, &newParentID, menu.ParentID)
 	assert.True(t, menu.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestMenu_Activate(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	menu.IsActive = false
 	originalUpdatedAt := menu.UpdatedAt
 
@@ -109,7 +104,7 @@ func TestMenu_Activate(t *testing.T) {
 }
 
 func TestMenu_Deactivate(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -123,7 +118,7 @@ func TestMenu_Deactivate(t *testing.T) {
 }
 
 func TestMenu_Show(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	menu.IsVisible = false
 	originalUpdatedAt := menu.UpdatedAt
 
@@ -138,7 +133,7 @@ func TestMenu_Show(t *testing.T) {
 }
 
 func TestMenu_Hide(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -152,7 +147,7 @@ func TestMenu_Hide(t *testing.T) {
 }
 
 func TestMenu_SetTarget(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -165,7 +160,7 @@ func TestMenu_SetTarget(t *testing.T) {
 }
 
 func TestMenu_SoftDelete(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -179,7 +174,7 @@ func TestMenu_SoftDelete(t *testing.T) {
 }
 
 func TestMenu_IsDeleted(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 
 	// Initially not deleted
 	assert.False(t, menu.IsDeleted())
@@ -190,7 +185,7 @@ func TestMenu_IsDeleted(t *testing.T) {
 }
 
 func TestMenu_IsActiveMenu(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 
 	// Initially active and not deleted
 	assert.True(t, menu.IsActiveMenu())
@@ -209,7 +204,7 @@ func TestMenu_IsActiveMenu(t *testing.T) {
 }
 
 func TestMenu_IsVisibleMenu(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 
 	// Initially visible, active and not deleted
 	assert.True(t, menu.IsVisibleMenu())
@@ -236,8 +231,8 @@ func TestMenu_IsVisibleMenu(t *testing.T) {
 }
 
 func TestMenu_AddChild(t *testing.T) {
-	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", 1, nil)
-	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", 2, &parent.ID)
+	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", nil)
+	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", &parent.ID)
 
 	parent.AddChild(child)
 
@@ -246,7 +241,7 @@ func TestMenu_AddChild(t *testing.T) {
 }
 
 func TestMenu_AddChild_NilChild(t *testing.T) {
-	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", 1, nil)
+	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", nil)
 
 	parent.AddChild(nil)
 
@@ -254,9 +249,9 @@ func TestMenu_AddChild_NilChild(t *testing.T) {
 }
 
 func TestMenu_RemoveChild(t *testing.T) {
-	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", 1, nil)
-	child1 := entities.NewMenu("Child1", "child1", "Child1 description", "/child1", "child1-icon", 2, &parent.ID)
-	child2 := entities.NewMenu("Child2", "child2", "Child2 description", "/child2", "child2-icon", 3, &parent.ID)
+	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", nil)
+	child1 := entities.NewMenu("Child1", "child1", "Child1 description", "/child1", "child1-icon", &parent.ID)
+	child2 := entities.NewMenu("Child2", "child2", "Child2 description", "/child2", "child2-icon", &parent.ID)
 
 	parent.AddChild(child1)
 	parent.AddChild(child2)
@@ -271,8 +266,8 @@ func TestMenu_RemoveChild(t *testing.T) {
 }
 
 func TestMenu_RemoveChild_NonExistent(t *testing.T) {
-	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", 1, nil)
-	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", 2, &parent.ID)
+	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", nil)
+	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", &parent.ID)
 
 	parent.AddChild(child)
 	assert.Len(t, parent.Children, 1)
@@ -284,7 +279,7 @@ func TestMenu_RemoveChild_NonExistent(t *testing.T) {
 }
 
 func TestMenu_AddRole(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	role := &entities.Role{ID: uuid.New(), Name: "Admin", Slug: "admin"}
 
 	menu.AddRole(role)
@@ -294,7 +289,7 @@ func TestMenu_AddRole(t *testing.T) {
 }
 
 func TestMenu_AddRole_NilRole(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 
 	menu.AddRole(nil)
 
@@ -302,7 +297,7 @@ func TestMenu_AddRole_NilRole(t *testing.T) {
 }
 
 func TestMenu_RemoveRole(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	role1 := &entities.Role{ID: uuid.New(), Name: "Admin", Slug: "admin"}
 	role2 := &entities.Role{ID: uuid.New(), Name: "User", Slug: "user"}
 
@@ -319,7 +314,7 @@ func TestMenu_RemoveRole(t *testing.T) {
 }
 
 func TestMenu_RemoveRole_NonExistent(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	role := &entities.Role{ID: uuid.New(), Name: "Admin", Slug: "admin"}
 
 	menu.AddRole(role)
@@ -332,7 +327,7 @@ func TestMenu_RemoveRole_NonExistent(t *testing.T) {
 }
 
 func TestMenu_HasRole(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	role := &entities.Role{ID: uuid.New(), Name: "Admin", Slug: "admin"}
 
 	// Initially no roles
@@ -348,7 +343,7 @@ func TestMenu_HasRole(t *testing.T) {
 }
 
 func TestMenu_Validate_Success(t *testing.T) {
-	menu := entities.NewMenu("Valid Name", "valid-slug", "Valid description", "/valid", "valid-icon", 1, nil)
+	menu := entities.NewMenu("Valid Name", "valid-slug", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -356,7 +351,7 @@ func TestMenu_Validate_Success(t *testing.T) {
 }
 
 func TestMenu_Validate_EmptyName(t *testing.T) {
-	menu := entities.NewMenu("", "valid-slug", "Valid description", "/valid", "valid-icon", 1, nil)
+	menu := entities.NewMenu("", "valid-slug", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -365,7 +360,7 @@ func TestMenu_Validate_EmptyName(t *testing.T) {
 }
 
 func TestMenu_Validate_WhitespaceName(t *testing.T) {
-	menu := entities.NewMenu("   ", "valid-slug", "Valid description", "/valid", "valid-icon", 1, nil)
+	menu := entities.NewMenu("   ", "valid-slug", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -374,7 +369,7 @@ func TestMenu_Validate_WhitespaceName(t *testing.T) {
 }
 
 func TestMenu_Validate_EmptySlug(t *testing.T) {
-	menu := entities.NewMenu("Valid Name", "", "Valid description", "/valid", "valid-icon", 1, nil)
+	menu := entities.NewMenu("Valid Name", "", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -383,7 +378,7 @@ func TestMenu_Validate_EmptySlug(t *testing.T) {
 }
 
 func TestMenu_Validate_WhitespaceSlug(t *testing.T) {
-	menu := entities.NewMenu("Valid Name", "   ", "Valid description", "/valid", "valid-icon", 1, nil)
+	menu := entities.NewMenu("Valid Name", "   ", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -392,7 +387,7 @@ func TestMenu_Validate_WhitespaceSlug(t *testing.T) {
 }
 
 func TestMenu_Validate_NegativeRecordOrdering(t *testing.T) {
-	menu := entities.NewMenu("Valid Name", "valid-slug", "Valid description", "/valid", "valid-icon", -1, nil)
+	menu := entities.NewMenu("Valid Name", "valid-slug", "Valid description", "/valid", "valid-icon", nil)
 
 	err := menu.Validate()
 
@@ -402,45 +397,45 @@ func TestMenu_Validate_NegativeRecordOrdering(t *testing.T) {
 
 func TestMenu_IsRoot(t *testing.T) {
 	// Root menu (no parent)
-	root := entities.NewMenu("Root", "root", "Root description", "/root", "root-icon", 1, nil)
+	root := entities.NewMenu("Root", "root", "Root description", "/root", "root-icon", nil)
 	assert.True(t, root.IsRoot())
 
 	// Child menu (has parent)
 	parentID := uuid.New()
-	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", 2, &parentID)
+	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", &parentID)
 	assert.False(t, child.IsRoot())
 }
 
 func TestMenu_IsLeaf(t *testing.T) {
 	// Leaf menu (no children)
-	leaf := entities.NewMenu("Leaf", "leaf", "Leaf description", "/leaf", "leaf-icon", 1, nil)
+	leaf := entities.NewMenu("Leaf", "leaf", "Leaf description", "/leaf", "leaf-icon", nil)
 	assert.True(t, leaf.IsLeaf())
 
 	// Parent menu (has children)
-	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", 1, nil)
-	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", 2, &parent.ID)
+	parent := entities.NewMenu("Parent", "parent", "Parent description", "/parent", "parent-icon", nil)
+	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", &parent.ID)
 	parent.AddChild(child)
 	assert.False(t, parent.IsLeaf())
 }
 
 func TestMenu_GetDepth(t *testing.T) {
 	// Root menu
-	root := entities.NewMenu("Root", "root", "Root description", "/root", "root-icon", 1, nil)
+	root := entities.NewMenu("Root", "root", "Root description", "/root", "root-icon", nil)
 	assert.Equal(t, 0, root.GetDepth())
 
 	// Child menu
-	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", 2, &root.ID)
+	child := entities.NewMenu("Child", "child", "Child description", "/child", "child-icon", &root.ID)
 	child.Parent = root
 	assert.Equal(t, 1, child.GetDepth())
 
 	// Grandchild menu
-	grandchild := entities.NewMenu("Grandchild", "grandchild", "Grandchild description", "/grandchild", "grandchild-icon", 3, &child.ID)
+	grandchild := entities.NewMenu("Grandchild", "grandchild", "Grandchild description", "/grandchild", "grandchild-icon", &child.ID)
 	grandchild.Parent = child
 	assert.Equal(t, 2, grandchild.GetDepth())
 }
 
 func TestMenu_GetWidth(t *testing.T) {
-	menu := entities.NewMenu("Test", "test", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test", "test", "Test description", "/test", "test-icon", nil)
 	menu.RecordLeft = 1
 	menu.RecordRight = 5
 
@@ -450,7 +445,7 @@ func TestMenu_GetWidth(t *testing.T) {
 }
 
 func TestMenu_IsDescendantOf(t *testing.T) {
-	ancestor := entities.NewMenu("Ancestor", "ancestor", "Ancestor description", "/ancestor", "ancestor-icon", 1, nil)
+	ancestor := entities.NewMenu("Ancestor", "ancestor", "Ancestor description", "/ancestor", "ancestor-icon", nil)
 	ancestor.RecordLeft = 1
 	ancestor.RecordRight = 10
 
@@ -494,7 +489,7 @@ func TestMenu_IsAncestorOf(t *testing.T) {
 }
 
 func TestMenu_SoftDelete_MultipleCalls(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 
 	// First soft delete
 	menu.SoftDelete()
@@ -513,7 +508,7 @@ func TestMenu_SoftDelete_MultipleCalls(t *testing.T) {
 }
 
 func TestMenu_Activate_AlreadyActive(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -527,7 +522,7 @@ func TestMenu_Activate_AlreadyActive(t *testing.T) {
 }
 
 func TestMenu_Deactivate_AlreadyInactive(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	menu.IsActive = false
 	originalUpdatedAt := menu.UpdatedAt
 
@@ -542,7 +537,7 @@ func TestMenu_Deactivate_AlreadyInactive(t *testing.T) {
 }
 
 func TestMenu_Show_AlreadyVisible(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	originalUpdatedAt := menu.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -556,7 +551,7 @@ func TestMenu_Show_AlreadyVisible(t *testing.T) {
 }
 
 func TestMenu_Hide_AlreadyHidden(t *testing.T) {
-	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", 1, nil)
+	menu := entities.NewMenu("Test Menu", "test-menu", "Test description", "/test", "test-icon", nil)
 	menu.IsVisible = false
 	originalUpdatedAt := menu.UpdatedAt
 

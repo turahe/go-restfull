@@ -13,9 +13,9 @@ type MenuResponse struct {
 	URL            string         `json:"url,omitempty"`
 	Icon           string         `json:"icon,omitempty"`
 	ParentID       *string        `json:"parent_id,omitempty"`
-	RecordLeft     int64          `json:"record_left"`
-	RecordRight    int64          `json:"record_right"`
-	RecordOrdering int64          `json:"record_ordering"`
+	RecordLeft     uint64         `json:"record_left"`
+	RecordRight    uint64         `json:"record_right"`
+	RecordOrdering uint64         `json:"record_ordering"`
 	IsActive       bool           `json:"is_active"`
 	IsVisible      bool           `json:"is_visible"`
 	Target         string         `json:"target,omitempty"`
@@ -39,9 +39,9 @@ func NewMenuResponse(menu *entities.Menu) *MenuResponse {
 		Description:    menu.Description,
 		URL:            menu.URL,
 		Icon:           menu.Icon,
-		RecordLeft:     menu.RecordLeft,
-		RecordRight:    menu.RecordRight,
-		RecordOrdering: menu.RecordOrdering,
+		RecordLeft:     *menu.RecordLeft,
+		RecordRight:    *menu.RecordRight,
+		RecordOrdering: *menu.RecordOrdering,
 		IsActive:       menu.IsActive,
 		IsVisible:      menu.IsVisible,
 		Target:         menu.Target,

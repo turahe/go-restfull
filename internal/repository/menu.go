@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -35,8 +36,8 @@ func NewMenuRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MenuRep
 }
 
 func (r *MenuRepositoryImpl) Create(ctx context.Context, menu *entities.Menu) error {
-	query := `INSERT INTO menus (id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_at, updated_at)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	query := `INSERT INTO menus (id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_by, updated_by, created_at, updated_at)
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
 
 	parentIDStr := ""
 	if menu.ParentID != nil {
@@ -45,12 +46,12 @@ func (r *MenuRepositoryImpl) Create(ctx context.Context, menu *entities.Menu) er
 
 	_, err := r.pgxPool.Exec(ctx, query,
 		menu.ID.String(), menu.Name, menu.Slug, menu.Description, menu.URL, menu.Icon, parentIDStr,
-		menu.RecordOrdering, menu.IsActive, menu.IsVisible, menu.Target, menu.CreatedAt, menu.UpdatedAt)
+		menu.RecordOrdering, menu.IsActive, menu.IsVisible, menu.Target, menu.CreatedBy, menu.UpdatedBy, menu.CreatedAt, menu.UpdatedAt)
 	return err
 }
 
 func (r *MenuRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Menu, error) {
-	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_at, updated_at, deleted_at
+	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM menus WHERE id = $1 AND deleted_at IS NULL`
 
 	var menu entities.Menu
@@ -58,7 +59,7 @@ func (r *MenuRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entiti
 
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
 		&menu.ID, &menu.Name, &menu.Slug, &menu.Description, &menu.URL, &menu.Icon, &parentIDStr,
-		&menu.RecordOrdering, &menu.IsActive, &menu.IsVisible, &menu.Target, &menu.CreatedAt, &menu.UpdatedAt, &menu.DeletedAt)
+		&menu.RecordOrdering, &menu.IsActive, &menu.IsVisible, &menu.Target, &menu.CreatedBy, &menu.UpdatedBy, &menu.CreatedAt, &menu.UpdatedAt, &menu.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (r *MenuRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entiti
 }
 
 func (r *MenuRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Menu, error) {
-	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_at, updated_at, deleted_at
+	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM menus WHERE deleted_at IS NULL
 			  ORDER BY record_ordering ASC, created_at ASC LIMIT $1 OFFSET $2`
 
@@ -97,7 +98,7 @@ func (r *MenuRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*
 }
 
 func (r *MenuRepositoryImpl) GetByParentID(ctx context.Context, parentID uuid.UUID) ([]*entities.Menu, error) {
-	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_at, updated_at, deleted_at
+	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM menus WHERE parent_id = $1 AND deleted_at IS NULL
 			  ORDER BY record_ordering ASC, created_at ASC`
 
@@ -120,7 +121,7 @@ func (r *MenuRepositoryImpl) GetByParentID(ctx context.Context, parentID uuid.UU
 }
 
 func (r *MenuRepositoryImpl) GetRootMenus(ctx context.Context) ([]*entities.Menu, error) {
-	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_at, updated_at, deleted_at
+	query := `SELECT id, name, slug, description, url, icon, parent_id, record_ordering, is_active, is_visible, target, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM menus WHERE parent_id IS NULL AND deleted_at IS NULL
 			  ORDER BY record_ordering ASC, created_at ASC`
 
@@ -183,7 +184,7 @@ func (r *MenuRepositoryImpl) scanMenuRow(rows pgx.Rows) (*entities.Menu, error) 
 
 	err := rows.Scan(
 		&menu.ID, &menu.Name, &menu.Slug, &menu.Description, &menu.URL, &menu.Icon, &parentIDStr,
-		&menu.RecordOrdering, &menu.IsActive, &menu.IsVisible, &menu.Target, &menu.CreatedAt, &menu.UpdatedAt, &menu.DeletedAt)
+		&menu.RecordOrdering, &menu.IsActive, &menu.IsVisible, &menu.Target, &menu.CreatedBy, &menu.UpdatedBy, &menu.CreatedAt, &menu.UpdatedAt, &menu.DeletedAt)
 	if err != nil {
 		return nil, err
 	}

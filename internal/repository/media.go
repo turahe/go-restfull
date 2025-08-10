@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -36,23 +37,23 @@ func NewMediaRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MediaR
 }
 
 func (r *MediaRepositoryImpl) Create(ctx context.Context, media *entities.Media) error {
-	query := `INSERT INTO media (id, file_name, original_name, mime_type, size, path, url, user_id, created_at, updated_at)
+	query := `INSERT INTO media (id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at)
 			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	_, err := r.pgxPool.Exec(ctx, query,
-		media.ID.String(), media.FileName, media.OriginalName, media.MimeType, media.Size,
-		media.Path, media.URL, media.UserID.String(), media.CreatedAt, media.UpdatedAt)
+		media.ID.String(), media.FileName, media.Name, media.MimeType, media.Size,
+		media.Disk, media.CreatedBy, media.UpdatedBy, media.CreatedAt, media.UpdatedAt)
 	return err
 }
 
 func (r *MediaRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Media, error) {
-	query := `SELECT id, file_name, original_name, mime_type, size, path, url, user_id, created_at, updated_at, deleted_at
+	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM media WHERE id = $1 AND deleted_at IS NULL`
 
 	var media entities.Media
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
-		&media.ID, &media.FileName, &media.OriginalName, &media.MimeType, &media.Size,
-		&media.Path, &media.URL, &media.UserID, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
+		&media.ID, &media.FileName, &media.Name, &media.MimeType, &media.Size,
+		&media.Disk, &media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,7 @@ func (r *MediaRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entit
 }
 
 func (r *MediaRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Media, error) {
-	query := `SELECT id, file_name, original_name, mime_type, size, path, url, user_id, created_at, updated_at, deleted_at
+	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM media WHERE deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -84,7 +85,7 @@ func (r *MediaRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]
 }
 
 func (r *MediaRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
-	query := `SELECT id, file_name, original_name, mime_type, size, path, url, user_id, created_at, updated_at, deleted_at
+	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM media WHERE user_id = $1 AND deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
@@ -107,11 +108,11 @@ func (r *MediaRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID,
 }
 
 func (r *MediaRepositoryImpl) Update(ctx context.Context, media *entities.Media) error {
-	query := `UPDATE media SET file_name = $1, original_name = $2, mime_type = $3, size = $4, path = $5, url = $6, updated_at = $7
+	query := `UPDATE media SET file_name = $1, name = $2, mime_type = $3, size = $4, disk = $5, updated_by = $6, updated_at = $7
 			  WHERE id = $8 AND deleted_at IS NULL`
 
-	_, err := r.pgxPool.Exec(ctx, query, media.FileName, media.OriginalName, media.MimeType, media.Size,
-		media.Path, media.URL, media.UpdatedAt, media.ID.String())
+	_, err := r.pgxPool.Exec(ctx, query, media.FileName, media.Name, media.MimeType, media.Size,
+		media.Disk, media.UpdatedBy, media.UpdatedAt, media.ID.String())
 	return err
 }
 
@@ -143,9 +144,9 @@ func (r *MediaRepositoryImpl) CountByUserID(ctx context.Context, userID uuid.UUI
 }
 
 func (r *MediaRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Media, error) {
-	searchQuery := `SELECT id, file_name, original_name, mime_type, size, path, url, user_id, created_at, updated_at, deleted_at
+	searchQuery := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
 					FROM media WHERE deleted_at IS NULL 
-					AND (file_name ILIKE $1 OR original_name ILIKE $1 OR mime_type ILIKE $1)
+					AND (file_name ILIKE $1 OR name ILIKE $1 OR mime_type ILIKE $1)
 					ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
 	searchPattern := "%" + query + "%"
@@ -171,8 +172,8 @@ func (r *MediaRepositoryImpl) Search(ctx context.Context, query string, limit, o
 func (r *MediaRepositoryImpl) scanMediaRow(rows pgx.Rows) (*entities.Media, error) {
 	var media entities.Media
 	err := rows.Scan(
-		&media.ID, &media.FileName, &media.OriginalName, &media.MimeType, &media.Size,
-		&media.Path, &media.URL, &media.UserID, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
+		&media.ID, &media.FileName, &media.Name, &media.MimeType, &media.Size,
+		&media.Disk, &media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
 	if err != nil {
 		return nil, err
 	}

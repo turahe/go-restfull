@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 
@@ -39,9 +40,9 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 			return err
 		}
 
-		taxonomy.RecordLeft = maxRight + 1
-		taxonomy.RecordRight = maxRight + 2
-		taxonomy.RecordDepth = 0
+		taxonomy.RecordLeft = &maxRight + 1
+		taxonomy.RecordRight = &maxRight + 2
+		taxonomy.RecordDepth = &maxRight + 1
 	} else {
 		// Get the parent's right value
 		var parentRight int64
@@ -67,9 +68,9 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 			return err
 		}
 
-		taxonomy.RecordLeft = parentRight
-		taxonomy.RecordRight = parentRight + 1
-		taxonomy.RecordDepth = 0 // Will be calculated based on parent
+		taxonomy.RecordLeft = &parentRight
+		taxonomy.RecordRight = &parentRight + 1
+		taxonomy.RecordDepth = &parentRight + 1 // Will be calculated based on parent
 	}
 
 	// Insert the new taxonomy

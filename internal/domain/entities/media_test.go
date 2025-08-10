@@ -12,24 +12,23 @@ import (
 
 func TestNewMedia_Success(t *testing.T) {
 	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
 	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, originalName, mimeType, path, url, size, userID)
+	media, err := entities.NewMedia(fileName, name, hash, disk, mimeType, size, userID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, media)
 	assert.Equal(t, fileName, media.FileName)
-	assert.Equal(t, originalName, media.OriginalName)
+	assert.Equal(t, name, media.Name)
+	assert.Equal(t, hash, media.Hash)
+	assert.Equal(t, disk, media.Disk)
 	assert.Equal(t, mimeType, media.MimeType)
-	assert.Equal(t, path, media.Path)
-	assert.Equal(t, url, media.URL)
 	assert.Equal(t, size, media.Size)
-	assert.Equal(t, userID, media.UserID)
 	assert.NotEqual(t, uuid.Nil, media.ID)
 	assert.False(t, media.CreatedAt.IsZero())
 	assert.False(t, media.UpdatedAt.IsZero())
@@ -37,89 +36,74 @@ func TestNewMedia_Success(t *testing.T) {
 }
 
 func TestNewMedia_EmptyFileName(t *testing.T) {
-	originalName := "original-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
 	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia("", originalName, mimeType, path, url, size, userID)
+	media, err := entities.NewMedia("", name, hash, disk, mimeType, size, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
 	assert.Equal(t, "file_name is required", err.Error())
 }
 
-func TestNewMedia_EmptyOriginalName(t *testing.T) {
+func TestNewMedia_EmptyName(t *testing.T) {
 	fileName := "test-image.jpg"
 	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
 	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, "", mimeType, path, url, size, userID)
+	media, err := entities.NewMedia(fileName, "", "", "", mimeType, size, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
-	assert.Equal(t, "original_name is required", err.Error())
+	assert.Equal(t, "name is required", err.Error())
 }
 
 func TestNewMedia_EmptyMimeType(t *testing.T) {
 	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, originalName, "", path, url, size, userID)
+	media, err := entities.NewMedia(fileName, name, hash, disk, "", size, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
-	assert.Equal(t, "mime_type is required", err.Error())
+	assert.Equal(t, "hash is required", err.Error())
 }
 
-func TestNewMedia_EmptyPath(t *testing.T) {
+func TestNewMedia_EmptyDisk(t *testing.T) {
 	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	mimeType := "image/jpeg"
-	url := "https://example.com/uploads/images/test-image.jpg"
 	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, originalName, mimeType, "", url, size, userID)
+	media, err := entities.NewMedia(fileName, name, hash, disk, mimeType, size, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
-	assert.Equal(t, "path is required", err.Error())
-}
-
-func TestNewMedia_EmptyURL(t *testing.T) {
-	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
-	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	size := int64(1024)
-	userID := uuid.New()
-
-	media, err := entities.NewMedia(fileName, originalName, mimeType, path, "", size, userID)
-
-	assert.Error(t, err)
-	assert.Nil(t, media)
-	assert.Equal(t, "url is required", err.Error())
+	assert.Equal(t, "disk is required", err.Error())
 }
 
 func TestNewMedia_ZeroSize(t *testing.T) {
 	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
+	size := int64(1024)
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, originalName, mimeType, path, url, 0, userID)
+	media, err := entities.NewMedia(fileName, name, hash, disk, mimeType, size, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
@@ -128,111 +112,94 @@ func TestNewMedia_ZeroSize(t *testing.T) {
 
 func TestNewMedia_NegativeSize(t *testing.T) {
 	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
+	name := "original-image.jpg"
+	hash := "1234567890"
+	disk := "local"
 	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
 	userID := uuid.New()
 
-	media, err := entities.NewMedia(fileName, originalName, mimeType, path, url, -1024, userID)
+	media, err := entities.NewMedia(fileName, name, hash, disk, mimeType, 0, userID)
 
 	assert.Error(t, err)
 	assert.Nil(t, media)
 	assert.Equal(t, "size must be greater than 0", err.Error())
 }
 
-func TestNewMedia_EmptyUserID(t *testing.T) {
-	fileName := "test-image.jpg"
-	originalName := "original-image.jpg"
-	mimeType := "image/jpeg"
-	path := "/uploads/images/test-image.jpg"
-	url := "https://example.com/uploads/images/test-image.jpg"
-	size := int64(1024)
-
-	media, err := entities.NewMedia(fileName, originalName, mimeType, path, url, size, uuid.Nil)
-
-	assert.Error(t, err)
-	assert.Nil(t, media)
-	assert.Equal(t, "user_id is required", err.Error())
-}
-
 func TestMedia_UpdateMedia(t *testing.T) {
-	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "image/jpeg", "/old/path", "https://old-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalUpdatedAt := media.UpdatedAt
 
 	// Wait a bit to ensure time difference
 	time.Sleep(1 * time.Millisecond)
 
-	err := media.UpdateMedia("new-file.jpg", "new-original.jpg", "image/png", "/new/path", "https://new-url.com", 2048)
+	err := media.UpdateMedia("new-file.jpg", "new-original.jpg", "1234567890", "local", "image/png", 2048)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "new-file.jpg", media.FileName)
-	assert.Equal(t, "new-original.jpg", media.OriginalName)
+	assert.Equal(t, "new-original.jpg", media.Name)
 	assert.Equal(t, "image/png", media.MimeType)
-	assert.Equal(t, "/new/path", media.Path)
-	assert.Equal(t, "https://new-url.com", media.URL)
 	assert.Equal(t, int64(2048), media.Size)
 	assert.True(t, media.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestMedia_UpdateMedia_PartialUpdate(t *testing.T) {
-	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "image/jpeg", "/old/path", "https://old-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalFileName := media.FileName
-	originalOriginalName := media.OriginalName
+	originalName := media.Name
 	originalMimeType := media.MimeType
-	originalPath := media.Path
-	originalURL := media.URL
+	originalHash := media.Hash
+	originalDisk := media.Disk
 
 	err := media.UpdateMedia("", "", "", "", "", 0)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalFileName, media.FileName)         // Should remain unchanged
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
-	assert.Equal(t, originalMimeType, media.MimeType)         // Should remain unchanged
-	assert.Equal(t, originalPath, media.Path)                 // Should remain unchanged
-	assert.Equal(t, originalURL, media.URL)                   // Should remain unchanged
+	assert.Equal(t, originalFileName, media.FileName) // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
+	assert.Equal(t, originalMimeType, media.MimeType) // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash)         // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk)         // Should remain unchanged
 }
 
 func TestMedia_UpdateMedia_OnlyFileName(t *testing.T) {
-	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "image/jpeg", "/old/path", "https://old-url.com", 1024, uuid.New())
-	originalOriginalName := media.OriginalName
+	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
+	originalName := media.Name
 	originalMimeType := media.MimeType
-	originalPath := media.Path
-	originalURL := media.URL
+	originalHash := media.Hash
+	originalDisk := media.Disk
 	originalSize := media.Size
 
 	err := media.UpdateMedia("new-file.jpg", "", "", "", "", 0)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "new-file.jpg", media.FileName)
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
-	assert.Equal(t, originalMimeType, media.MimeType)         // Should remain unchanged
-	assert.Equal(t, originalPath, media.Path)                 // Should remain unchanged
-	assert.Equal(t, originalURL, media.URL)                   // Should remain unchanged
-	assert.Equal(t, originalSize, media.Size)                 // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
+	assert.Equal(t, originalMimeType, media.MimeType) // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash)         // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk)         // Should remain unchanged
+	assert.Equal(t, originalSize, media.Size)         // Should remain unchanged
 }
 
 func TestMedia_UpdateMedia_OnlySize(t *testing.T) {
-	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "image/jpeg", "/old/path", "https://old-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("old-file.jpg", "old-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalFileName := media.FileName
-	originalOriginalName := media.OriginalName
+	originalName := media.Name
 	originalMimeType := media.MimeType
-	originalPath := media.Path
-	originalURL := media.URL
+	originalHash := media.Hash
+	originalDisk := media.Disk
 
 	err := media.UpdateMedia("", "", "", "", "", 2048)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalFileName, media.FileName)         // Should remain unchanged
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
-	assert.Equal(t, originalMimeType, media.MimeType)         // Should remain unchanged
-	assert.Equal(t, originalPath, media.Path)                 // Should remain unchanged
-	assert.Equal(t, originalURL, media.URL)                   // Should remain unchanged
+	assert.Equal(t, originalFileName, media.FileName) // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
+	assert.Equal(t, originalMimeType, media.MimeType) // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash)         // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk)         // Should remain unchanged
 	assert.Equal(t, int64(2048), media.Size)
 }
 
 func TestMedia_SoftDelete(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalUpdatedAt := media.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -246,7 +213,7 @@ func TestMedia_SoftDelete(t *testing.T) {
 }
 
 func TestMedia_IsDeleted(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 
 	// Initially not deleted
 	assert.False(t, media.IsDeleted())
@@ -257,7 +224,7 @@ func TestMedia_IsDeleted(t *testing.T) {
 }
 
 func TestMedia_IsImage(t *testing.T) {
-	media, _ := entities.NewMedia("test-image.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-image.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 
 	// Should be an image
 	assert.True(t, media.IsImage())
@@ -272,7 +239,7 @@ func TestMedia_IsImage(t *testing.T) {
 }
 
 func TestMedia_IsVideo(t *testing.T) {
-	media, _ := entities.NewMedia("test-video.mp4", "test-original.mp4", "video/mp4", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-video.mp4", "test-original.mp4", "1234567890", "local", "video/mp4", 1024, uuid.New())
 
 	// Should be a video
 	assert.True(t, media.IsVideo())
@@ -287,7 +254,7 @@ func TestMedia_IsVideo(t *testing.T) {
 }
 
 func TestMedia_IsAudio(t *testing.T) {
-	media, _ := entities.NewMedia("test-audio.mp3", "test-original.mp3", "audio/mpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-audio.mp3", "test-original.mp3", "1234567890", "local", "audio/mpeg", 1024, uuid.New())
 
 	// Should be an audio file
 	assert.True(t, media.IsAudio())
@@ -302,30 +269,30 @@ func TestMedia_IsAudio(t *testing.T) {
 }
 
 func TestMedia_GetFileExtension(t *testing.T) {
-	media, _ := entities.NewMedia("test-image.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-image.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 
 	// Should return .jpg
 	assert.Equal(t, ".jpg", media.GetFileExtension())
 
 	// Change original name
-	media.OriginalName = "test-document.pdf"
+	media.Name = "test-document.pdf"
 	assert.Equal(t, ".pdf", media.GetFileExtension())
 
 	// No extension
-	media.OriginalName = "testfile"
+	media.Name = "testfile"
 	assert.Equal(t, "", media.GetFileExtension())
 
 	// Multiple dots
-	media.OriginalName = "test.file.name.txt"
+	media.Name = "test.file.name.txt"
 	assert.Equal(t, ".txt", media.GetFileExtension())
 
 	// Empty original name
-	media.OriginalName = ""
+	media.Name = ""
 	assert.Equal(t, "", media.GetFileExtension())
 }
 
 func TestMedia_SoftDelete_MultipleCalls(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 
 	// First soft delete
 	media.SoftDelete()
@@ -344,58 +311,60 @@ func TestMedia_SoftDelete_MultipleCalls(t *testing.T) {
 }
 
 func TestMedia_UpdateMedia_OnlyMimeType(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalFileName := media.FileName
-	originalOriginalName := media.OriginalName
-	originalPath := media.Path
-	originalURL := media.URL
+	originalName := media.Name
+	originalHash := media.Hash
+	originalDisk := media.Disk
 	originalSize := media.Size
 
 	err := media.UpdateMedia("", "", "image/png", "", "", 0)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalFileName, media.FileName)         // Should remain unchanged
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
+	assert.Equal(t, originalFileName, media.FileName) // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
 	assert.Equal(t, "image/png", media.MimeType)
-	assert.Equal(t, originalPath, media.Path) // Should remain unchanged
-	assert.Equal(t, originalURL, media.URL)   // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash) // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk) // Should remain unchanged
 	assert.Equal(t, originalSize, media.Size) // Should remain unchanged
 }
 
 func TestMedia_UpdateMedia_OnlyPath(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/old/path", "https://test-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalFileName := media.FileName
-	originalOriginalName := media.OriginalName
+	originalName := media.Name
 	originalMimeType := media.MimeType
-	originalURL := media.URL
+	originalHash := media.Hash
+	originalDisk := media.Disk
 	originalSize := media.Size
 
 	err := media.UpdateMedia("", "", "", "/new/path", "", 0)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalFileName, media.FileName)         // Should remain unchanged
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
-	assert.Equal(t, originalMimeType, media.MimeType)         // Should remain unchanged
-	assert.Equal(t, "/new/path", media.Path)
-	assert.Equal(t, originalURL, media.URL)   // Should remain unchanged
-	assert.Equal(t, originalSize, media.Size) // Should remain unchanged
+	assert.Equal(t, originalFileName, media.FileName) // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
+	assert.Equal(t, originalMimeType, media.MimeType) // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash)         // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk)         // Should remain unchanged
+	assert.Equal(t, originalSize, media.Size)         // Should remain unchanged
 }
 
 func TestMedia_UpdateMedia_OnlyURL(t *testing.T) {
-	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "image/jpeg", "/test/path", "https://old-url.com", 1024, uuid.New())
+	media, _ := entities.NewMedia("test-file.jpg", "test-original.jpg", "1234567890", "local", "image/jpeg", 1024, uuid.New())
 	originalFileName := media.FileName
-	originalOriginalName := media.OriginalName
+	originalName := media.Name
 	originalMimeType := media.MimeType
-	originalPath := media.Path
+	originalHash := media.Hash
+	originalDisk := media.Disk
 	originalSize := media.Size
 
-	err := media.UpdateMedia("", "", "", "", "https://new-url.com", 0)
+	err := media.UpdateMedia("", "", "", "", "", 0)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalFileName, media.FileName)         // Should remain unchanged
-	assert.Equal(t, originalOriginalName, media.OriginalName) // Should remain unchanged
-	assert.Equal(t, originalMimeType, media.MimeType)         // Should remain unchanged
-	assert.Equal(t, originalPath, media.Path)                 // Should remain unchanged
-	assert.Equal(t, "https://new-url.com", media.URL)
-	assert.Equal(t, originalSize, media.Size) // Should remain unchanged
+	assert.Equal(t, originalFileName, media.FileName) // Should remain unchanged
+	assert.Equal(t, originalName, media.Name)         // Should remain unchanged
+	assert.Equal(t, originalMimeType, media.MimeType) // Should remain unchanged
+	assert.Equal(t, originalHash, media.Hash)         // Should remain unchanged
+	assert.Equal(t, originalDisk, media.Disk)         // Should remain unchanged
+	assert.Equal(t, originalSize, media.Size)         // Should remain unchanged
 }

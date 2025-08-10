@@ -57,7 +57,7 @@ func NewCommentService(commentRepository repositories.CommentRepository) ports.C
 // Returns:
 //   - *entities.Comment: The created comment entity
 //   - error: Any error that occurred during the operation
-func (s *commentService) CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status string) (*entities.Comment, error) {
+func (s *commentService) CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status entities.CommentStatus) (*entities.Comment, error) {
 	// Create new comment entity with the provided data
 	comment, err := entities.NewComment(content, postID, userID, parentID, status)
 	if err != nil {

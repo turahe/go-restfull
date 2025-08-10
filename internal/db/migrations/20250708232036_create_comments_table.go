@@ -40,7 +40,7 @@ var createCommentTable = &Migration{
 				CONSTRAINT "comments_record_ordering_check" CHECK ("record_ordering" >= 0),
 				CONSTRAINT "comments_record_depth_check" CHECK ("record_depth" >= 0),
 				CONSTRAINT "comments_status_check" CHECK ("status" IN ('pending', 'approved', 'rejected', 'spam', 'trash')),
-				CONSTRAINT "comments_model_type_check" CHECK ("model_type" IN ('post', 'page', 'comment', 'media', 'taxonomy', 'organization', 'user', 'job', 'menu', 'menu_role', 'role', 'user_role', 'setting', 'content', 'tag')),
+				CONSTRAINT "comments_model_type_check" CHECK ("model_type" IN ('post', 'page', 'comment', 'media', 'taxonomy', 'organization', 'user', 'menu',  'role', 'setting', 'content', 'tag')),
 				CONSTRAINT "comments_model_id_check" CHECK ("model_id" IS NOT NULL)
 			)
 		`)

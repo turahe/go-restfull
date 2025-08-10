@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -39,18 +40,18 @@ func (r *ContentRepositoryImpl) Create(ctx context.Context, content *entities.Co
 
 	_, err := r.pgxPool.Exec(ctx, query,
 		content.ID.String(), content.ModelType, content.ModelID.String(), content.ContentRaw, content.ContentHTML,
-		content.CreatedAt, content.UpdatedAt)
+		content.CreatedBy, content.UpdatedBy, content.CreatedAt, content.UpdatedAt)
 	return err
 }
 
 func (r *ContentRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Content, error) {
-	query := `SELECT id, model_type, model_id, content_raw, content_html, created_at, updated_at
+	query := `SELECT id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at
 			  FROM contents WHERE id = $1`
 
 	var content entities.Content
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
 		&content.ID, &content.ModelType, &content.ModelID, &content.ContentRaw, &content.ContentHTML,
-		&content.CreatedAt, &content.UpdatedAt)
+		&content.CreatedBy, &content.UpdatedBy, &content.CreatedAt, &content.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (r *ContentRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*ent
 }
 
 func (r *ContentRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Content, error) {
-	query := `SELECT id, model_type, model_id, content_raw, content_html, created_at, updated_at
+	query := `SELECT id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at
 			  FROM contents
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -82,7 +83,7 @@ func (r *ContentRepositoryImpl) GetAll(ctx context.Context, limit, offset int) (
 }
 
 func (r *ContentRepositoryImpl) GetByModelTypeAndID(ctx context.Context, modelType string, modelID uuid.UUID) ([]*entities.Content, error) {
-	query := `SELECT id, model_type, model_id, content_raw, content_html, created_at, updated_at
+	query := `SELECT id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at
 			  FROM contents WHERE model_type = $1 AND model_id = $2
 			  ORDER BY created_at ASC`
 
@@ -105,11 +106,11 @@ func (r *ContentRepositoryImpl) GetByModelTypeAndID(ctx context.Context, modelTy
 }
 
 func (r *ContentRepositoryImpl) Update(ctx context.Context, content *entities.Content) error {
-	query := `UPDATE contents SET model_type = $1, model_id = $2, content_raw = $3, content_html = $4, updated_at = $5
-			  WHERE id = $6`
+	query := `UPDATE contents SET model_type = $1, model_id = $2, content_raw = $3, content_html = $4, updated_at = $5, updated_by = $6
+			  WHERE id = $7`
 
 	_, err := r.pgxPool.Exec(ctx, query, content.ModelType, content.ModelID.String(), content.ContentRaw, content.ContentHTML,
-		content.UpdatedAt, content.ID.String())
+		content.UpdatedAt, content.UpdatedBy, content.ID.String())
 	return err
 }
 
@@ -138,7 +139,7 @@ func (r *ContentRepositoryImpl) scanContentRow(rows pgx.Rows) (*entities.Content
 	var content entities.Content
 	err := rows.Scan(
 		&content.ID, &content.ModelType, &content.ModelID, &content.ContentRaw, &content.ContentHTML,
-		&content.CreatedAt, &content.UpdatedAt)
+		&content.CreatedBy, &content.UpdatedBy, &content.CreatedAt, &content.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

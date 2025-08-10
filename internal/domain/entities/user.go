@@ -17,6 +17,10 @@ type User struct {
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	PhoneVerifiedAt *time.Time `json:"phone_verified_at,omitempty"`
 	Roles           []*Role    `json:"roles,omitempty"`
+	Menus           []*Menu    `json:"menus,omitempty"`
+	CreatedBy       uuid.UUID  `json:"created_by"`
+	UpdatedBy       uuid.UUID  `json:"updated_by"`
+	DeletedBy       *uuid.UUID `json:"deleted_by,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
@@ -108,4 +112,4 @@ func (u *User) IsEmailVerified() bool {
 // IsPhoneVerified checks if the user's phone is verified
 func (u *User) IsPhoneVerified() bool {
 	return u.PhoneVerifiedAt != nil
-} 
+}

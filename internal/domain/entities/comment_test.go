@@ -11,20 +11,18 @@ import (
 )
 
 func TestNewComment_Success(t *testing.T) {
-	content := "Test comment content"
-	postID := uuid.New()
-	userID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
 	parentID := uuid.New()
 
-	comment, err := entities.NewComment(content, postID, userID, &parentID, "pending")
+	comment, err := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
-	assert.Equal(t, content, comment.Content)
-	assert.Equal(t, postID, comment.PostID)
-	assert.Equal(t, userID, comment.UserID)
+	assert.Equal(t, modelType, comment.ModelType)
+	assert.Equal(t, modelID, comment.ModelID)
 	assert.Equal(t, &parentID, comment.ParentID)
-	assert.Equal(t, "pending", comment.Status)
+	assert.Equal(t, entities.CommentStatusPending, comment.Status)
 	assert.NotEqual(t, uuid.Nil, comment.ID)
 	assert.False(t, comment.CreatedAt.IsZero())
 	assert.False(t, comment.UpdatedAt.IsZero())
@@ -32,105 +30,115 @@ func TestNewComment_Success(t *testing.T) {
 }
 
 func TestNewComment_WithoutParentID(t *testing.T) {
-	content := "Test comment content"
-	postID := uuid.New()
-	userID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
 
-	comment, err := entities.NewComment(content, postID, userID, nil, "approved")
+	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
-	assert.Equal(t, content, comment.Content)
-	assert.Equal(t, postID, comment.PostID)
-	assert.Equal(t, userID, comment.UserID)
+	assert.Equal(t, modelType, comment.ModelType)
+	assert.Equal(t, modelID, comment.ModelID)
 	assert.Nil(t, comment.ParentID)
-	assert.Equal(t, "approved", comment.Status)
+	assert.Equal(t, entities.CommentStatusApproved, comment.Status)
 }
 
 func TestNewComment_DefaultStatus(t *testing.T) {
-	content := "Test comment content"
-	postID := uuid.New()
-	userID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
 
-	comment, err := entities.NewComment(content, postID, userID, nil, "")
+	comment, err := entities.NewComment(modelType, modelID, &parentID, "pending")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
-	assert.Equal(t, "pending", comment.Status)
+	assert.Equal(t, entities.CommentStatusPending, comment.Status)
 }
 
 func TestNewComment_EmptyContent(t *testing.T) {
-	postID := uuid.New()
-	userID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
 
-	comment, err := entities.NewComment("", postID, userID, nil, "pending")
+	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
 
 	assert.Error(t, err)
 	assert.Nil(t, comment)
-	assert.Equal(t, "content is required", err.Error())
+	assert.Equal(t, "model_type is required", err.Error())
 }
 
 func TestNewComment_EmptyPostID(t *testing.T) {
-	content := "Test comment content"
-	userID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
 
-	comment, err := entities.NewComment(content, uuid.Nil, userID, nil, "pending")
+	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
 
 	assert.Error(t, err)
 	assert.Nil(t, comment)
-	assert.Equal(t, "post_id is required", err.Error())
+	assert.Equal(t, "model_id is required", err.Error())
 }
 
 func TestNewComment_EmptyUserID(t *testing.T) {
-	content := "Test comment content"
-	postID := uuid.New()
+	modelType := "post"
+	modelID := uuid.New()
 
-	comment, err := entities.NewComment(content, postID, uuid.Nil, nil, "pending")
+	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
 
 	assert.Error(t, err)
 	assert.Nil(t, comment)
-	assert.Equal(t, "user_id is required", err.Error())
+	assert.Equal(t, "model_id is required", err.Error())
 }
 
 func TestComment_UpdateComment(t *testing.T) {
-	comment, _ := entities.NewComment("Original content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 	originalUpdatedAt := comment.UpdatedAt
 
 	// Wait a bit to ensure time difference
 	time.Sleep(1 * time.Millisecond)
 
-	err := comment.UpdateComment("Updated content", "approved")
+	err := comment.UpdateComment(entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "Updated content", comment.Content)
-	assert.Equal(t, "approved", comment.Status)
+	assert.Equal(t, entities.CommentStatusApproved, comment.Status)
 	assert.True(t, comment.UpdatedAt.After(originalUpdatedAt))
 }
 
 func TestComment_UpdateComment_PartialUpdate(t *testing.T) {
-	comment, _ := entities.NewComment("Original content", uuid.New(), uuid.New(), nil, "pending")
-	originalContent := comment.Content
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
 
-	err := comment.UpdateComment("", "approved")
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
+
+	err := comment.UpdateComment(entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalContent, comment.Content) // Should remain unchanged
-	assert.Equal(t, "approved", comment.Status)
+	assert.Equal(t, entities.CommentStatusApproved, comment.Status)
 }
 
 func TestComment_UpdateComment_OnlyContent(t *testing.T) {
-	comment, _ := entities.NewComment("Original content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 	originalStatus := comment.Status
 
-	err := comment.UpdateComment("Updated content", "")
+	err := comment.UpdateComment(entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "Updated content", comment.Content)
 	assert.Equal(t, originalStatus, comment.Status) // Should remain unchanged
 }
 
 func TestComment_SoftDelete(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 	originalUpdatedAt := comment.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -144,7 +152,11 @@ func TestComment_SoftDelete(t *testing.T) {
 }
 
 func TestComment_IsDeleted(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Initially not deleted
 	assert.False(t, comment.IsDeleted())
@@ -155,29 +167,41 @@ func TestComment_IsDeleted(t *testing.T) {
 }
 
 func TestComment_IsApproved(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Initially not approved
 	assert.False(t, comment.IsApproved())
 
 	// After approval
-	comment.Status = "approved"
+	comment.Status = entities.CommentStatusApproved
 	assert.True(t, comment.IsApproved())
 }
 
 func TestComment_IsPending(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Initially pending
 	assert.True(t, comment.IsPending())
 
 	// After status change
-	comment.Status = "approved"
+	comment.Status = entities.CommentStatusApproved
 	assert.False(t, comment.IsPending())
 }
 
 func TestComment_IsRejected(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Initially not rejected
 	assert.False(t, comment.IsRejected())
@@ -188,7 +212,12 @@ func TestComment_IsRejected(t *testing.T) {
 }
 
 func TestComment_Approve(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
+
 	originalUpdatedAt := comment.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -196,13 +225,18 @@ func TestComment_Approve(t *testing.T) {
 
 	comment.Approve()
 
-	assert.Equal(t, "approved", comment.Status)
+	assert.Equal(t, entities.CommentStatusApproved, comment.Status)
 	assert.True(t, comment.UpdatedAt.After(originalUpdatedAt))
 	assert.True(t, comment.IsApproved())
 }
 
 func TestComment_Reject(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
+
 	originalUpdatedAt := comment.UpdatedAt
 
 	// Wait a bit to ensure time difference
@@ -210,33 +244,42 @@ func TestComment_Reject(t *testing.T) {
 
 	comment.Reject()
 
-	assert.Equal(t, "rejected", comment.Status)
+	assert.Equal(t, entities.CommentStatusRejected, comment.Status)
 	assert.True(t, comment.UpdatedAt.After(originalUpdatedAt))
 	assert.True(t, comment.IsRejected())
 }
 
 func TestComment_IsReply(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Initially not a reply
 	assert.False(t, comment.IsReply())
 
 	// After setting parent ID
-	parentID := uuid.New()
 	comment.ParentID = &parentID
 	assert.True(t, comment.IsReply())
 }
 
 func TestComment_IsReply_WithParentID(t *testing.T) {
+	modelType := "post"
+	modelID := uuid.New()
 	parentID := uuid.New()
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), &parentID, "pending")
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Should be a reply since parent ID is set
 	assert.True(t, comment.IsReply())
 }
 
 func TestComment_StatusTransitions(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// Test status transitions
 	assert.True(t, comment.IsPending())
@@ -255,19 +298,25 @@ func TestComment_StatusTransitions(t *testing.T) {
 }
 
 func TestComment_UpdateComment_EmptyStrings(t *testing.T) {
-	comment, _ := entities.NewComment("Original content", uuid.New(), uuid.New(), nil, "pending")
-	originalContent := comment.Content
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 	originalStatus := comment.Status
 
-	err := comment.UpdateComment("", "")
+	err := comment.UpdateComment(entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalContent, comment.Content)
 	assert.Equal(t, originalStatus, comment.Status)
 }
 
 func TestComment_SoftDelete_MultipleCalls(t *testing.T) {
-	comment, _ := entities.NewComment("Test content", uuid.New(), uuid.New(), nil, "pending")
+	modelType := "post"
+	modelID := uuid.New()
+	parentID := uuid.New()
+
+	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
 	// First soft delete
 	comment.SoftDelete()

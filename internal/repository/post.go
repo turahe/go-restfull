@@ -40,21 +40,21 @@ func NewPostRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) PostRep
 }
 
 func (r *PostRepositoryImpl) Create(ctx context.Context, post *entities.Post) error {
-	query := `INSERT INTO posts (id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_at, updated_at)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+	query := `INSERT INTO posts (id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_by, updated_by, created_at, updated_at)
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
 
 	_, err := r.pgxPool.Exec(ctx, query,
-		post.ID.String(), post.Title, post.Slug, post.Subtitle, post.Description, post.Language, post.Layout, post.IsSticky, post.PublishedAt, post.CreatedAt, post.UpdatedAt)
+		post.ID.String(), post.Title, post.Slug, post.Subtitle, post.Description, post.Language, post.Layout, post.IsSticky, post.PublishedAt, post.CreatedBy, post.UpdatedBy, post.CreatedAt, post.UpdatedAt)
 	return err
 }
 
 func (r *PostRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
-	query := `SELECT id, title, slug, content, status, author_id, published_at, created_at, updated_at, deleted_at
+	query := `SELECT id, title, slug, content, status, author_id, published_at, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM posts WHERE id = $1 AND deleted_at IS NULL`
 
 	var post entities.Post
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
-		&post.ID, &post.Title, &post.Slug, &post.Subtitle, &post.Description, &post.Language, &post.Layout, &post.IsSticky, &post.PublishedAt, &post.CreatedAt, &post.UpdatedAt, &post.DeletedAt)
+		&post.ID, &post.Title, &post.Slug, &post.Subtitle, &post.Description, &post.Language, &post.Layout, &post.IsSticky, &post.PublishedAt, &post.CreatedBy, &post.UpdatedBy, &post.CreatedAt, &post.UpdatedAt, &post.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +63,12 @@ func (r *PostRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entiti
 }
 
 func (r *PostRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
-	query := `SELECT id, title, slug, content, status, author_id, published_at, created_at, updated_at, deleted_at
+	query := `SELECT id, title, slug, content, status, author_id, published_at, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM posts WHERE slug = $1 AND deleted_at IS NULL`
 
 	var post entities.Post
 	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(
-		&post.ID, &post.Title, &post.Slug, &post.Subtitle, &post.Description, &post.Language, &post.Layout, &post.IsSticky, &post.PublishedAt, &post.CreatedAt, &post.UpdatedAt, &post.DeletedAt)
+		&post.ID, &post.Title, &post.Slug, &post.Subtitle, &post.Description, &post.Language, &post.Layout, &post.IsSticky, &post.PublishedAt, &post.CreatedBy, &post.UpdatedBy, &post.CreatedAt, &post.UpdatedAt, &post.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *PostRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*entit
 }
 
 func (r *PostRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
-	query := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_at, updated_at, deleted_at
+	query := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM posts WHERE deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -100,7 +100,7 @@ func (r *PostRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*
 }
 
 func (r *PostRepositoryImpl) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
-	query := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_at, updated_at, deleted_at
+	query := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM posts WHERE published_at IS NOT NULL AND deleted_at IS NULL
 			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -123,7 +123,7 @@ func (r *PostRepositoryImpl) GetPublished(ctx context.Context, limit, offset int
 }
 
 func (r *PostRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
-	searchQuery := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_at, updated_at, deleted_at
+	searchQuery := `SELECT id, title, slug, subtitle, description, language, layout, is_sticky, published_at, created_by, updated_by, created_at, updated_at, deleted_at
 					FROM posts WHERE deleted_at IS NULL AND
 					(title ILIKE $1 OR slug ILIKE $1 OR subtitle ILIKE $1 OR description ILIKE $1)
 					ORDER BY created_at DESC LIMIT $2 OFFSET $3`
@@ -148,10 +148,10 @@ func (r *PostRepositoryImpl) Search(ctx context.Context, query string, limit, of
 }
 
 func (r *PostRepositoryImpl) Update(ctx context.Context, post *entities.Post) error {
-	query := `UPDATE posts SET title = $1, slug = $2, subtitle = $3, description = $4, language = $5, layout = $6, is_sticky = $7, published_at = $8, updated_at = $9
-			  WHERE id = $10 AND deleted_at IS NULL`
+	query := `UPDATE posts SET title = $1, slug = $2, subtitle = $3, description = $4, language = $5, layout = $6, is_sticky = $7, published_at = $8, updated_by = $9, updated_at = $10
+			  WHERE id = $11 AND deleted_at IS NULL`
 
-	_, err := r.pgxPool.Exec(ctx, query, post.Title, post.Slug, post.Subtitle, post.Description, post.Language, post.Layout, post.IsSticky, post.PublishedAt,
+	_, err := r.pgxPool.Exec(ctx, query, post.Title, post.Slug, post.Subtitle, post.Description, post.Language, post.Layout, post.IsSticky, post.PublishedAt, post.UpdatedBy,
 		post.UpdatedAt, post.ID.String())
 	return err
 }
@@ -163,13 +163,13 @@ func (r *PostRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *PostRepositoryImpl) Publish(ctx context.Context, id uuid.UUID) error {
-	query := `UPDATE posts SET published_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+	query := `UPDATE posts SET published_at = NOW(), updated_at = NOW(), updated_by = $1 WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.pgxPool.Exec(ctx, query, id.String())
 	return err
 }
 
 func (r *PostRepositoryImpl) Unpublish(ctx context.Context, id uuid.UUID) error {
-	query := `UPDATE posts SET published_at = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+	query := `UPDATE posts SET published_at = NULL, updated_at = NOW(), updated_by = $1 WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.pgxPool.Exec(ctx, query, id.String())
 	return err
 }

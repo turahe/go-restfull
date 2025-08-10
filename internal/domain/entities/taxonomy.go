@@ -16,9 +16,12 @@ type Taxonomy struct {
 	Code        string     `json:"code,omitempty"`
 	Description string     `json:"description,omitempty"`
 	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	RecordLeft  int64      `json:"record_left"`
-	RecordRight int64      `json:"record_right"`
-	RecordDepth int64      `json:"record_depth"`
+	RecordLeft  *uint64    `json:"record_left,omitempty"`
+	RecordRight *uint64    `json:"record_right,omitempty"`
+	RecordDepth *uint64    `json:"record_depth,omitempty"`
+	CreatedBy   uuid.UUID  `json:"created_by"`
+	UpdatedBy   uuid.UUID  `json:"updated_by"`
+	DeletedBy   *uuid.UUID `json:"deleted_by,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
@@ -37,9 +40,6 @@ func NewTaxonomy(name, slug, code, description string, parentID *uuid.UUID) *Tax
 		Code:        code,
 		Description: description,
 		ParentID:    parentID,
-		RecordLeft:  0, // Will be set by repository
-		RecordRight: 0, // Will be set by repository
-		RecordDepth: 0, // Will be set by repository
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 		Children:    []*Taxonomy{},
@@ -125,16 +125,16 @@ func (t *Taxonomy) GetDepth() int {
 }
 
 // GetWidth returns the width of the node in the nested set
-func (t *Taxonomy) GetWidth() int64 {
-	return t.RecordRight - t.RecordLeft + 1
+func (t *Taxonomy) GetWidth() uint64 {
+	return *t.RecordRight - *t.RecordLeft + 1
 }
 
 // IsDescendantOf checks if this taxonomy is a descendant of the given taxonomy
 func (t *Taxonomy) IsDescendantOf(ancestor *Taxonomy) bool {
-	return t.RecordLeft > ancestor.RecordLeft && t.RecordRight < ancestor.RecordRight
+	return *t.RecordLeft > *ancestor.RecordLeft && *t.RecordRight < *ancestor.RecordRight
 }
 
 // IsAncestorOf checks if this taxonomy is an ancestor of the given taxonomy
 func (t *Taxonomy) IsAncestorOf(descendant *Taxonomy) bool {
-	return t.RecordLeft < descendant.RecordLeft && t.RecordRight > descendant.RecordRight
-} 
+	return *t.RecordLeft < *descendant.RecordLeft && *t.RecordRight > *descendant.RecordRight
+}

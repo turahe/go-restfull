@@ -27,7 +27,7 @@ func NewOrganizationRepository(db *pgxpool.Pool) repositories.OrganizationReposi
 func (r *organizationRepository) Create(ctx context.Context, organization *entities.Organization) error {
 	query := `
 		INSERT INTO organizations (
-			id, name, description, code, email, phone, address, website, logo_url, 
+			id, name, description, code, type,
 			status, parent_id, record_left, record_right, record_depth, record_ordering,
 			created_at, updated_at
 		) VALUES (
@@ -87,12 +87,11 @@ func (r *organizationRepository) Create(ctx context.Context, organization *entit
 		ordering = 1
 	}
 
-	organization.SetNestedSetValues(&left, &right, &depth, &ordering)
+	// organization.SetNestedSetValues(left, right, depth, ordering)
 
 	_, err := r.db.Exec(ctx, query,
 		organization.ID, organization.Name, organization.Description,
-		organization.Code, organization.Email, organization.Phone,
-		organization.Address, organization.Website, organization.LogoURL,
+		organization.Code, organization.Type,
 		organization.Status, organization.ParentID,
 		organization.RecordLeft, organization.RecordRight,
 		organization.RecordDepth, organization.RecordOrdering,
@@ -107,7 +106,7 @@ func (r *organizationRepository) Create(ctx context.Context, organization *entit
 
 func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -116,8 +115,8 @@ func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 	var org entities.Organization
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-		&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+		&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+		&org.Status,
 		&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 		&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 	)
@@ -133,7 +132,7 @@ func (r *organizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 func (r *organizationRepository) GetByCode(ctx context.Context, code string) (*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -142,8 +141,8 @@ func (r *organizationRepository) GetByCode(ctx context.Context, code string) (*e
 
 	var org entities.Organization
 	err := r.db.QueryRow(ctx, query, code).Scan(
-		&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-		&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+		&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+		&org.Status,
 		&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 		&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 	)
@@ -159,7 +158,7 @@ func (r *organizationRepository) GetByCode(ctx context.Context, code string) (*e
 
 func (r *organizationRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -178,8 +177,8 @@ func (r *organizationRepository) GetAll(ctx context.Context, limit, offset int) 
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -195,17 +194,15 @@ func (r *organizationRepository) GetAll(ctx context.Context, limit, offset int) 
 func (r *organizationRepository) Update(ctx context.Context, organization *entities.Organization) error {
 	query := `
 		UPDATE organizations
-		SET name = $2, description = $3, code = $4, email = $5, phone = $6,
-			address = $7, website = $8, logo_url = $9, status = $10,
-			parent_id = $11, record_left = $12, record_right = $13,
-			record_depth = $14, record_ordering = $15, updated_at = $16
+		SET name = $2, description = $3, code = $4, type = $5,
+			status = $6, parent_id = $7, record_left = $8, record_right = $9,
+			record_depth = $10, record_ordering = $11, updated_at = $12
 		WHERE id = $1
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		organization.ID, organization.Name, organization.Description,
-		organization.Code, organization.Email, organization.Phone,
-		organization.Address, organization.Website, organization.LogoURL,
+		organization.Code, organization.Type,
 		organization.Status, organization.ParentID,
 		organization.RecordLeft, organization.RecordRight,
 		organization.RecordDepth, organization.RecordOrdering,
@@ -235,7 +232,7 @@ func (r *organizationRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 func (r *organizationRepository) GetRoots(ctx context.Context) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -253,8 +250,8 @@ func (r *organizationRepository) GetRoots(ctx context.Context) ([]*entities.Orga
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -269,7 +266,7 @@ func (r *organizationRepository) GetRoots(ctx context.Context) ([]*entities.Orga
 
 func (r *organizationRepository) GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+			SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -287,8 +284,8 @@ func (r *organizationRepository) GetChildren(ctx context.Context, parentID uuid.
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -303,7 +300,7 @@ func (r *organizationRepository) GetChildren(ctx context.Context, parentID uuid.
 
 func (r *organizationRepository) GetDescendants(ctx context.Context, parentID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -323,8 +320,8 @@ func (r *organizationRepository) GetDescendants(ctx context.Context, parentID uu
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -339,7 +336,7 @@ func (r *organizationRepository) GetDescendants(ctx context.Context, parentID uu
 
 func (r *organizationRepository) GetAncestors(ctx context.Context, organizationID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -359,8 +356,8 @@ func (r *organizationRepository) GetAncestors(ctx context.Context, organizationI
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -375,7 +372,7 @@ func (r *organizationRepository) GetAncestors(ctx context.Context, organizationI
 
 func (r *organizationRepository) GetSiblings(ctx context.Context, organizationID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -395,8 +392,8 @@ func (r *organizationRepository) GetSiblings(ctx context.Context, organizationID
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -412,7 +409,7 @@ func (r *organizationRepository) GetSiblings(ctx context.Context, organizationID
 func (r *organizationRepository) GetPath(ctx context.Context, organizationID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
 		WITH RECURSIVE org_path AS (
-			SELECT id, name, description, code, email, phone, address, website, logo_url,
+			SELECT id, name, description, code, type,
 				   status, parent_id, record_left, record_right, record_depth, record_ordering,
 				   created_at, updated_at, deleted_at, 1 as level
 			FROM organizations
@@ -420,13 +417,13 @@ func (r *organizationRepository) GetPath(ctx context.Context, organizationID uui
 			
 			UNION ALL
 			
-			SELECT o.id, o.name, o.description, o.code, o.email, o.phone, o.address, o.website, o.logo_url,
+			SELECT o.id, o.name, o.description, o.code, o.type,
 				   o.status, o.parent_id, o.record_left, o.record_right, o.record_depth, o.record_ordering,
 				   o.created_at, o.updated_at, o.deleted_at, op.level + 1
 			FROM organizations o
 			INNER JOIN org_path op ON o.id = op.parent_id
 		)
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM org_path
@@ -443,8 +440,8 @@ func (r *organizationRepository) GetPath(ctx context.Context, organizationID uui
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -459,7 +456,7 @@ func (r *organizationRepository) GetPath(ctx context.Context, organizationID uui
 
 func (r *organizationRepository) GetTree(ctx context.Context) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -477,8 +474,8 @@ func (r *organizationRepository) GetTree(ctx context.Context) ([]*entities.Organ
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -493,7 +490,7 @@ func (r *organizationRepository) GetTree(ctx context.Context) ([]*entities.Organ
 
 func (r *organizationRepository) GetSubtree(ctx context.Context, rootID uuid.UUID) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -513,8 +510,8 @@ func (r *organizationRepository) GetSubtree(ctx context.Context, rootID uuid.UUI
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -580,7 +577,7 @@ func (r *organizationRepository) DeleteSubtree(ctx context.Context, organization
 
 func (r *organizationRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Organization, error) {
 	searchQuery := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -601,8 +598,8 @@ func (r *organizationRepository) Search(ctx context.Context, query string, limit
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)
@@ -617,7 +614,7 @@ func (r *organizationRepository) Search(ctx context.Context, query string, limit
 
 func (r *organizationRepository) GetByStatus(ctx context.Context, status entities.OrganizationStatus, limit, offset int) ([]*entities.Organization, error) {
 	query := `
-		SELECT id, name, description, code, email, phone, address, website, logo_url,
+		SELECT id, name, description, code, type,
 			   status, parent_id, record_left, record_right, record_depth, record_ordering,
 			   created_at, updated_at, deleted_at
 		FROM organizations
@@ -636,8 +633,8 @@ func (r *organizationRepository) GetByStatus(ctx context.Context, status entitie
 	for rows.Next() {
 		var org entities.Organization
 		err := rows.Scan(
-			&org.ID, &org.Name, &org.Description, &org.Code, &org.Email,
-			&org.Phone, &org.Address, &org.Website, &org.LogoURL, &org.Status,
+			&org.ID, &org.Name, &org.Description, &org.Code, &org.Type,
+			&org.Status,
 			&org.ParentID, &org.RecordLeft, &org.RecordRight, &org.RecordDepth,
 			&org.RecordOrdering, &org.CreatedAt, &org.UpdatedAt, &org.DeletedAt,
 		)

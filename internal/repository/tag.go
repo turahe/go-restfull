@@ -37,8 +37,8 @@ func NewTagRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) TagRepos
 }
 
 func (r *TagRepositoryImpl) Create(ctx context.Context, tag *entities.Tag) error {
-	query := `INSERT INTO tags (id, name, slug, color, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err := r.pgxPool.Exec(ctx, query, tag.ID.String(), tag.Name, tag.Slug, tag.Color, tag.CreatedAt, tag.UpdatedAt)
+	query := `INSERT INTO tags (id, name, slug, color, created_by, updated_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err := r.pgxPool.Exec(ctx, query, tag.ID.String(), tag.Name, tag.Slug, tag.Color, tag.CreatedBy, tag.UpdatedBy, tag.CreatedAt, tag.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create tag: %w", err)
 	}
@@ -46,11 +46,11 @@ func (r *TagRepositoryImpl) Create(ctx context.Context, tag *entities.Tag) error
 }
 
 func (r *TagRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Tag, error) {
-	query := `SELECT id, name, slug, color, created_at, updated_at, deleted_at FROM tags WHERE id = $1 AND deleted_at IS NULL`
+	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE id = $1 AND deleted_at IS NULL`
 
 	var tag entities.Tag
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
-		&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt)
+		&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tag: %w", err)
 	}
@@ -58,7 +58,7 @@ func (r *TagRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entitie
 }
 
 func (r *TagRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Tag, error) {
-	query := `SELECT id, name, slug, color, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL`
+	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL`
 	rows, err := r.pgxPool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tags: %w", err)
@@ -77,8 +77,8 @@ func (r *TagRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Tag, error)
 }
 
 func (r *TagRepositoryImpl) Update(ctx context.Context, tag *entities.Tag) error {
-	query := `UPDATE tags SET name = $1, slug = $2, color = $3, updated_at = $4 WHERE id = $5 AND deleted_at IS NULL`
-	_, err := r.pgxPool.Exec(ctx, query, tag.Name, tag.Slug, tag.Color, tag.UpdatedAt, tag.ID.String())
+	query := `UPDATE tags SET name = $1, slug = $2, color = $3, updated_at = $4, updated_by = $5 WHERE id = $6 AND deleted_at IS NULL`
+	_, err := r.pgxPool.Exec(ctx, query, tag.Name, tag.Slug, tag.Color, tag.UpdatedAt, tag.UpdatedBy, tag.ID.String())
 	if err != nil {
 		return fmt.Errorf("failed to update tag: %w", err)
 	}
@@ -95,8 +95,8 @@ func (r *TagRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *TagRepositoryImpl) AttachTag(ctx context.Context, tagID, taggableID uuid.UUID, taggableType string) error {
-	query := `INSERT INTO taggables (id, tag_id, taggable_id, taggable_type, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.pgxPool.Exec(ctx, query, uuid.New().String(), tagID.String(), taggableID.String(), taggableType, time.Now())
+	query := `INSERT INTO taggables (id, tag_id, taggable_id, taggable_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err := r.pgxPool.Exec(ctx, query, uuid.New().String(), tagID.String(), taggableID.String(), taggableType, time.Now(), time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to attach tag: %w", err)
 	}
@@ -113,7 +113,7 @@ func (r *TagRepositoryImpl) DetachTag(ctx context.Context, tagID, taggableID uui
 }
 
 func (r *TagRepositoryImpl) GetTagsForEntity(ctx context.Context, taggableID uuid.UUID, taggableType string) ([]*entities.Tag, error) {
-	query := `SELECT t.id, t.name, t.slug, t.color, t.created_at, t.updated_at, t.deleted_at FROM tags t JOIN taggables tg ON t.id = tg.tag_id WHERE tg.taggable_id = $1 AND tg.taggable_type = $2 AND t.deleted_at IS NULL`
+	query := `SELECT t.id, t.name, t.slug, t.color, t.created_by, t.updated_by, t.created_at, t.updated_at, t.deleted_at FROM tags t JOIN taggables tg ON t.id = tg.tag_id WHERE tg.taggable_id = $1 AND tg.taggable_type = $2 AND t.deleted_at IS NULL`
 	rows, err := r.pgxPool.Query(ctx, query, taggableID.String(), taggableType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tags for entity: %w", err)
@@ -135,7 +135,7 @@ func (r *TagRepositoryImpl) GetTagsForEntity(ctx context.Context, taggableID uui
 func (r *TagRepositoryImpl) scanTagRow(rows pgx.Rows) (*entities.Tag, error) {
 	var tag entities.Tag
 	err := rows.Scan(
-		&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt)
+		&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt)
 	if err != nil {
 		return nil, err
 	}

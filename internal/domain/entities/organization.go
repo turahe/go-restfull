@@ -10,10 +10,40 @@ import (
 // OrganizationStatus represents the status of an organization
 type OrganizationStatus string
 
+type OrganizationType string
+
 const (
-	OrganizationStatusActive    OrganizationStatus = "active"
-	OrganizationStatusInactive  OrganizationStatus = "inactive"
-	OrganizationStatusSuspended OrganizationStatus = "suspended"
+	OrganizationTypeCompany            OrganizationType = "COMPANY"
+	OrganizationTypeCompanySubsidiary  OrganizationType = "COMPANY_SUBSIDIARY"
+	OrganizationTypeCompanyAgent       OrganizationType = "COMPANY_AGENT"
+	OrganizationTypeCompanyLicensee    OrganizationType = "COMPANY_LICENSEE"
+	OrganizationTypeCompanyDistributor OrganizationType = "COMPANY_DISTRIBUTOR"
+	OrganizationTypeCompanyConsignee   OrganizationType = "COMPANY_CONSIGNEE"
+	OrganizationTypeCompanyConsignor   OrganizationType = "COMPANY_CONSIGNOR"
+	OrganizationTypeCompanyConsigner   OrganizationType = "COMPANY_CONSIGNER"
+	OrganizationTypeOutlet             OrganizationType = "OUTLET"
+	OrganizationTypeStore              OrganizationType = "STORE"
+	OrganizationTypeDepartment         OrganizationType = "DEPARTMENT"
+	OrganizationTypeSubDepartment      OrganizationType = "SUB_DEPARTMENT"
+	OrganizationTypeDivision           OrganizationType = "DIVISION"
+	OrganizationTypeSubDivision        OrganizationType = "SUB_DIVISION"
+	OrganizationTypeDesignation        OrganizationType = "DESIGNATION"
+	OrganizationTypeInstitution        OrganizationType = "INSTITUTION"
+	OrganizationTypeCommunity          OrganizationType = "COMMUNITY"
+	OrganizationTypeOrganization       OrganizationType = "ORGANIZATION"
+	OrganizationTypeFoundation         OrganizationType = "FOUNDATION"
+	OrganizationTypeBranchOffice       OrganizationType = "BRANCH_OFFICE"
+	OrganizationTypeBranchOutlet       OrganizationType = "BRANCH_OUTLET"
+	OrganizationTypeBranchStore        OrganizationType = "BRANCH_STORE"
+	OrganizationTypeRegional           OrganizationType = "REGIONAL"
+	OrganizationTypeFranchisee         OrganizationType = "FRANCHISEE"
+	OrganizationTypePartner            OrganizationType = "PARTNER"
+)
+
+const (
+	OrganizationStatusActive    OrganizationStatus = "ACTIVE"
+	OrganizationStatusInactive  OrganizationStatus = "INACTIVE"
+	OrganizationStatusSuspended OrganizationStatus = "SUSPENDED"
 )
 
 // Organization represents the core organization domain entity with nested set hierarchy
@@ -22,17 +52,16 @@ type Organization struct {
 	Name           string             `json:"name"`
 	Description    *string            `json:"description,omitempty"`
 	Code           *string            `json:"code,omitempty"`
-	Email          *string            `json:"email,omitempty"`
-	Phone          *string            `json:"phone,omitempty"`
-	Address        *string            `json:"address,omitempty"`
-	Website        *string            `json:"website,omitempty"`
-	LogoURL        *string            `json:"logo_url,omitempty"`
+	Type           *OrganizationType  `json:"type,omitempty"`
 	Status         OrganizationStatus `json:"status"`
 	ParentID       *uuid.UUID         `json:"parent_id,omitempty"`
-	RecordLeft     *int               `json:"record_left,omitempty"`
-	RecordRight    *int               `json:"record_right,omitempty"`
-	RecordDepth    *int               `json:"record_depth,omitempty"`
-	RecordOrdering *int               `json:"record_ordering,omitempty"`
+	RecordLeft     *uint64            `json:"record_left,omitempty"`
+	RecordRight    *uint64            `json:"record_right,omitempty"`
+	RecordDepth    *uint64            `json:"record_depth,omitempty"`
+	RecordOrdering *uint64            `json:"record_ordering,omitempty"`
+	CreatedBy      uuid.UUID          `json:"created_by"`
+	UpdatedBy      uuid.UUID          `json:"updated_by"`
+	DeletedBy      *uuid.UUID         `json:"deleted_by,omitempty"`
 	CreatedAt      time.Time          `json:"created_at"`
 	UpdatedAt      time.Time          `json:"updated_at"`
 	DeletedAt      *time.Time         `json:"deleted_at,omitempty"`
@@ -42,7 +71,7 @@ type Organization struct {
 }
 
 // NewOrganization creates a new organization with validation
-func NewOrganization(name, description, code, email, phone, address, website, logoURL string, parentID *uuid.UUID) (*Organization, error) {
+func NewOrganization(name, description, code string, organizationType OrganizationType, parentID *uuid.UUID) (*Organization, error) {
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
@@ -64,27 +93,15 @@ func NewOrganization(name, description, code, email, phone, address, website, lo
 	if code != "" {
 		org.Code = &code
 	}
-	if email != "" {
-		org.Email = &email
-	}
-	if phone != "" {
-		org.Phone = &phone
-	}
-	if address != "" {
-		org.Address = &address
-	}
-	if website != "" {
-		org.Website = &website
-	}
-	if logoURL != "" {
-		org.LogoURL = &logoURL
+	if organizationType != "" {
+		org.Type = &organizationType
 	}
 
 	return org, nil
 }
 
 // UpdateOrganization updates organization information
-func (o *Organization) UpdateOrganization(name, description, code, email, phone, address, website, logoURL string) error {
+func (o *Organization) UpdateOrganization(name, description, code string, organizationType OrganizationType) error {
 	if name != "" {
 		o.Name = name
 	}
@@ -94,20 +111,8 @@ func (o *Organization) UpdateOrganization(name, description, code, email, phone,
 	if code != "" {
 		o.Code = &code
 	}
-	if email != "" {
-		o.Email = &email
-	}
-	if phone != "" {
-		o.Phone = &phone
-	}
-	if address != "" {
-		o.Address = &address
-	}
-	if website != "" {
-		o.Website = &website
-	}
-	if logoURL != "" {
-		o.LogoURL = &logoURL
+	if organizationType != "" {
+		o.Type = &organizationType
 	}
 	o.UpdatedAt = time.Now()
 	return nil
@@ -128,15 +133,6 @@ func (o *Organization) SetStatus(status OrganizationStatus) error {
 // SetParent updates the parent organization
 func (o *Organization) SetParent(parentID *uuid.UUID) {
 	o.ParentID = parentID
-	o.UpdatedAt = time.Now()
-}
-
-// SetNestedSetValues sets the nested set hierarchy values
-func (o *Organization) SetNestedSetValues(left, right, depth, ordering *int) {
-	o.RecordLeft = left
-	o.RecordRight = right
-	o.RecordDepth = depth
-	o.RecordOrdering = ordering
 	o.UpdatedAt = time.Now()
 }
 
@@ -169,7 +165,7 @@ func (o *Organization) HasChildren() bool {
 }
 
 // GetChildrenCount returns the number of direct children
-func (o *Organization) GetChildrenCount() int {
+func (o *Organization) GetChildrenCount() uint64 {
 	if o.RecordLeft == nil || o.RecordRight == nil {
 		return 0
 	}
@@ -177,7 +173,7 @@ func (o *Organization) GetChildrenCount() int {
 }
 
 // GetDescendantsCount returns the number of all descendants
-func (o *Organization) GetDescendantsCount() int {
+func (o *Organization) GetDescendantsCount() uint64 {
 	if o.RecordLeft == nil || o.RecordRight == nil {
 		return 0
 	}

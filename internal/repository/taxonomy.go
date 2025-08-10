@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -52,18 +53,23 @@ func (r *TaxonomyRepositoryImpl) Create(ctx context.Context, taxonomy *entities.
 	// If this is a root taxonomy (no parent)
 	if taxonomy.ParentID == nil {
 		// Get the maximum right value and add 1 for the new node
-		var maxRight int64
+		var maxRight uint64
 		err = tx.QueryRow(ctx, `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies WHERE deleted_at IS NULL`).Scan(&maxRight)
 		if err != nil {
 			return err
 		}
 
-		taxonomy.RecordLeft = maxRight + 1
-		taxonomy.RecordRight = maxRight + 2
-		taxonomy.RecordDepth = 0
+		// Create new values for nested set model
+		newLeft := maxRight + 1
+		newRight := maxRight + 2
+		newDepth := uint64(0)
+
+		taxonomy.RecordLeft = &newLeft
+		taxonomy.RecordRight = &newRight
+		taxonomy.RecordDepth = &newDepth
 	} else {
 		// Get the parent's right value
-		var parentRight int64
+		var parentRight uint64
 		err = tx.QueryRow(ctx, `SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentRight)
 		if err != nil {
 			return err
@@ -86,9 +92,14 @@ func (r *TaxonomyRepositoryImpl) Create(ctx context.Context, taxonomy *entities.
 			return err
 		}
 
-		taxonomy.RecordLeft = parentRight
-		taxonomy.RecordRight = parentRight + 1
-		taxonomy.RecordDepth = 0 // Will be calculated based on parent
+		// Create new values for nested set model
+		newLeft := parentRight
+		newRight := parentRight + 1
+		newDepth := uint64(0)
+
+		taxonomy.RecordLeft = &newLeft
+		taxonomy.RecordRight = &newRight
+		taxonomy.RecordDepth = &newDepth
 	}
 
 	// Insert the new taxonomy
@@ -105,7 +116,7 @@ func (r *TaxonomyRepositoryImpl) Create(ctx context.Context, taxonomy *entities.
 	_, err = tx.Exec(ctx, query,
 		taxonomy.ID.String(), taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
 		parentIDStr, taxonomy.RecordLeft, taxonomy.RecordRight, taxonomy.RecordDepth,
-		taxonomy.CreatedAt, taxonomy.UpdatedAt, "", "", // created_by, updated_by
+		taxonomy.CreatedAt, taxonomy.UpdatedAt, taxonomy.CreatedBy, taxonomy.UpdatedBy,
 	)
 
 	if err != nil {
@@ -142,6 +153,23 @@ func (r *TaxonomyRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*en
 		}
 	}
 
+	// Convert user ID strings to UUIDs
+	if createdBy != "" {
+		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
+			taxonomy.CreatedBy = createdByUUID
+		}
+	}
+	if updatedBy != "" {
+		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
+			taxonomy.UpdatedBy = updatedByUUID
+		}
+	}
+	if deletedBy != "" {
+		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
+			taxonomy.DeletedBy = &deletedByUUID
+		}
+	}
+
 	return &taxonomy, nil
 }
 
@@ -169,6 +197,23 @@ func (r *TaxonomyRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*e
 	if parentIDStr != nil {
 		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 			taxonomy.ParentID = &parentID
+		}
+	}
+
+	// Convert user ID strings to UUIDs
+	if createdBy != "" {
+		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
+			taxonomy.CreatedBy = createdByUUID
+		}
+	}
+	if updatedBy != "" {
+		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
+			taxonomy.UpdatedBy = updatedByUUID
+		}
+	}
+	if deletedBy != "" {
+		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
+			taxonomy.DeletedBy = &deletedByUUID
 		}
 	}
 
@@ -220,6 +265,23 @@ func (r *TaxonomyRepositoryImpl) scanTaxonomyRow(rows pgx.Rows) (*entities.Taxon
 	if parentIDStr != nil {
 		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 			taxonomy.ParentID = &parentID
+		}
+	}
+
+	// Convert user ID strings to UUIDs
+	if createdBy != "" {
+		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
+			taxonomy.CreatedBy = createdByUUID
+		}
+	}
+	if updatedBy != "" {
+		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
+			taxonomy.UpdatedBy = updatedByUUID
+		}
+	}
+	if deletedBy != "" {
+		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
+			taxonomy.DeletedBy = &deletedByUUID
 		}
 	}
 
@@ -481,7 +543,7 @@ func (r *TaxonomyRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error
 	defer tx.Rollback(ctx)
 
 	// Get the node's left and right values
-	var left, right int64
+	var left, right uint64
 	err = tx.QueryRow(ctx, `SELECT record_left, record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, id.String()).Scan(&left, &right)
 	if err != nil {
 		return err

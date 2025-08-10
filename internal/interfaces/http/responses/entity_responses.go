@@ -76,10 +76,7 @@ type CommentListResponse struct {
 func NewCommentResponse(comment *entities.Comment) *CommentResponse {
 	response := &CommentResponse{
 		ID:        comment.ID.String(),
-		Content:   comment.Content,
-		PostID:    comment.PostID.String(),
-		UserID:    comment.UserID.String(),
-		Status:    comment.Status,
+		Status:    string(comment.Status),
 		CreatedAt: comment.CreatedAt,
 		UpdatedAt: comment.UpdatedAt,
 		DeletedAt: comment.DeletedAt,
@@ -136,12 +133,10 @@ func NewMediaResponse(media *entities.Media) *MediaResponse {
 	return &MediaResponse{
 		ID:           media.ID.String(),
 		FileName:     media.FileName,
-		OriginalName: media.OriginalName,
+		OriginalName: media.Name,
 		MimeType:     media.MimeType,
 		Size:         media.Size,
-		Path:         media.Path,
-		URL:          media.URL,
-		UserID:       media.UserID.String(),
+		Path:         media.Disk,
 		CreatedAt:    media.CreatedAt,
 		UpdatedAt:    media.UpdatedAt,
 		DeletedAt:    media.DeletedAt,
@@ -171,9 +166,9 @@ type TaxonomyResponse struct {
 	Code        string             `json:"code,omitempty"`
 	Description string             `json:"description,omitempty"`
 	ParentID    *string            `json:"parent_id,omitempty"`
-	RecordLeft  int64              `json:"record_left"`
-	RecordRight int64              `json:"record_right"`
-	RecordDepth int64              `json:"record_depth"`
+	RecordLeft  *uint64            `json:"record_left"`
+	RecordRight *uint64            `json:"record_right"`
+	RecordDepth *uint64            `json:"record_depth"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 	DeletedAt   *time.Time         `json:"deleted_at,omitempty"`

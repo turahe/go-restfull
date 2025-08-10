@@ -37,6 +37,9 @@ type Address struct {
 	Longitude       *float64        `json:"longitude,omitempty"`
 	IsPrimary       bool            `json:"is_primary"`
 	AddressType     AddressType     `json:"address_type"`
+	CreatedBy       uuid.UUID       `json:"created_by"`
+	UpdatedBy       uuid.UUID       `json:"updated_by"`
+	DeletedBy       *uuid.UUID      `json:"deleted_by,omitempty"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 	DeletedAt       *time.Time      `json:"deleted_at,omitempty"`

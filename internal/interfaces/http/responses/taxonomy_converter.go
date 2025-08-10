@@ -1,9 +1,10 @@
 package responses
 
 import (
+	"math"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/helper/pagination"
-	"math"
 )
 
 // ConvertTaxonomyEntityToDTO converts a taxonomy entity to DTO
@@ -19,9 +20,9 @@ func ConvertTaxonomyEntityToDTO(entity *entities.Taxonomy) *TaxonomyDTO {
 		Code:        entity.Code,
 		Description: entity.Description,
 		ParentID:    entity.ParentID,
-		RecordLeft:  entity.RecordLeft,
-		RecordRight: entity.RecordRight,
-		RecordDepth: entity.RecordDepth,
+		RecordLeft:  *entity.RecordLeft,
+		RecordRight: *entity.RecordRight,
+		RecordDepth: *entity.RecordDepth,
 		CreatedAt:   entity.CreatedAt,
 		UpdatedAt:   entity.UpdatedAt,
 		DeletedAt:   entity.DeletedAt,

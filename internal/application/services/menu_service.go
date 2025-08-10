@@ -63,7 +63,7 @@ func NewMenuService(menuRepository repositories.MenuRepository) ports.MenuServic
 // Returns:
 //   - *entities.Menu: The created menu entity
 //   - error: Any error that occurred during the operation
-func (s *MenuService) CreateMenu(ctx context.Context, name, slug, description, url, icon string, recordOrdering int64, parentID *uuid.UUID) (*entities.Menu, error) {
+func (s *MenuService) CreateMenu(ctx context.Context, name, slug, description, url, icon string, recordOrdering uint64, parentID *uuid.UUID) (*entities.Menu, error) {
 	// Validate menu name to ensure it's provided and meaningful
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("menu name is required")
@@ -89,7 +89,7 @@ func (s *MenuService) CreateMenu(ctx context.Context, name, slug, description, u
 	}
 
 	// Create menu entity with the provided parameters
-	menu := entities.NewMenu(name, slug, description, url, icon, recordOrdering, parentID)
+	menu := entities.NewMenu(name, slug, description, url, icon, parentID)
 
 	// Validate the menu entity to ensure proper structure
 	if err := menu.Validate(); err != nil {
@@ -268,7 +268,7 @@ func (s *MenuService) SearchMenus(ctx context.Context, query string, limit, offs
 // Returns:
 //   - *entities.Menu: The updated menu entity
 //   - error: Any error that occurred during the operation
-func (s *MenuService) UpdateMenu(ctx context.Context, id uuid.UUID, name, slug, description, url, icon string, recordOrdering int64, parentID *uuid.UUID) (*entities.Menu, error) {
+func (s *MenuService) UpdateMenu(ctx context.Context, id uuid.UUID, name, slug, description, url, icon string, recordOrdering uint64, parentID *uuid.UUID) (*entities.Menu, error) {
 	// Retrieve existing menu to ensure it exists and is accessible
 	existingMenu, err := s.menuRepository.GetByID(ctx, id)
 	if err != nil {

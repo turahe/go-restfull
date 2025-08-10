@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/repository"
@@ -46,7 +47,7 @@ func (r *PostgresCommentRepository) GetByUserID(ctx context.Context, userID uuid
 
 	var userComments []*entities.Comment
 	for _, comment := range allComments {
-		if comment.UserID == userID {
+		if comment.CreatedBy == userID {
 			userComments = append(userComments, comment)
 		}
 	}
@@ -153,7 +154,7 @@ func (r *PostgresCommentRepository) CountByUserID(ctx context.Context, userID uu
 
 	var count int64
 	for _, comment := range allComments {
-		if comment.UserID == userID {
+		if comment.CreatedBy == userID {
 			count++
 		}
 	}

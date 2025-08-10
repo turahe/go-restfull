@@ -56,17 +56,13 @@ func NewOrganizationService(
 //   - name: Display name of the organization
 //   - description: Optional description of the organization
 //   - code: Optional unique code for the organization
-//   - email: Contact email for the organization
-//   - phone: Contact phone for the organization
-//   - address: Physical address of the organization
-//   - website: Website URL of the organization
-//   - logoURL: Logo image URL for the organization
+//   - organizationType: Type of the organization
 //   - parentID: Optional parent organization ID for hierarchical structure
 //
 // Returns:
 //   - *entities.Organization: The created organization entity
 //   - error: Any error that occurred during the operation
-func (s *organizationService) CreateOrganization(ctx context.Context, name, description, code, email, phone, address, website, logoURL string, parentID *uuid.UUID) (*entities.Organization, error) {
+func (s *organizationService) CreateOrganization(ctx context.Context, name, description, code string, organizationType entities.OrganizationType, parentID *uuid.UUID) (*entities.Organization, error) {
 	// Validate code uniqueness if provided
 	if code != "" {
 		exists, err := s.organizationRepo.ExistsByCode(ctx, code)
@@ -90,7 +86,7 @@ func (s *organizationService) CreateOrganization(ctx context.Context, name, desc
 	}
 
 	// Create organization entity with the provided parameters
-	organization, err := entities.NewOrganization(name, description, code, email, phone, address, website, logoURL, parentID)
+	organization, err := entities.NewOrganization(name, description, code, organizationType, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -178,16 +174,12 @@ func (s *organizationService) GetAllOrganizations(ctx context.Context, limit, of
 //   - name: Updated display name of the organization
 //   - description: Updated description of the organization
 //   - code: Updated unique code for the organization
-//   - email: Updated contact email for the organization
-//   - phone: Updated contact phone for the organization
-//   - address: Updated physical address of the organization
-//   - website: Updated website URL of the organization
-//   - logoURL: Updated logo image URL for the organization
+//   - organizationType: Updated type of the organization
 //
 // Returns:
 //   - *entities.Organization: The updated organization entity
 //   - error: Any error that occurred during the operation
-func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code, email, phone, address, website, logoURL string) (*entities.Organization, error) {
+func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code string, organizationType entities.OrganizationType) (*entities.Organization, error) {
 	// Retrieve existing organization to ensure it exists and is not deleted
 	organization, err := s.organizationRepo.GetByID(ctx, id)
 	if err != nil {
@@ -209,7 +201,7 @@ func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UU
 	}
 
 	// Update the organization entity with new information
-	if err := organization.UpdateOrganization(name, description, code, email, phone, address, website, logoURL); err != nil {
+	if err := organization.UpdateOrganization(name, description, code, organizationType); err != nil {
 		return nil, err
 	}
 

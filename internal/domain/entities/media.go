@@ -9,35 +9,38 @@ import (
 
 // Media represents the core media domain entity
 type Media struct {
-	ID           uuid.UUID  `json:"id"`
-	FileName     string     `json:"file_name"`
-	OriginalName string     `json:"original_name"`
-	MimeType     string     `json:"mime_type"`
-	Size         int64      `json:"size"`
-	Path         string     `json:"path"`
-	URL          string     `json:"url"`
-	UserID       uuid.UUID  `json:"user_id"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+	ID             uuid.UUID  `json:"id"`
+	Name           string     `json:"name"`
+	FileName       string     `json:"file_name"`
+	Hash           string     `json:"hash"`
+	Disk           string     `json:"disk"`
+	MimeType       string     `json:"mime_type"`
+	Size           int64      `json:"size"`
+	RecordLeft     *uint64    `json:"record_left,omitempty"`
+	RecordRight    *uint64    `json:"record_right,omitempty"`
+	RecordOrdering *uint64    `json:"record_ordering,omitempty"`
+	RecordDepth    *uint64    `json:"record_depth,omitempty"`
+	CreatedBy      uuid.UUID  `json:"created_by"`
+	UpdatedBy      uuid.UUID  `json:"updated_by"`
+	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
 }
 
 // NewMedia creates a new media with validation
-func NewMedia(fileName, originalName, mimeType, path, url string, size int64, userID uuid.UUID) (*Media, error) {
+func NewMedia(name, fileName, hash, disk, mimeType string, size int64, userID uuid.UUID) (*Media, error) {
 	if fileName == "" {
 		return nil, errors.New("file_name is required")
 	}
-	if originalName == "" {
-		return nil, errors.New("original_name is required")
+	if hash == "" {
+		return nil, errors.New("hash is required")
 	}
 	if mimeType == "" {
 		return nil, errors.New("mime_type is required")
 	}
-	if path == "" {
-		return nil, errors.New("path is required")
-	}
-	if url == "" {
-		return nil, errors.New("url is required")
+	if disk == "" {
+		return nil, errors.New("disk is required")
 	}
 	if size <= 0 {
 		return nil, errors.New("size must be greater than 0")
@@ -48,35 +51,31 @@ func NewMedia(fileName, originalName, mimeType, path, url string, size int64, us
 
 	now := time.Now()
 	return &Media{
-		ID:           uuid.New(),
-		FileName:     fileName,
-		OriginalName: originalName,
-		MimeType:     mimeType,
-		Size:         size,
-		Path:         path,
-		URL:          url,
-		UserID:       userID,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:        uuid.New(),
+		Name:      name,
+		FileName:  fileName,
+		Hash:      hash,
+		Disk:      disk,
+		MimeType:  mimeType,
+		Size:      size,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}, nil
 }
 
 // UpdateMedia updates media information
-func (m *Media) UpdateMedia(fileName, originalName, mimeType, path, url string, size int64) error {
+func (m *Media) UpdateMedia(name, fileName, hash, disk, mimeType string, size int64) error {
 	if fileName != "" {
 		m.FileName = fileName
 	}
-	if originalName != "" {
-		m.OriginalName = originalName
+	if hash != "" {
+		m.Hash = hash
 	}
 	if mimeType != "" {
 		m.MimeType = mimeType
 	}
-	if path != "" {
-		m.Path = path
-	}
-	if url != "" {
-		m.URL = url
+	if disk != "" {
+		m.Disk = disk
 	}
 	if size > 0 {
 		m.Size = size
@@ -114,13 +113,13 @@ func (m *Media) IsAudio() bool {
 
 // GetFileExtension returns the file extension
 func (m *Media) GetFileExtension() string {
-	if m.OriginalName == "" {
+	if m.FileName == "" {
 		return ""
 	}
 
-	for i := len(m.OriginalName) - 1; i >= 0; i-- {
-		if m.OriginalName[i] == '.' {
-			return m.OriginalName[i:]
+	for i := len(m.FileName) - 1; i >= 0; i-- {
+		if m.FileName[i] == '.' {
+			return m.FileName[i:]
 		}
 	}
 	return ""

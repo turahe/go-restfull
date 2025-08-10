@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 
 	"github.com/google/uuid"
@@ -44,12 +45,12 @@ func (r *SettingRepositoryImpl) Create(ctx context.Context, setting *entities.Se
 
 	_, err := r.pgxPool.Exec(ctx, query,
 		setting.ID.String(), setting.ModelType, modelIDStr, setting.Key, setting.Value,
-		setting.CreatedAt, setting.UpdatedAt)
+		setting.CreatedBy, setting.UpdatedBy, setting.CreatedAt, setting.UpdatedAt)
 	return err
 }
 
 func (r *SettingRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Setting, error) {
-	query := `SELECT id, model_type, model_id, key, value, created_at, updated_at, deleted_at
+	query := `SELECT id, model_type, model_id, key, value, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM settings WHERE id = $1 AND deleted_at IS NULL`
 
 	var setting entities.Setting
@@ -57,7 +58,7 @@ func (r *SettingRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*ent
 
 	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
 		&setting.ID, &setting.ModelType, &modelIDStr, &setting.Key, &setting.Value,
-		&setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
+		&setting.CreatedBy, &setting.UpdatedBy, &setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func (r *SettingRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*ent
 }
 
 func (r *SettingRepositoryImpl) GetByKey(ctx context.Context, key string) (*entities.Setting, error) {
-	query := `SELECT id, model_type, model_id, key, value, created_at, updated_at, deleted_at
+	query := `SELECT id, model_type, model_id, key, value, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM settings WHERE key = $1 AND deleted_at IS NULL`
 
 	var setting entities.Setting
@@ -81,7 +82,7 @@ func (r *SettingRepositoryImpl) GetByKey(ctx context.Context, key string) (*enti
 
 	err := r.pgxPool.QueryRow(ctx, query, key).Scan(
 		&setting.ID, &setting.ModelType, &modelIDStr, &setting.Key, &setting.Value,
-		&setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
+		&setting.CreatedBy, &setting.UpdatedBy, &setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func (r *SettingRepositoryImpl) GetByKey(ctx context.Context, key string) (*enti
 }
 
 func (r *SettingRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Setting, error) {
-	query := `SELECT id, model_type, model_id, key, value, created_at, updated_at, deleted_at
+	query := `SELECT id, model_type, model_id, key, value, created_by, updated_by, created_at, updated_at, deleted_at
 			  FROM settings WHERE deleted_at IS NULL
 			  ORDER BY key ASC`
 
@@ -120,8 +121,8 @@ func (r *SettingRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Setting
 }
 
 func (r *SettingRepositoryImpl) Update(ctx context.Context, setting *entities.Setting) error {
-	query := `UPDATE settings SET model_type = $1, model_id = $2, key = $3, value = $4, updated_at = $5
-			  WHERE id = $6 AND deleted_at IS NULL`
+	query := `UPDATE settings SET model_type = $1, model_id = $2, key = $3, value = $4, updated_at = $5, updated_by = $6
+			  WHERE id = $7 AND deleted_at IS NULL`
 
 	modelIDStr := ""
 	if setting.ModelID != nil {
@@ -129,7 +130,7 @@ func (r *SettingRepositoryImpl) Update(ctx context.Context, setting *entities.Se
 	}
 
 	_, err := r.pgxPool.Exec(ctx, query, setting.ModelType, modelIDStr, setting.Key, setting.Value,
-		setting.UpdatedAt, setting.ID.String())
+		setting.UpdatedAt, setting.UpdatedBy, setting.ID.String())
 	return err
 }
 
@@ -160,7 +161,7 @@ func (r *SettingRepositoryImpl) scanSettingRow(rows pgx.Rows) (*entities.Setting
 
 	err := rows.Scan(
 		&setting.ID, &setting.ModelType, &modelIDStr, &setting.Key, &setting.Value,
-		&setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
+		&setting.CreatedBy, &setting.UpdatedBy, &setting.CreatedAt, &setting.UpdatedAt, &setting.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
