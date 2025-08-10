@@ -51,4 +51,32 @@ type OrganizationRepository interface {
 	CountByStatus(ctx context.Context, status entities.OrganizationStatus) (int64, error)
 	CountChildren(ctx context.Context, parentID uuid.UUID) (int64, error)
 	CountDescendants(ctx context.Context, parentID uuid.UUID) (int64, error)
+
+	// Advanced nested set operations
+	ValidateTree(ctx context.Context) ([]string, error)
+	RebuildTree(ctx context.Context) error
+	GetTreeStatistics(ctx context.Context) (map[string]interface{}, error)
+	GetTreeHeight(ctx context.Context) (uint64, error)
+	GetLevelWidth(ctx context.Context, level uint64) (int64, error)
+	GetSubtreeSize(ctx context.Context, organizationID uuid.UUID) (int64, error)
+	InsertBetween(ctx context.Context, organization *entities.Organization, leftSiblingID, rightSiblingID *uuid.UUID) error
+	SwapPositions(ctx context.Context, org1ID, org2ID uuid.UUID) error
+	GetLeafNodes(ctx context.Context) ([]*entities.Organization, error)
+	GetInternalNodes(ctx context.Context) ([]*entities.Organization, error)
+
+	// Batch operations for nested set
+	BatchMoveSubtrees(ctx context.Context, moves []struct {
+		OrganizationID uuid.UUID
+		NewParentID    uuid.UUID
+	}) error
+	BatchInsertBetween(ctx context.Context, insertions []struct {
+		Organization   *entities.Organization
+		LeftSiblingID  *uuid.UUID
+		RightSiblingID *uuid.UUID
+	}) error
+
+	// Tree optimization and maintenance
+	OptimizeTree(ctx context.Context) error
+	GetTreePerformanceMetrics(ctx context.Context) (map[string]interface{}, error)
+	ValidateTreeIntegrity(ctx context.Context) ([]string, error)
 }

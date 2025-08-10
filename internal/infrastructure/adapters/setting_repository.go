@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/repository"
 
@@ -22,6 +23,11 @@ func NewPostgresSettingRepository(db *pgxpool.Pool, redisClient redis.Cmdable) r
 
 func (r *PostgresSettingRepository) Create(ctx context.Context, setting *entities.Setting) error {
 	return r.repo.Create(ctx, setting)
+}
+
+// BatchCreate delegates to the underlying repository implementation
+func (r *PostgresSettingRepository) BatchCreate(ctx context.Context, settings []*entities.Setting) error {
+	return r.repo.BatchCreate(ctx, settings)
 }
 
 func (r *PostgresSettingRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Setting, error) {

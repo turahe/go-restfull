@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,36 +26,69 @@ type MediaRepository interface {
 	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Media, error)
 }
 
-type MediaRepositoryImpl struct {
-	pgxPool     *pgxpool.Pool
+type mediaRepository struct {
+	db          *pgxpool.Pool
 	redisClient redis.Cmdable
+	nestedSet   *nestedset.NestedSetManager
 }
 
 func NewMediaRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MediaRepository {
-	return &MediaRepositoryImpl{
-		pgxPool:     pgxPool,
+	return &mediaRepository{
+		db:          pgxPool,
 		redisClient: redisClient,
+		nestedSet:   nestedset.NewNestedSetManager(pgxPool),
 	}
 }
 
-func (r *MediaRepositoryImpl) Create(ctx context.Context, media *entities.Media) error {
-	query := `INSERT INTO media (id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at)
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+func (r *mediaRepository) Create(ctx context.Context, media *entities.Media) error {
+	// For media, we'll treat it as a flat structure initially
+	// If we need to implement folder-like hierarchy later, we can add parent_id support
+	values, err := r.nestedSet.CreateNode(ctx, "media", nil, 1)
+	if err != nil {
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
+	}
 
-	_, err := r.pgxPool.Exec(ctx, query,
-		media.ID.String(), media.FileName, media.Name, media.MimeType, media.Size,
-		media.Disk, media.CreatedBy, media.UpdatedBy, media.CreatedAt, media.UpdatedAt)
-	return err
+	// Assign computed nested set values to the entity
+	media.RecordLeft = &values.Left
+	media.RecordRight = &values.Right
+	media.RecordDepth = &values.Depth
+	media.RecordOrdering = &values.Ordering
+
+	// Insert the new media
+	query := `
+		INSERT INTO media (
+			id, name, file_name, hash, disk, mime_type, size,
+			record_left, record_right, record_depth, record_ordering,
+			created_by, updated_by, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+		)
+	`
+
+	_, err = r.db.Exec(ctx, query,
+		media.ID, media.Name, media.FileName, media.Hash, media.Disk, media.MimeType, media.Size,
+		media.RecordLeft, media.RecordRight, media.RecordDepth, media.RecordOrdering,
+		media.CreatedBy, media.UpdatedBy, media.CreatedAt, media.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create media: %w", err)
+	}
+
+	return nil
 }
 
-func (r *MediaRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Media, error) {
-	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
-			  FROM media WHERE id = $1 AND deleted_at IS NULL`
+func (r *mediaRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media WHERE id = $1 AND deleted_at IS NULL
+	`
 
 	var media entities.Media
-	err := r.pgxPool.QueryRow(ctx, query, id.String()).Scan(
-		&media.ID, &media.FileName, &media.Name, &media.MimeType, &media.Size,
-		&media.Disk, &media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
+	err := r.db.QueryRow(ctx, query, id.String()).Scan(
+		&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+		&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+		&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +96,16 @@ func (r *MediaRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entit
 	return &media, nil
 }
 
-func (r *MediaRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Media, error) {
-	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
-			  FROM media WHERE deleted_at IS NULL
-			  ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+func (r *mediaRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media WHERE deleted_at IS NULL
+		ORDER BY record_left ASC LIMIT $1 OFFSET $2
+	`
 
-	rows, err := r.pgxPool.Query(ctx, query, limit, offset)
+	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +123,16 @@ func (r *MediaRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]
 	return mediaList, nil
 }
 
-func (r *MediaRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
-	query := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
-			  FROM media WHERE user_id = $1 AND deleted_at IS NULL
-			  ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+func (r *mediaRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media WHERE created_by = $1 AND deleted_at IS NULL
+		ORDER BY record_left ASC LIMIT $2 OFFSET $3
+	`
 
-	rows, err := r.pgxPool.Query(ctx, query, userID.String(), limit, offset)
+	rows, err := r.db.Query(ctx, query, userID.String(), limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -107,50 +150,60 @@ func (r *MediaRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID,
 	return mediaList, nil
 }
 
-func (r *MediaRepositoryImpl) Update(ctx context.Context, media *entities.Media) error {
-	query := `UPDATE media SET file_name = $1, name = $2, mime_type = $3, size = $4, disk = $5, updated_by = $6, updated_at = $7
-			  WHERE id = $8 AND deleted_at IS NULL`
+func (r *mediaRepository) Update(ctx context.Context, media *entities.Media) error {
+	// For updates, we only update basic fields, not the tree structure
+	query := `
+		UPDATE media SET name = $1, file_name = $2, hash = $3, disk = $4, 
+		                mime_type = $5, size = $6, updated_by = $7, updated_at = $8
+		WHERE id = $9 AND deleted_at IS NULL
+	`
 
-	_, err := r.pgxPool.Exec(ctx, query, media.FileName, media.Name, media.MimeType, media.Size,
-		media.Disk, media.UpdatedBy, media.UpdatedAt, media.ID.String())
+	_, err := r.db.Exec(ctx, query,
+		media.Name, media.FileName, media.Hash, media.Disk, media.MimeType, media.Size,
+		media.UpdatedBy, media.UpdatedAt, media.ID.String())
 	return err
 }
 
-func (r *MediaRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *mediaRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// Soft delete
 	query := `UPDATE media SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
-	_, err := r.pgxPool.Exec(ctx, query, id.String())
+	_, err := r.db.Exec(ctx, query, id.String())
 	return err
 }
 
-func (r *MediaRepositoryImpl) ExistsByFilename(ctx context.Context, filename string) (bool, error) {
+func (r *mediaRepository) ExistsByFilename(ctx context.Context, filename string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM media WHERE file_name = $1 AND deleted_at IS NULL)`
 	var exists bool
-	err := r.pgxPool.QueryRow(ctx, query, filename).Scan(&exists)
+	err := r.db.QueryRow(ctx, query, filename).Scan(&exists)
 	return exists, err
 }
 
-func (r *MediaRepositoryImpl) Count(ctx context.Context) (int64, error) {
+func (r *mediaRepository) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM media WHERE deleted_at IS NULL`
 	var count int64
-	err := r.pgxPool.QueryRow(ctx, query).Scan(&count)
+	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
 }
 
-func (r *MediaRepositoryImpl) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
-	query := `SELECT COUNT(*) FROM media WHERE user_id = $1 AND deleted_at IS NULL`
+func (r *mediaRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	query := `SELECT COUNT(*) FROM media WHERE created_by = $1 AND deleted_at IS NULL`
 	var count int64
-	err := r.pgxPool.QueryRow(ctx, query, userID.String()).Scan(&count)
+	err := r.db.QueryRow(ctx, query, userID.String()).Scan(&count)
 	return count, err
 }
 
-func (r *MediaRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Media, error) {
-	searchQuery := `SELECT id, file_name, name, mime_type, size, disk, created_by, updated_by, created_at, updated_at, deleted_at
-					FROM media WHERE deleted_at IS NULL 
-					AND (file_name ILIKE $1 OR name ILIKE $1 OR mime_type ILIKE $1)
-					ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+func (r *mediaRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Media, error) {
+	searchQuery := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media WHERE deleted_at IS NULL 
+		AND (file_name ILIKE $1 OR name ILIKE $1 OR mime_type ILIKE $1)
+		ORDER BY record_left ASC LIMIT $2 OFFSET $3
+	`
 
 	searchPattern := "%" + query + "%"
-	rows, err := r.pgxPool.Query(ctx, searchQuery, searchPattern, limit, offset)
+	rows, err := r.db.Query(ctx, searchQuery, searchPattern, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +222,12 @@ func (r *MediaRepositoryImpl) Search(ctx context.Context, query string, limit, o
 }
 
 // scanMediaRow is a helper function to scan a media row from database
-func (r *MediaRepositoryImpl) scanMediaRow(rows pgx.Rows) (*entities.Media, error) {
+func (r *mediaRepository) scanMediaRow(rows pgx.Rows) (*entities.Media, error) {
 	var media entities.Media
 	err := rows.Scan(
-		&media.ID, &media.FileName, &media.Name, &media.MimeType, &media.Size,
-		&media.Disk, &media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
+		&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+		&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+		&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt)
 	if err != nil {
 		return nil, err
 	}

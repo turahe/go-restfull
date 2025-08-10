@@ -2,8 +2,13 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -11,96 +16,84 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type TaxonomyRepository interface {
-	Create(ctx context.Context, taxonomy *entities.Taxonomy) error
-	GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error)
-	GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error)
-	GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error)
-	GetAllWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error)
-	GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error)
-	GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error)
-	GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error)
-	GetDescendants(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error)
-	GetAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error)
-	GetSiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error)
-	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error)
-	Update(ctx context.Context, taxonomy *entities.Taxonomy) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	ExistsBySlug(ctx context.Context, slug string) (bool, error)
-	Count(ctx context.Context) (int64, error)
-	CountWithSearch(ctx context.Context, query string) (int64, error)
-}
-
-type TaxonomyRepositoryImpl struct {
+type TaxonomyRepository struct {
 	pgxPool     *pgxpool.Pool
 	redisClient redis.Cmdable
+	nestedSet   *nestedset.NestedSetManager
 }
 
-func NewTaxonomyRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) TaxonomyRepository {
-	return &TaxonomyRepositoryImpl{
-		pgxPool:     pgxPool,
+func NewTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.TaxonomyRepository {
+	return &TaxonomyRepository{
+		pgxPool:     db,
 		redisClient: redisClient,
+		nestedSet:   nestedset.NewNestedSetManager(db),
 	}
 }
 
-func (r *TaxonomyRepositoryImpl) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
-	tx, err := r.pgxPool.Begin(ctx)
+// getCacheKey generates a consistent cache key for taxonomy operations
+func (r *TaxonomyRepository) getCacheKey(operation string, params ...interface{}) string {
+	key := fmt.Sprintf("taxonomy:%s", operation)
+	for _, param := range params {
+		key += fmt.Sprintf(":%v", param)
+	}
+	return key
+}
+
+// getFromCache retrieves data from Redis cache
+func (r *TaxonomyRepository) getFromCache(ctx context.Context, key string, dest interface{}) bool {
+	if r.redisClient == nil {
+		return false
+	}
+
+	data, err := r.redisClient.Get(ctx, key).Result()
 	if err != nil {
-		return err
+		return false
 	}
-	defer tx.Rollback(ctx)
 
-	// If this is a root taxonomy (no parent)
-	if taxonomy.ParentID == nil {
-		// Get the maximum right value and add 1 for the new node
-		var maxRight uint64
-		err = tx.QueryRow(ctx, `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies WHERE deleted_at IS NULL`).Scan(&maxRight)
-		if err != nil {
-			return err
-		}
-
-		// Create new values for nested set model
-		newLeft := maxRight + 1
-		newRight := maxRight + 2
-		newDepth := uint64(0)
-
-		taxonomy.RecordLeft = &newLeft
-		taxonomy.RecordRight = &newRight
-		taxonomy.RecordDepth = &newDepth
-	} else {
-		// Get the parent's right value
-		var parentRight uint64
-		err = tx.QueryRow(ctx, `SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentRight)
-		if err != nil {
-			return err
-		}
-
-		// Make space for the new node by shifting all nodes to the right
-		_, err = tx.Exec(ctx, `
-			UPDATE taxonomies 
-			SET record_left = CASE 
-				WHEN record_left > $1 THEN record_left + 2 
-				ELSE record_left 
-			END,
-			record_right = CASE 
-				WHEN record_right >= $1 THEN record_right + 2 
-				ELSE record_right 
-			END
-			WHERE deleted_at IS NULL
-		`, parentRight)
-		if err != nil {
-			return err
-		}
-
-		// Create new values for nested set model
-		newLeft := parentRight
-		newRight := parentRight + 1
-		newDepth := uint64(0)
-
-		taxonomy.RecordLeft = &newLeft
-		taxonomy.RecordRight = &newRight
-		taxonomy.RecordDepth = &newDepth
+	if err := json.Unmarshal([]byte(data), dest); err != nil {
+		return false
 	}
+
+	return true
+}
+
+// setCache stores data in Redis cache with TTL
+func (r *TaxonomyRepository) setCache(ctx context.Context, key string, data interface{}, ttl time.Duration) {
+	if r.redisClient == nil {
+		return
+	}
+
+	if jsonData, err := json.Marshal(data); err == nil {
+		r.redisClient.Set(ctx, key, jsonData, ttl)
+	}
+}
+
+// invalidateCache removes cached data for taxonomy operations
+func (r *TaxonomyRepository) invalidateCache(ctx context.Context, pattern string) {
+	if r.redisClient == nil {
+		return
+	}
+
+	keys, err := r.redisClient.Keys(ctx, pattern).Result()
+	if err != nil {
+		return
+	}
+
+	if len(keys) > 0 {
+		r.redisClient.Del(ctx, keys...)
+	}
+}
+
+func (r *TaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// Calculate nested set values using the shared manager
+	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, 1)
+	if err != nil {
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
+	}
+
+	taxonomy.RecordLeft = &values.Left
+	taxonomy.RecordRight = &values.Right
+	taxonomy.RecordDepth = &values.Depth
 
 	// Insert the new taxonomy
 	query := `
@@ -113,26 +106,35 @@ func (r *TaxonomyRepositoryImpl) Create(ctx context.Context, taxonomy *entities.
 		parentIDStr = taxonomy.ParentID.String()
 	}
 
-	_, err = tx.Exec(ctx, query,
+	_, err = r.pgxPool.Exec(ctx, query,
 		taxonomy.ID.String(), taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
 		parentIDStr, taxonomy.RecordLeft, taxonomy.RecordRight, taxonomy.RecordDepth,
-		taxonomy.CreatedAt, taxonomy.UpdatedAt, taxonomy.CreatedBy, taxonomy.UpdatedBy,
+		taxonomy.CreatedAt, taxonomy.UpdatedAt, "", "", // created_by, updated_by
 	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert taxonomy: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	// Invalidate relevant caches
+	r.invalidateCache(ctx, "taxonomy:*")
+
+	return nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("by_id", id.String())
+	var taxonomy entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomy) {
+		return &taxonomy, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE id = $1 AND deleted_at IS NULL
 	`
 
-	var taxonomy entities.Taxonomy
 	var parentIDStr *string
 	var createdBy, updatedBy, deletedBy string
 
@@ -143,7 +145,7 @@ func (r *TaxonomyRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*en
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get taxonomy by ID: %w", err)
 	}
 
 	// Convert parent ID string to UUID
@@ -153,33 +155,25 @@ func (r *TaxonomyRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*en
 		}
 	}
 
-	// Convert user ID strings to UUIDs
-	if createdBy != "" {
-		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
-			taxonomy.CreatedBy = createdByUUID
-		}
-	}
-	if updatedBy != "" {
-		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
-			taxonomy.UpdatedBy = updatedByUUID
-		}
-	}
-	if deletedBy != "" {
-		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
-			taxonomy.DeletedBy = &deletedByUUID
-		}
-	}
+	// Cache the result
+	r.setCache(ctx, cacheKey, taxonomy, 5*time.Minute)
 
 	return &taxonomy, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("by_slug", slug)
+	var taxonomy entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomy) {
+		return &taxonomy, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE slug = $1 AND deleted_at IS NULL
 	`
 
-	var taxonomy entities.Taxonomy
 	var parentIDStr *string
 	var createdBy, updatedBy, deletedBy string
 
@@ -190,7 +184,7 @@ func (r *TaxonomyRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*e
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get taxonomy by slug: %w", err)
 	}
 
 	// Convert parent ID string to UUID
@@ -200,27 +194,20 @@ func (r *TaxonomyRepositoryImpl) GetBySlug(ctx context.Context, slug string) (*e
 		}
 	}
 
-	// Convert user ID strings to UUIDs
-	if createdBy != "" {
-		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
-			taxonomy.CreatedBy = createdByUUID
-		}
-	}
-	if updatedBy != "" {
-		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
-			taxonomy.UpdatedBy = updatedByUUID
-		}
-	}
-	if deletedBy != "" {
-		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
-			taxonomy.DeletedBy = &deletedByUUID
-		}
-	}
+	// Cache the result
+	r.setCache(ctx, cacheKey, taxonomy, 5*time.Minute)
 
 	return &taxonomy, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error) {
+	// Try cache first for small result sets
+	cacheKey := r.getCacheKey("all", limit, offset)
+	var taxonomies []*entities.Taxonomy
+	if limit <= 100 && r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE deleted_at IS NULL
@@ -230,70 +217,39 @@ func (r *TaxonomyRepositoryImpl) GetAll(ctx context.Context, limit, offset int) 
 
 	rows, err := r.pgxPool.Query(ctx, query, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get taxonomies: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0, limit)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	// Cache small result sets
+	if limit <= 100 {
+		r.setCache(ctx, cacheKey, taxonomies, 2*time.Minute)
 	}
 
 	return taxonomies, nil
 }
 
-// scanTaxonomyRow is a helper function to scan a taxonomy row from database
-func (r *TaxonomyRepositoryImpl) scanTaxonomyRow(rows pgx.Rows) (*entities.Taxonomy, error) {
-	var taxonomy entities.Taxonomy
-	var parentIDStr *string
-	var createdBy, updatedBy, deletedBy string
-
-	err := rows.Scan(
-		&taxonomy.ID, &taxonomy.Name, &taxonomy.Slug, &taxonomy.Code, &taxonomy.Description,
-		&parentIDStr, &taxonomy.RecordLeft, &taxonomy.RecordRight, &taxonomy.RecordDepth,
-		&taxonomy.CreatedAt, &taxonomy.UpdatedAt, &taxonomy.DeletedAt, &createdBy, &updatedBy, &deletedBy,
-	)
-	if err != nil {
-		return nil, err
+func (r *TaxonomyRepository) GetAllWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+	// Try cache first for small result sets
+	cacheKey := r.getCacheKey("search", query, limit, offset)
+	var taxonomies []*entities.Taxonomy
+	if limit <= 100 && r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
 	}
 
-	// Convert parent ID string to UUID
-	if parentIDStr != nil {
-		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
-			taxonomy.ParentID = &parentID
-		}
-	}
-
-	// Convert user ID strings to UUIDs
-	if createdBy != "" {
-		if createdByUUID, err := uuid.Parse(createdBy); err == nil {
-			taxonomy.CreatedBy = createdByUUID
-		}
-	}
-	if updatedBy != "" {
-		if updatedByUUID, err := uuid.Parse(updatedBy); err == nil {
-			taxonomy.UpdatedBy = updatedByUUID
-		}
-	}
-	if deletedBy != "" {
-		if deletedByUUID, err := uuid.Parse(deletedBy); err == nil {
-			taxonomy.DeletedBy = &deletedByUUID
-		}
-	}
-
-	return &taxonomy, nil
-}
-
-func (r *TaxonomyRepositoryImpl) GetAllWithSearch(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
 	var sqlQuery string
 	var args []interface{}
 
 	if query == "" {
-		// If no search query, return all taxonomies with pagination
 		sqlQuery = `
 			SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 			FROM taxonomies WHERE deleted_at IS NULL
@@ -302,7 +258,6 @@ func (r *TaxonomyRepositoryImpl) GetAllWithSearch(ctx context.Context, query str
 		`
 		args = []interface{}{limit, offset}
 	} else {
-		// If search query provided, search with pagination
 		sqlQuery = `
 			SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 			FROM taxonomies 
@@ -316,23 +271,35 @@ func (r *TaxonomyRepositoryImpl) GetAllWithSearch(ctx context.Context, query str
 
 	rows, err := r.pgxPool.Query(ctx, sqlQuery, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to search taxonomies: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0, limit)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	// Cache small result sets
+	if limit <= 100 {
+		r.setCache(ctx, cacheKey, taxonomies, 2*time.Minute)
 	}
 
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetRootTaxonomies(ctx context.Context) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("roots")
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE parent_id IS NULL AND deleted_at IS NULL
@@ -341,23 +308,33 @@ func (r *TaxonomyRepositoryImpl) GetRootTaxonomies(ctx context.Context) ([]*enti
 
 	rows, err := r.pgxPool.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get root taxonomies: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache root taxonomies for longer as they change less frequently
+	r.setCache(ctx, cacheKey, taxonomies, 10*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("children", parentID.String())
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE parent_id = $1 AND deleted_at IS NULL
@@ -366,23 +343,33 @@ func (r *TaxonomyRepositoryImpl) GetChildren(ctx context.Context, parentID uuid.
 
 	rows, err := r.pgxPool.Query(ctx, query, parentID.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get children: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache children for medium duration
+	r.setCache(ctx, cacheKey, taxonomies, 5*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetHierarchy(ctx context.Context) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("hierarchy")
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
 	query := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies WHERE deleted_at IS NULL
@@ -391,106 +378,157 @@ func (r *TaxonomyRepositoryImpl) GetHierarchy(ctx context.Context) ([]*entities.
 
 	rows, err := r.pgxPool.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get hierarchy: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache hierarchy for longer as it's expensive to compute
+	r.setCache(ctx, cacheKey, taxonomies, 15*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetDescendants(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetDescendants(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("descendants", id.String())
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
+	// Use CTE for better performance
 	query := `
+		WITH target_node AS (
+			SELECT record_left, record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL
+		)
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
-		FROM taxonomies 
-		WHERE record_left > (SELECT record_left FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
-		AND record_right < (SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		FROM taxonomies, target_node
+		WHERE record_left > target_node.record_left 
+		AND record_right < target_node.record_right 
 		AND deleted_at IS NULL
 		ORDER BY record_left ASC
 	`
 
 	rows, err := r.pgxPool.Query(ctx, query, id.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache descendants for medium duration
+	r.setCache(ctx, cacheKey, taxonomies, 5*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("ancestors", id.String())
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
+	// Use CTE for better performance
 	query := `
+		WITH target_node AS (
+			SELECT record_left, record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL
+		)
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
-		FROM taxonomies 
-		WHERE record_left < (SELECT record_left FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
-		AND record_right > (SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL)
+		FROM taxonomies, target_node
+		WHERE record_left < target_node.record_left 
+		AND record_right > target_node.record_right 
 		AND deleted_at IS NULL
 		ORDER BY record_left ASC
 	`
 
 	rows, err := r.pgxPool.Query(ctx, query, id.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get ancestors: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache ancestors for medium duration
+	r.setCache(ctx, cacheKey, taxonomies, 5*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) GetSiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) GetSiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error) {
+	// Try cache first
+	cacheKey := r.getCacheKey("siblings", id.String())
+	var taxonomies []*entities.Taxonomy
+	if r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
+	// Use CTE for better performance
 	query := `
+		WITH target_node AS (
+			SELECT parent_id FROM taxonomies WHERE id = $1 AND deleted_at IS NULL
+		)
 		SELECT t1.id, t1.name, t1.slug, t1.code, t1.description, t1.parent_id, t1.record_left, t1.record_right, t1.record_depth, t1.created_at, t1.updated_at, t1.deleted_at, t1.created_by, t1.updated_by, t1.deleted_by
-		FROM taxonomies t1
-		JOIN taxonomies t2 ON t1.parent_id = t2.parent_id
-		WHERE t2.id = $1 AND t1.id != $1 AND t1.deleted_at IS NULL
+		FROM taxonomies t1, target_node
+		WHERE t1.parent_id = target_node.parent_id AND t1.id != $1 AND t1.deleted_at IS NULL
 		ORDER BY t1.record_left ASC
 	`
 
 	rows, err := r.pgxPool.Query(ctx, query, id.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get siblings: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
 	}
 
+	// Cache siblings for medium duration
+	r.setCache(ctx, cacheKey, taxonomies, 5*time.Minute)
+
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+func (r *TaxonomyRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error) {
+	// Try cache first for small result sets
+	cacheKey := r.getCacheKey("search", query, limit, offset)
+	var taxonomies []*entities.Taxonomy
+	if limit <= 100 && r.getFromCache(ctx, cacheKey, &taxonomies) {
+		return taxonomies, nil
+	}
+
 	searchQuery := `
 		SELECT id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, deleted_at, created_by, updated_by, deleted_by
 		FROM taxonomies 
@@ -502,23 +540,28 @@ func (r *TaxonomyRepositoryImpl) Search(ctx context.Context, query string, limit
 	searchTerm := "%" + query + "%"
 	rows, err := r.pgxPool.Query(ctx, searchQuery, searchTerm, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to search taxonomies: %w", err)
 	}
 	defer rows.Close()
 
-	var taxonomies []*entities.Taxonomy
+	taxonomies = make([]*entities.Taxonomy, 0, limit)
 	for rows.Next() {
 		taxonomy, err := r.scanTaxonomyRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
 		}
 		taxonomies = append(taxonomies, taxonomy)
+	}
+
+	// Cache small result sets
+	if limit <= 100 {
+		r.setCache(ctx, cacheKey, taxonomies, 2*time.Minute)
 	}
 
 	return taxonomies, nil
 }
 
-func (r *TaxonomyRepositoryImpl) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
+func (r *TaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
 	// For nested set, we need to handle parent changes carefully
 	// This is a simplified update that doesn't change the tree structure
 	query := `
@@ -532,86 +575,96 @@ func (r *TaxonomyRepositoryImpl) Update(ctx context.Context, taxonomy *entities.
 		taxonomy.UpdatedAt,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to update taxonomy: %w", err)
+	}
+
+	// Invalidate relevant caches
+	r.invalidateCache(ctx, "taxonomy:*")
+
+	return nil
 }
 
-func (r *TaxonomyRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
-	tx, err := r.pgxPool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	// Get the node's left and right values
-	var left, right uint64
-	err = tx.QueryRow(ctx, `SELECT record_left, record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, id.String()).Scan(&left, &right)
-	if err != nil {
-		return err
-	}
-
-	// Calculate the width of the subtree
-	width := right - left + 1
-
-	// Delete the node and all its descendants
-	_, err = tx.Exec(ctx, `UPDATE taxonomies SET deleted_at = NOW() WHERE record_left >= $1 AND record_right <= $2 AND deleted_at IS NULL`, left, right)
-	if err != nil {
-		return err
-	}
-
-	// Close the gap by shifting all nodes to the left
-	_, err = tx.Exec(ctx, `
+func (r *TaxonomyRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// Soft delete - mark as deleted
+	query := `
 		UPDATE taxonomies 
-		SET record_left = CASE 
-			WHEN record_left > $1 THEN record_left - $2 
-			ELSE record_left 
-		END,
-		record_right = CASE 
-			WHEN record_right > $1 THEN record_right - $2 
-			ELSE record_right 
-		END
-		WHERE deleted_at IS NULL
-	`, right, width)
+		SET deleted_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	_, err := r.pgxPool.Exec(ctx, query, id.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete taxonomy: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	// Invalidate relevant caches
+	r.invalidateCache(ctx, "taxonomy:*")
+
+	return nil
 }
 
-func (r *TaxonomyRepositoryImpl) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
+func (r *TaxonomyRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM taxonomies WHERE slug = $1 AND deleted_at IS NULL)`
 	var exists bool
 	err := r.pgxPool.QueryRow(ctx, query, slug).Scan(&exists)
-	return exists, err
+	if err != nil {
+		return false, fmt.Errorf("failed to check taxonomy existence: %w", err)
+	}
+	return exists, nil
 }
 
-func (r *TaxonomyRepositoryImpl) Count(ctx context.Context) (int64, error) {
+func (r *TaxonomyRepository) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM taxonomies WHERE deleted_at IS NULL`
 	var count int64
 	err := r.pgxPool.QueryRow(ctx, query).Scan(&count)
-	return count, err
+	if err != nil {
+		return 0, fmt.Errorf("failed to count taxonomies: %w", err)
+	}
+	return count, nil
 }
 
-func (r *TaxonomyRepositoryImpl) CountWithSearch(ctx context.Context, query string) (int64, error) {
+func (r *TaxonomyRepository) CountWithSearch(ctx context.Context, query string) (int64, error) {
 	var sqlQuery string
 	var args []interface{}
 
 	if query == "" {
-		// If no search query, count all taxonomies
 		sqlQuery = `SELECT COUNT(*) FROM taxonomies WHERE deleted_at IS NULL`
-		args = []interface{}{}
 	} else {
-		// If search query provided, count matching taxonomies
-		sqlQuery = `
-			SELECT COUNT(*) 
-			FROM taxonomies 
-			WHERE (name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1 OR code ILIKE $1) AND deleted_at IS NULL
-		`
+		sqlQuery = `SELECT COUNT(*) FROM taxonomies WHERE (name ILIKE $1 OR slug ILIKE $1 OR description ILIKE $1 OR code ILIKE $1) AND deleted_at IS NULL`
 		searchTerm := "%" + query + "%"
 		args = []interface{}{searchTerm}
 	}
 
 	var count int64
 	err := r.pgxPool.QueryRow(ctx, sqlQuery, args...).Scan(&count)
-	return count, err
+	if err != nil {
+		return 0, fmt.Errorf("failed to count taxonomies with search: %w", err)
+	}
+	return count, nil
+}
+
+// scanTaxonomyRow is a helper function to scan a taxonomy row from database
+func (r *TaxonomyRepository) scanTaxonomyRow(rows pgx.Rows) (*entities.Taxonomy, error) {
+	var taxonomy entities.Taxonomy
+	var parentIDStr *string
+	var createdBy, updatedBy, deletedBy string
+
+	err := rows.Scan(
+		&taxonomy.ID, &taxonomy.Name, &taxonomy.Slug, &taxonomy.Code, &taxonomy.Description,
+		&parentIDStr, &taxonomy.RecordLeft, &taxonomy.RecordRight, &taxonomy.RecordDepth,
+		&taxonomy.CreatedAt, &taxonomy.UpdatedAt, &taxonomy.DeletedAt, &createdBy, &updatedBy, &deletedBy,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan taxonomy row: %w", err)
+	}
+
+	// Convert parent ID string to UUID
+	if parentIDStr != nil {
+		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
+			taxonomy.ParentID = &parentID
+		}
+	}
+
+	return &taxonomy, nil
 }

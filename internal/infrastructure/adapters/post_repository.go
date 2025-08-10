@@ -2,482 +2,107 @@ package adapters
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
-	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
-	"github.com/turahe/go-restfull/internal/helper/cache"
+	"github.com/turahe/go-restfull/internal/repository"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
-// postgresPostRepository implements PostRepository interface
-type postgresPostRepository struct {
-	db          *pgxpool.Pool
-	redisClient redis.Cmdable
+// PostgresPostRepository is an adapter that implements the domain PostRepository interface
+// by delegating to the concrete repository implementation
+type PostgresPostRepository struct {
+	*BaseTransactionalRepository
+	repo repositories.PostRepository
 }
 
-// NewPostgresPostRepository creates a new PostgreSQL post repository
+// NewPostgresPostRepository creates a new PostgreSQL post repository adapter
 func NewPostgresPostRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.PostRepository {
-	return &postgresPostRepository{
-		db:          db,
-		redisClient: redisClient,
+	return &PostgresPostRepository{
+		BaseTransactionalRepository: NewBaseTransactionalRepository(db),
+		repo:                        repository.NewPostgresPostRepository(db, redisClient),
 	}
 }
 
-// Create creates a new post
-func (r *postgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
-	query := `
-		INSERT INTO posts (id, title, slug, subtitle, description, type, is_sticky, language, layout, published_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-	`
-
-	_, err := r.db.Exec(ctx, query,
-		post.ID,
-		post.Title,
-		post.Slug,
-		post.Subtitle,
-		post.Description,
-		"post", // default type to satisfy NOT NULL constraint
-		post.IsSticky,
-		post.Language,
-		post.Layout,
-		post.PublishedAt,
-		post.CreatedAt,
-		post.UpdatedAt,
-	)
-
-	if err == nil {
-		// Invalidate post cache
-		cache.InvalidatePattern(ctx, cache.PATTERN_POST_CACHE)
-	}
-
-	return err
+// Create delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
+	return r.repo.Create(ctx, post)
 }
 
-// GetByID retrieves a post by ID
-func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
-	// Try to get from cache first
-	cacheKey := fmt.Sprintf(cache.KEY_POST_BY_ID, id.String())
-	var post entities.Post
-	err := cache.GetJSON(ctx, cacheKey, &post)
-	if err == nil {
-		return &post, nil
-	}
-
-	query := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE id = $1 AND deleted_at IS NULL
-	`
-
-	var publishedAt sql.NullTime
-	var deletedAt sql.NullTime
-
-	err = r.db.QueryRow(ctx, query, id).Scan(
-		&post.ID,
-		&post.Title,
-		&post.Slug,
-		&post.Subtitle,
-		&post.Description,
-		&post.IsSticky,
-		&post.Language,
-		&post.Layout,
-		&publishedAt,
-		&post.CreatedAt,
-		&post.UpdatedAt,
-		&deletedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if publishedAt.Valid {
-		post.PublishedAt = &publishedAt.Time
-	}
-	if deletedAt.Valid {
-		post.DeletedAt = &deletedAt.Time
-	}
-
-	// Cache the result
-	cache.SetJSON(ctx, cacheKey, &post, cache.DefaultCacheDuration)
-
-	return &post, nil
+// GetByID delegates to the underlying repository implementation
+func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
+	return r.repo.GetByID(ctx, id)
 }
 
-// GetBySlug retrieves a post by slug
-func (r *postgresPostRepository) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
-	// Try to get from cache first
-	cacheKey := fmt.Sprintf(cache.KEY_POST_BY_SLUG, slug)
-	var post entities.Post
-	err := cache.GetJSON(ctx, cacheKey, &post)
-	if err == nil {
-		return &post, nil
-	}
-
-	query := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE slug = $1 AND deleted_at IS NULL
-	`
-
-	var publishedAt sql.NullTime
-	var deletedAt sql.NullTime
-
-	err = r.db.QueryRow(ctx, query, slug).Scan(
-		&post.ID,
-		&post.Title,
-		&post.Slug,
-		&post.Subtitle,
-		&post.Description,
-		&post.IsSticky,
-		&post.Language,
-		&post.Layout,
-		&publishedAt,
-		&post.CreatedAt,
-		&post.UpdatedAt,
-		&deletedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if publishedAt.Valid {
-		post.PublishedAt = &publishedAt.Time
-	}
-	if deletedAt.Valid {
-		post.DeletedAt = &deletedAt.Time
-	}
-
-	// Cache the result
-	cache.SetJSON(ctx, cacheKey, &post, cache.DefaultCacheDuration)
-
-	return &post, nil
+// GetBySlug delegates to the underlying repository implementation
+func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
+	return r.repo.GetBySlug(ctx, slug)
 }
 
-// GetByAuthor retrieves posts by author ID
-func (r *postgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*entities.Post, error) {
-	query := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE author_id = $1 AND deleted_at IS NULL
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := r.db.Query(ctx, query, authorID, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return r.scanPosts(rows)
+// GetByAuthor delegates to the underlying repository implementation
+func (r *PostgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*entities.Post, error) {
+	return r.repo.GetByAuthor(ctx, authorID, limit, offset)
 }
 
-// GetAll retrieves all posts with pagination
-func (r *postgresPostRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
-	query := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE deleted_at IS NULL
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := r.db.Query(ctx, query, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return r.scanPosts(rows)
+// GetAll delegates to the underlying repository implementation
+func (r *PostgresPostRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
+	return r.repo.GetAll(ctx, limit, offset)
 }
 
-// GetPublished retrieves only published posts
-func (r *postgresPostRepository) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
-	query := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE status = 'published' AND deleted_at IS NULL
-		ORDER BY published_at DESC
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := r.db.Query(ctx, query, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return r.scanPosts(rows)
+// GetPublished delegates to the underlying repository implementation
+func (r *PostgresPostRepository) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
+	return r.repo.GetPublished(ctx, limit, offset)
 }
 
-// Search searches posts by query
-func (r *postgresPostRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
-	searchQuery := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE (title ILIKE $1 OR slug ILIKE $1 OR subtitle ILIKE $1 OR description ILIKE $1) AND deleted_at IS NULL
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	searchTerm := fmt.Sprintf("%%%s%%", query)
-	rows, err := r.db.Query(ctx, searchQuery, searchTerm, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return r.scanPosts(rows)
+// Search delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
+	return r.repo.Search(ctx, query, limit, offset)
 }
 
-// Update updates an existing post
-func (r *postgresPostRepository) Update(ctx context.Context, post *entities.Post) error {
-	query := `
-        UPDATE posts
-        SET title = $1, slug = $2, subtitle = $3, description = $4, is_sticky = $5, language = $6, layout = $7, updated_at = $8
-        WHERE id = $9 AND deleted_at IS NULL
-    `
-
-	result, err := r.db.Exec(ctx, query,
-		post.Title,
-		post.Slug,
-		post.Subtitle,
-		post.Description,
-		post.IsSticky,
-		post.Language,
-		post.Layout,
-		post.UpdatedAt,
-		post.ID,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("post not found")
-	}
-
-	// Invalidate post cache
-	cache.InvalidatePattern(ctx, cache.PATTERN_POST_CACHE)
-
-	return nil
+// Update delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Update(ctx context.Context, post *entities.Post) error {
+	return r.repo.Update(ctx, post)
 }
 
-// Delete soft deletes a post
-func (r *postgresPostRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `
-		UPDATE posts
-		SET deleted_at = $1
-		WHERE id = $2 AND deleted_at IS NULL
-	`
-
-	result, err := r.db.Exec(ctx, query, time.Now(), id)
-	if err != nil {
-		return err
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("post not found")
-	}
-
-	// Invalidate post cache
-	cache.InvalidatePattern(ctx, cache.PATTERN_POST_CACHE)
-
-	return nil
+// Delete delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.repo.Delete(ctx, id)
 }
 
-// Publish publishes a post
-func (r *postgresPostRepository) Publish(ctx context.Context, id uuid.UUID) error {
-	query := `
-		UPDATE posts
-		SET published_at = $1, updated_at = $1
-		WHERE id = $2 AND deleted_at IS NULL
-	`
-
-	result, err := r.db.Exec(ctx, query, time.Now(), id)
-	if err != nil {
-		return err
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("post not found")
-	}
-
-	// Invalidate post cache
-	cache.InvalidatePattern(ctx, cache.PATTERN_POST_CACHE)
-
-	return nil
+// Publish delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Publish(ctx context.Context, id uuid.UUID) error {
+	return r.repo.Publish(ctx, id)
 }
 
-// Unpublish unpublishes a post
-func (r *postgresPostRepository) Unpublish(ctx context.Context, id uuid.UUID) error {
-	query := `
-		UPDATE posts
-		SET published_at = NULL, updated_at = $1
-		WHERE id = $2 AND deleted_at IS NULL
-	`
-
-	result, err := r.db.Exec(ctx, query, time.Now(), id)
-	if err != nil {
-		return err
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("post not found")
-	}
-
-	// Invalidate post cache
-	cache.InvalidatePattern(ctx, cache.PATTERN_POST_CACHE)
-
-	return nil
+// Unpublish delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Unpublish(ctx context.Context, id uuid.UUID) error {
+	return r.repo.Unpublish(ctx, id)
 }
 
-// Count returns the total number of posts
-func (r *postgresPostRepository) Count(ctx context.Context) (int64, error) {
-	query := `SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL`
-
-	var count int64
-	err := r.db.QueryRow(ctx, query).Scan(&count)
-	return count, err
+// Count delegates to the underlying repository implementation
+func (r *PostgresPostRepository) Count(ctx context.Context) (int64, error) {
+	return r.repo.Count(ctx)
 }
 
-// CountPublished returns the total number of published posts
-func (r *postgresPostRepository) CountPublished(ctx context.Context) (int64, error) {
-	query := `SELECT COUNT(*) FROM posts WHERE published_at IS NOT NULL AND deleted_at IS NULL`
-
-	var count int64
-	err := r.db.QueryRow(ctx, query).Scan(&count)
-	return count, err
+// CountPublished delegates to the underlying repository implementation
+func (r *PostgresPostRepository) CountPublished(ctx context.Context) (int64, error) {
+	return r.repo.CountPublished(ctx)
 }
 
-// CountBySearch returns the total number of posts matching the search query
-func (r *postgresPostRepository) CountBySearch(ctx context.Context, query string) (int64, error) {
-	searchQuery := `
-		SELECT COUNT(*) FROM posts 
-		WHERE deleted_at IS NULL 
-		AND (title ILIKE $1 OR slug ILIKE $1)
-	`
-	var count int64
-	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
-	return count, err
+// CountBySearch delegates to the underlying repository implementation
+func (r *PostgresPostRepository) CountBySearch(ctx context.Context, query string) (int64, error) {
+	return r.repo.CountBySearch(ctx, query)
 }
 
-// CountBySearchPublished returns the total number of published posts matching the search query
-func (r *postgresPostRepository) CountBySearchPublished(ctx context.Context, query string) (int64, error) {
-	searchQuery := `
-		SELECT COUNT(*) FROM posts 
-		WHERE published_at IS NOT NULL AND deleted_at IS NULL AND (title ILIKE $1 OR slug ILIKE $1)
-	`
-	var count int64
-	err := r.db.QueryRow(ctx, searchQuery, fmt.Sprintf("%%%s%%", query)).Scan(&count)
-	return count, err
+// CountBySearchPublished delegates to the underlying repository implementation
+func (r *PostgresPostRepository) CountBySearchPublished(ctx context.Context, query string) (int64, error) {
+	return r.repo.CountBySearchPublished(ctx, query)
 }
 
-// SearchPublished searches published posts by query
-func (r *postgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
-	searchQuery := `
-		SELECT id, title, slug, subtitle, description, is_sticky, language, layout, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE published_at IS NOT NULL AND deleted_at IS NULL 
-		AND (title ILIKE $1 OR slug ILIKE $1)
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := r.db.Query(ctx, searchQuery, fmt.Sprintf("%%%s%%", query), limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var posts []*entities.Post
-	for rows.Next() {
-		var post entities.Post
-		var publishedAt sql.NullTime
-		var deletedAt sql.NullTime
-
-		err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Slug,
-			&post.Subtitle,
-			&post.Description,
-			&post.IsSticky,
-			&post.Language,
-			&post.Layout,
-			&publishedAt,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&deletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if publishedAt.Valid {
-			post.PublishedAt = &publishedAt.Time
-		}
-		if deletedAt.Valid {
-			post.DeletedAt = &deletedAt.Time
-		}
-
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
-}
-
-// scanPostFromScanner scans a single post from a row/rows scanner
-func (r *postgresPostRepository) scanPostFromScanner(scanner interface{ Scan(dest ...any) error }) (*entities.Post, error) {
-	var post entities.Post
-	var publishedAt sql.NullTime
-	var deletedAt sql.NullTime
-
-	if err := scanner.Scan(
-		&post.ID,
-		&post.Title,
-		&post.Slug,
-		&post.Subtitle,
-		&post.Description,
-		&post.IsSticky,
-		&post.Language,
-		&post.Layout,
-		&publishedAt,
-		&post.CreatedAt,
-		&post.UpdatedAt,
-		&deletedAt,
-	); err != nil {
-		return nil, err
-	}
-
-	if publishedAt.Valid {
-		post.PublishedAt = &publishedAt.Time
-	}
-	if deletedAt.Valid {
-		post.DeletedAt = &deletedAt.Time
-	}
-	return &post, nil
-}
-
-// scanPosts scans all rows into a slice of posts
-func (r *postgresPostRepository) scanPosts(rows pgx.Rows) ([]*entities.Post, error) {
-	var posts []*entities.Post
-	for rows.Next() {
-		p, err := r.scanPostFromScanner(rows)
-		if err != nil {
-			return nil, err
-		}
-		posts = append(posts, p)
-	}
-	return posts, nil
+// SearchPublished delegates to the underlying repository implementation
+func (r *PostgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
+	return r.repo.SearchPublished(ctx, query, limit, offset)
 }

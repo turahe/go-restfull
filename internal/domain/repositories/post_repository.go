@@ -10,6 +10,8 @@ import (
 
 // PostRepository defines the interface for post data access
 type PostRepository interface {
+	TransactionalRepository // Embed transaction support
+
 	// Create creates a new post
 	Create(ctx context.Context, post *entities.Post) error
 

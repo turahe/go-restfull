@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"strings"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/repository"
@@ -16,10 +17,7 @@ type PostgresContentRepository struct {
 	repo repository.ContentRepository
 }
 
-func NewPostgresContentRepository(db *pgxpool.Pool) repositories.ContentRepository {
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
+func NewPostgresContentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.ContentRepository {
 
 	return &PostgresContentRepository{
 		repo: repository.NewContentRepository(db, redisClient),

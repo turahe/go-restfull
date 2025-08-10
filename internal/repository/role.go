@@ -44,7 +44,7 @@ func (r *RoleRepositoryImpl) Create(ctx context.Context, role *entities.Role) er
 			  VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7)`
 
 	_, err := r.pgxPool.Exec(ctx, query,
-		role.ID, role.Name, role.Slug, role.Description, role.IsActive, "", "")
+		role.ID, role.Name, role.Slug, role.Description, role.IsActive, role.CreatedBy, role.UpdatedBy)
 	return err
 }
 

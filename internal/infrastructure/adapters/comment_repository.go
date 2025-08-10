@@ -13,12 +13,12 @@ import (
 )
 
 type PostgresCommentRepository struct {
-	repo repository.CommentRepository
+	repo repositories.CommentRepository
 }
 
 func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.CommentRepository {
 	return &PostgresCommentRepository{
-		repo: repository.NewCommentRepository(db, redisClient),
+		repo: repository.NewCommentRepository(db),
 	}
 }
 

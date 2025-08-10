@@ -137,21 +137,20 @@ func NewContainer(db *pgxpool.Pool) *Container {
 
 	// Initialize repositories using existing adapters
 	container.UserRepository = adapters.NewPostgresUserRepository(db, redisClient)
-	container.PostRepository = adapters.NewPostgresPostRepository(db, redisClient)
+	container.PostRepository = repository.NewPostgresPostRepository(db, redisClient)
 	container.MediaRepository = adapters.NewPostgresMediaRepository(db, redisClient)
 	container.TagRepository = adapters.NewPostgresTagRepository(db, redisClient)
 	container.CommentRepository = adapters.NewPostgresCommentRepository(db, redisClient)
 	container.RoleRepository = adapters.NewPostgresRoleRepository(db, redisClient)
 	// UserRoleRepository adapter not present in current adapters; initialize via repository layer
 	// TODO: provide user-role repository adapter; temporarily set to nil to unblock build
-	container.UserRoleRepository = nil
 	container.MenuRepository = adapters.NewPostgresMenuRepository(db, redisClient)
 	container.MenuRoleRepository = adapters.NewPostgresMenuRoleRepository(db, redisClient)
 	container.TaxonomyRepository = adapters.NewPostgresTaxonomyRepository(db, redisClient)
-	container.ContentRepository = adapters.NewPostgresContentRepository(db)
+	container.ContentRepository = adapters.NewPostgresContentRepository(db, redisClient)
 	container.SettingRepository = repository.NewSettingRepository(db, redisClient)
-	container.AddressRepository = adapters.NewAddressRepository(db)
-	container.OrganizationRepository = adapters.NewOrganizationRepository(db)
+	container.AddressRepository = adapters.NewPostgresAddressRepository(db)
+	container.OrganizationRepository = repository.NewOrganizationRepository(db)
 
 	// Initialize application services
 	// User service
