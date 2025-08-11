@@ -14,12 +14,22 @@ import (
 )
 
 // commentRepository implements the CommentRepository interface using nested set model
+// This struct provides concrete implementations for comment management operations
+// using PostgreSQL for persistence and nested set for hierarchical tree structure.
 type commentRepository struct {
-	db        *pgxpool.Pool
-	nestedSet *nestedset.NestedSetManager
+	db        *pgxpool.Pool               // PostgreSQL connection pool for database operations
+	nestedSet *nestedset.NestedSetManager // Manager for nested set tree operations
 }
 
 // NewCommentRepository creates a new comment repository instance
+// This constructor function initializes the repository with the required dependencies
+// including the nested set manager for tree structure operations.
+//
+// Parameters:
+//   - db: PostgreSQL connection pool for database operations
+//
+// Returns:
+//   - repositories.CommentRepository: interface implementation for comment management
 func NewCommentRepository(db *pgxpool.Pool) repositories.CommentRepository {
 	return &commentRepository{
 		db:        db,
@@ -27,6 +37,16 @@ func NewCommentRepository(db *pgxpool.Pool) repositories.CommentRepository {
 	}
 }
 
+// Create adds a new comment to the comments table with nested set positioning
+// This method calculates the appropriate tree position using nested set values
+// and inserts the comment record with all required fields including tree structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - comment: pointer to the comment entity to create
+//
+// Returns:
+//   - error: nil if successful, or wrapped error if the operation fails
 func (r *commentRepository) Create(ctx context.Context, comment *entities.Comment) error {
 	// Calculate nested set values using the shared manager
 	values, err := r.nestedSet.CreateNode(ctx, "comments", comment.ParentID, 1)
@@ -69,6 +89,16 @@ func (r *commentRepository) Create(ctx context.Context, comment *entities.Commen
 	return nil
 }
 
+// GetByID retrieves a specific comment by its UUID from the database
+// This method performs a soft-delete aware query, only returning comments that haven't been deleted.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - id: UUID of the comment to retrieve
+//
+// Returns:
+//   - *entities.Comment: pointer to the found comment entity, or nil if not found
+//   - error: nil if successful, or database error if the operation fails
 func (r *commentRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -104,10 +134,34 @@ func (r *commentRepository) GetByID(ctx context.Context, id uuid.UUID) (*entitie
 	return &comment, nil
 }
 
+// GetByPostID retrieves comments associated with a specific post with pagination support
+// This method filters comments by post ID and orders them by nested set structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - postID: UUID of the post whose comments to retrieve
+//   - limit: maximum number of comments to return
+//   - offset: number of comments to skip (for pagination)
+//
+// Returns:
+//   - []*entities.Comment: slice of comment entities associated with the post
+//   - error: nil if successful, or database error if the operation fails
 func (r *commentRepository) GetByPostID(ctx context.Context, postID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	return r.GetByModel(ctx, "post", postID, limit, offset)
 }
 
+// GetByUserID retrieves comments created by a specific user with pagination support
+// This method filters comments by the user who created them and orders by nested set structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - userID: UUID of the user whose comments to retrieve
+//   - limit: maximum number of comments to return
+//   - offset: number of comments to skip (for pagination)
+//
+// Returns:
+//   - []*entities.Comment: slice of comment entities created by the user
+//   - error: nil if successful, or database error if the operation fails
 func (r *commentRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -137,6 +191,18 @@ func (r *commentRepository) GetByUserID(ctx context.Context, userID uuid.UUID, l
 	return comments, nil
 }
 
+// GetReplies retrieves direct replies to a specific comment with pagination support
+// This method finds all immediate children of a parent comment using nested set values.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - parentID: UUID of the parent comment whose replies to retrieve
+//   - limit: maximum number of replies to return
+//   - offset: number of replies to skip (for pagination)
+//
+// Returns:
+//   - []*entities.Comment: slice of reply comment entities
+//   - error: nil if successful, or database error if the operation fails
 func (r *commentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -166,6 +232,18 @@ func (r *commentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, 
 	return comments, nil
 }
 
+// GetAll retrieves all non-deleted comments from the database with pagination support
+// This method returns comments ordered by nested set left value for tree traversal
+// and supports limit/offset for efficient pagination.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - limit: maximum number of comments to return
+//   - offset: number of comments to skip (for pagination)
+//
+// Returns:
+//   - []*entities.Comment: slice of comment entities with pagination
+//   - error: nil if successful, or database error if the operation fails
 func (r *commentRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 

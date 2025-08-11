@@ -3,9 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/turahe/go-restfull/pkg/logger"
 	"os"
 	"sort"
+
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/turahe/go-restfull/config"

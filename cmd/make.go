@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/turahe/go-restfull/pkg/logger"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"

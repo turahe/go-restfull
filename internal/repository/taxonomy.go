@@ -16,12 +16,25 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// TaxonomyRepository provides the concrete implementation for taxonomy management operations
+// This struct handles all taxonomy-related database operations including CRUD operations,
+// hierarchical tree management using nested sets, and Redis caching for performance.
 type TaxonomyRepository struct {
-	pgxPool     *pgxpool.Pool
-	redisClient redis.Cmdable
-	nestedSet   *nestedset.NestedSetManager
+	pgxPool     *pgxpool.Pool               // PostgreSQL connection pool for database operations
+	redisClient redis.Cmdable               // Redis client for caching operations
+	nestedSet   *nestedset.NestedSetManager // Manager for nested set tree operations
 }
 
+// NewTaxonomyRepository creates a new instance of TaxonomyRepository
+// This constructor function initializes the repository with the required dependencies
+// including the nested set manager for tree structure operations and Redis for caching.
+//
+// Parameters:
+//   - db: PostgreSQL connection pool for database operations
+//   - redisClient: Redis client for caching operations
+//
+// Returns:
+//   - repositories.TaxonomyRepository: interface implementation for taxonomy management
 func NewTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.TaxonomyRepository {
 	return &TaxonomyRepository{
 		pgxPool:     db,
@@ -31,6 +44,15 @@ func NewTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) reposito
 }
 
 // getCacheKey generates a consistent cache key for taxonomy operations
+// This helper method creates standardized cache keys for various repository operations
+// to ensure consistent caching behavior across the application.
+//
+// Parameters:
+//   - operation: string identifier for the operation type
+//   - params: variadic parameters to include in the cache key
+//
+// Returns:
+//   - string: formatted cache key for the operation
 func (r *TaxonomyRepository) getCacheKey(operation string, params ...interface{}) string {
 	key := fmt.Sprintf("taxonomy:%s", operation)
 	for _, param := range params {
@@ -84,6 +106,16 @@ func (r *TaxonomyRepository) invalidateCache(ctx context.Context, pattern string
 	}
 }
 
+// Create adds a new taxonomy to the taxonomies table with nested set positioning
+// This method calculates the appropriate tree position using nested set values
+// and inserts the taxonomy record with all required fields including tree structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - taxonomy: pointer to the taxonomy entity to create
+//
+// Returns:
+//   - error: nil if successful, or wrapped error if the operation fails
 func (r *TaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
 	// Calculate nested set values using the shared manager
 	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, 1)

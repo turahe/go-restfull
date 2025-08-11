@@ -17,12 +17,23 @@ import (
 )
 
 // postgresPostRepository implements PostRepository interface
+// This struct provides concrete implementations for post management operations
+// using PostgreSQL for persistence and Redis for caching operations.
 type postgresPostRepository struct {
-	db          *pgxpool.Pool
-	redisClient redis.Cmdable
+	db          *pgxpool.Pool // PostgreSQL connection pool for database operations
+	redisClient redis.Cmdable // Redis client for caching operations
 }
 
 // NewPostgresPostRepository creates a new PostgreSQL post repository
+// This constructor function initializes the repository with the required dependencies
+// including PostgreSQL connection pool and Redis client for caching.
+//
+// Parameters:
+//   - db: PostgreSQL connection pool for database operations
+//   - redisClient: Redis client for caching operations
+//
+// Returns:
+//   - repositories.PostRepository: interface implementation for post management
 func NewPostgresPostRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.PostRepository {
 	return &postgresPostRepository{
 		db:          db,
@@ -30,7 +41,16 @@ func NewPostgresPostRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repo
 	}
 }
 
-// Create creates a new post
+// Create creates a new post in the database
+// This method inserts a new post record with all required fields and invalidates
+// the post cache to ensure data consistency.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - post: pointer to the post entity to create
+//
+// Returns:
+//   - error: nil if successful, or database error if the operation fails
 func (r *postgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
 	query := `
 		INSERT INTO posts (id, title, slug, subtitle, description, type, is_sticky, language, layout, published_at, created_at, updated_at)
@@ -60,7 +80,17 @@ func (r *postgresPostRepository) Create(ctx context.Context, post *entities.Post
 	return err
 }
 
-// GetByID retrieves a post by ID
+// GetByID retrieves a post by ID from the database
+// This method first attempts to retrieve the post from cache, and if not found,
+// queries the database and caches the result for future requests.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - id: UUID of the post to retrieve
+//
+// Returns:
+//   - *entities.Post: pointer to the found post entity, or nil if not found
+//   - error: nil if successful, or database error if the operation fails
 func (r *postgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
 	// Try to get from cache first
 	cacheKey := fmt.Sprintf(cache.KEY_POST_BY_ID, id.String())

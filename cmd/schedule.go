@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/turahe/go-restfull/pkg/scheduler"
 	"os"
+
+	"github.com/turahe/go-restfull/pkg/scheduler"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/lnquy/cron"

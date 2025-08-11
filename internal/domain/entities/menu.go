@@ -1,3 +1,6 @@
+// Package entities provides the core domain models and business logic entities
+// for the application. This file contains the Menu entity for managing
+// hierarchical menu structures with nested set model support and role-based access control.
 package entities
 
 import (
@@ -8,95 +11,158 @@ import (
 	"github.com/google/uuid"
 )
 
-// Menu represents a menu entity in the domain layer
+// Menu represents a menu entity in the domain layer that supports
+// hierarchical organization through nested set model implementation.
+//
+// The entity provides:
+// - Hierarchical menu structure with parent-child relationships
+// - Nested set model for efficient tree traversal and querying
+// - Role-based access control for menu visibility
+// - Menu state management (active/inactive, visible/hidden)
+// - URL routing and target configuration
+// - Audit trail with creation, update, and deletion tracking
 type Menu struct {
-	ID             uuid.UUID  `json:"id"`
-	Name           string     `json:"name"`
-	Slug           string     `json:"slug"`
-	Description    string     `json:"description,omitempty"`
-	URL            string     `json:"url,omitempty"`
-	Icon           string     `json:"icon,omitempty"`
-	ParentID       *uuid.UUID `json:"parent_id,omitempty"`
-	RecordLeft     *uint64    `json:"record_left,omitempty"`
-	RecordRight    *uint64    `json:"record_right,omitempty"`
-	RecordOrdering *uint64    `json:"record_ordering,omitempty"`
-	RecordDepth    *uint64    `json:"record_depth,omitempty"`
-	IsActive       bool       `json:"is_active"`
-	IsVisible      bool       `json:"is_visible"`
-	Target         string     `json:"target,omitempty"` // _blank, _self, etc.
-	CreatedBy      uuid.UUID  `json:"created_by"`
-	UpdatedBy      uuid.UUID  `json:"updated_by"`
-	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
+	ID             uuid.UUID  `json:"id"`                        // Unique identifier for the menu
+	Name           string     `json:"name"`                      // Display name for the menu item
+	Slug           string     `json:"slug"`                      // URL-friendly identifier for the menu
+	Description    string     `json:"description,omitempty"`     // Optional description of the menu
+	URL            string     `json:"url,omitempty"`             // Target URL for the menu link
+	Icon           string     `json:"icon,omitempty"`            // Icon identifier for the menu item
+	ParentID       *uuid.UUID `json:"parent_id,omitempty"`       // ID of parent menu (nil for root items)
+	RecordLeft     *uint64    `json:"record_left,omitempty"`     // Left boundary for nested set model
+	RecordRight    *uint64    `json:"record_right,omitempty"`    // Right boundary for nested set model
+	RecordOrdering *uint64    `json:"record_ordering,omitempty"` // Display order within the same level
+	RecordDepth    *uint64    `json:"record_depth,omitempty"`    // Depth level in the hierarchy
+	IsActive       bool       `json:"is_active"`                 // Whether the menu is active/enabled
+	IsVisible      bool       `json:"is_visible"`                // Whether the menu is visible to users
+	Target         string     `json:"target,omitempty"`          // Link target (_blank, _self, etc.)
+	CreatedBy      uuid.UUID  `json:"created_by"`                // ID of user who created this menu
+	UpdatedBy      uuid.UUID  `json:"updated_by"`                // ID of user who last updated this menu
+	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`      // ID of user who deleted this menu (soft delete)
+	CreatedAt      time.Time  `json:"created_at"`                // Timestamp when menu was created
+	UpdatedAt      time.Time  `json:"updated_at"`                // Timestamp when menu was last updated
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`      // Timestamp when menu was soft deleted
 
 	// Relationships
-	Parent   *Menu   `json:"parent,omitempty"`
-	Children []*Menu `json:"children,omitempty"`
-	Roles    []*Role `json:"roles,omitempty"`
+	Parent   *Menu   `json:"parent,omitempty"`   // Reference to parent menu item
+	Children []*Menu `json:"children,omitempty"` // Collection of child menu items
+	Roles    []*Role `json:"roles,omitempty"`    // Roles that can access this menu
 }
 
-// NewMenu creates a new menu instance
+// NewMenu creates a new menu instance with the provided details.
+// This constructor initializes required fields and sets default values
+// for active/visible status, target, and timestamps.
+//
+// Parameters:
+//   - name: Display name for the menu item
+//   - slug: URL-friendly identifier for the menu
+//   - description: Optional description of the menu
+//   - url: Target URL for the menu link
+//   - icon: Icon identifier for the menu item
+//   - parentID: Optional ID of parent menu (nil for root items)
+//
+// Returns:
+//   - *Menu: Pointer to the newly created menu entity
+//
+// Default values:
+//   - IsActive: true (menu is enabled by default)
+//   - IsVisible: true (menu is visible by default)
+//   - Target: "_self" (open in same window by default)
 func NewMenu(name, slug, description, url, icon string, parentID *uuid.UUID) *Menu {
 	return &Menu{
-		ID:          uuid.New(),
-		Name:        name,
-		Slug:        slug,
-		Description: description,
-		URL:         url,
-		Icon:        icon,
-		ParentID:    parentID,
-		IsActive:    true,
-		IsVisible:   true,
-		Target:      "_self",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-		Children:    []*Menu{},
-		Roles:       []*Role{},
+		ID:          uuid.New(),  // Generate new unique identifier
+		Name:        name,        // Set menu name
+		Slug:        slug,        // Set menu slug
+		Description: description, // Set menu description
+		URL:         url,         // Set target URL
+		Icon:        icon,        // Set icon identifier
+		ParentID:    parentID,    // Set parent menu ID
+		IsActive:    true,        // Set as active by default
+		IsVisible:   true,        // Set as visible by default
+		Target:      "_self",     // Set default target
+		CreatedAt:   time.Now(),  // Set creation timestamp
+		UpdatedAt:   time.Now(),  // Set initial update timestamp
+		Children:    []*Menu{},   // Initialize empty children slice
+		Roles:       []*Role{},   // Initialize empty roles slice
 	}
 }
 
-// UpdateMenu updates menu information
+// UpdateMenu updates menu information with new values.
+// This method modifies the menu fields and automatically updates
+// the UpdatedAt timestamp to reflect the change.
+//
+// Parameters:
+//   - name: New display name for the menu
+//   - slug: New URL-friendly identifier
+//   - description: New menu description
+//   - url: New target URL
+//   - icon: New icon identifier
+//   - recordOrdering: New display order within the same level
+//   - parentID: New parent menu ID
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) UpdateMenu(name, slug, description, url, icon string, recordOrdering uint64, parentID *uuid.UUID) {
-	m.Name = name
-	m.Slug = slug
-	m.Description = description
-	m.URL = url
-	m.Icon = icon
-	m.RecordOrdering = &recordOrdering
-	m.ParentID = parentID
-	m.UpdatedAt = time.Now()
+	m.Name = name                      // Update menu name
+	m.Slug = slug                      // Update menu slug
+	m.Description = description        // Update menu description
+	m.URL = url                        // Update target URL
+	m.Icon = icon                      // Update icon identifier
+	m.RecordOrdering = &recordOrdering // Update display order
+	m.ParentID = parentID              // Update parent menu ID
+	m.UpdatedAt = time.Now()           // Update modification timestamp
 }
 
-// Activate activates the menu
+// Activate enables the menu item.
+// This method sets IsActive to true and updates the UpdatedAt timestamp.
+// Active menus are typically included in navigation and processing.
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) Activate() {
-	m.IsActive = true
-	m.UpdatedAt = time.Now()
+	m.IsActive = true        // Enable the menu
+	m.UpdatedAt = time.Now() // Update modification timestamp
 }
 
-// Deactivate deactivates the menu
+// Deactivate disables the menu item.
+// This method sets IsActive to false and updates the UpdatedAt timestamp.
+// Inactive menus are typically excluded from navigation and processing.
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) Deactivate() {
-	m.IsActive = false
-	m.UpdatedAt = time.Now()
+	m.IsActive = false       // Disable the menu
+	m.UpdatedAt = time.Now() // Update modification timestamp
 }
 
-// Show makes the menu visible
+// Show makes the menu item visible to users.
+// This method sets IsVisible to true and updates the UpdatedAt timestamp.
+// Visible menus are displayed in the user interface.
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) Show() {
-	m.IsVisible = true
-	m.UpdatedAt = time.Now()
+	m.IsVisible = true       // Make menu visible
+	m.UpdatedAt = time.Now() // Update modification timestamp
 }
 
-// Hide makes the menu invisible
+// Hide makes the menu item invisible to users.
+// This method sets IsVisible to false and updates the UpdatedAt timestamp.
+// Hidden menus are not displayed in the user interface.
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) Hide() {
-	m.IsVisible = false
-	m.UpdatedAt = time.Now()
+	m.IsVisible = false      // Make menu invisible
+	m.UpdatedAt = time.Now() // Update modification timestamp
 }
 
-// SetTarget sets the target for the menu link
+// SetTarget sets the target for the menu link.
+// This method updates the Target field and automatically updates
+// the UpdatedAt timestamp.
+//
+// Parameters:
+//   - target: Link target value (e.g., "_blank", "_self", "_parent", "_top")
+//
+// Note: This method automatically updates the UpdatedAt timestamp
 func (m *Menu) SetTarget(target string) {
-	m.Target = target
-	m.UpdatedAt = time.Now()
+	m.Target = target        // Set link target
+	m.UpdatedAt = time.Now() // Update modification timestamp
 }
 
 // SoftDelete marks the menu as deleted

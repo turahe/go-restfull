@@ -1,3 +1,6 @@
+// Package entities provides the core domain models and business logic entities
+// for the application. This file contains the Organization entity for managing
+// organizational structures with hierarchical relationships and nested set model support.
 package entities
 
 import (
@@ -7,83 +10,121 @@ import (
 	"github.com/google/uuid"
 )
 
-// OrganizationStatus represents the status of an organization
+// OrganizationStatus represents the current operational status of an organization.
+// This enum provides predefined values for tracking the state of organizations
+// throughout their lifecycle in the system.
 type OrganizationStatus string
 
+// OrganizationType represents the category or classification of an organization.
+// This enum provides predefined values for different types of organizations
+// to enable proper categorization and business logic handling.
 type OrganizationType string
 
+// Organization type constants defining the standard categories for organizations.
+// These values represent different business entity types and organizational structures.
 const (
-	OrganizationTypeCompany            OrganizationType = "COMPANY"
-	OrganizationTypeCompanySubsidiary  OrganizationType = "COMPANY_SUBSIDIARY"
-	OrganizationTypeCompanyAgent       OrganizationType = "COMPANY_AGENT"
-	OrganizationTypeCompanyLicensee    OrganizationType = "COMPANY_LICENSEE"
-	OrganizationTypeCompanyDistributor OrganizationType = "COMPANY_DISTRIBUTOR"
-	OrganizationTypeCompanyConsignee   OrganizationType = "COMPANY_CONSIGNEE"
-	OrganizationTypeCompanyConsignor   OrganizationType = "COMPANY_CONSIGNOR"
-	OrganizationTypeCompanyConsigner   OrganizationType = "COMPANY_CONSIGNER"
-	OrganizationTypeOutlet             OrganizationType = "OUTLET"
-	OrganizationTypeStore              OrganizationType = "STORE"
-	OrganizationTypeDepartment         OrganizationType = "DEPARTMENT"
-	OrganizationTypeSubDepartment      OrganizationType = "SUB_DEPARTMENT"
-	OrganizationTypeDivision           OrganizationType = "DIVISION"
-	OrganizationTypeSubDivision        OrganizationType = "SUB_DIVISION"
-	OrganizationTypeDesignation        OrganizationType = "DESIGNATION"
-	OrganizationTypeInstitution        OrganizationType = "INSTITUTION"
-	OrganizationTypeCommunity          OrganizationType = "COMMUNITY"
-	OrganizationTypeOrganization       OrganizationType = "ORGANIZATION"
-	OrganizationTypeFoundation         OrganizationType = "FOUNDATION"
-	OrganizationTypeBranchOffice       OrganizationType = "BRANCH_OFFICE"
-	OrganizationTypeBranchOutlet       OrganizationType = "BRANCH_OUTLET"
-	OrganizationTypeBranchStore        OrganizationType = "BRANCH_STORE"
-	OrganizationTypeRegional           OrganizationType = "REGIONAL"
-	OrganizationTypeFranchisee         OrganizationType = "FRANCHISEE"
-	OrganizationTypePartner            OrganizationType = "PARTNER"
+	OrganizationTypeCompany            OrganizationType = "COMPANY"             // Standard business company
+	OrganizationTypeCompanySubsidiary  OrganizationType = "COMPANY_SUBSIDIARY"  // Subsidiary of a parent company
+	OrganizationTypeCompanyAgent       OrganizationType = "COMPANY_AGENT"       // Agent representing a company
+	OrganizationTypeCompanyLicensee    OrganizationType = "COMPANY_LICENSEE"    // Company with licensing rights
+	OrganizationTypeCompanyDistributor OrganizationType = "COMPANY_DISTRIBUTOR" // Company distributing products
+	OrganizationTypeCompanyConsignee   OrganizationType = "COMPANY_CONSIGNEE"   // Company receiving consigned goods
+	OrganizationTypeCompanyConsignor   OrganizationType = "COMPANY_CONSIGNOR"   // Company sending consigned goods
+	OrganizationTypeCompanyConsigner   OrganizationType = "COMPANY_CONSIGNER"   // Company acting as consigner
+	OrganizationTypeOutlet             OrganizationType = "OUTLET"              // Retail outlet or point of sale
+	OrganizationTypeStore              OrganizationType = "STORE"               // Retail store
+	OrganizationTypeDepartment         OrganizationType = "DEPARTMENT"          // Department within an organization
+	OrganizationTypeSubDepartment      OrganizationType = "SUB_DEPARTMENT"      // Sub-department within a department
+	OrganizationTypeDivision           OrganizationType = "DIVISION"            // Division within an organization
+	OrganizationTypeSubDivision        OrganizationType = "SUB_DIVISION"        // Sub-division within a division
+	OrganizationTypeDesignation        OrganizationType = "DESIGNATION"         // Specific designation or role
+	OrganizationTypeInstitution        OrganizationType = "INSTITUTION"         // Educational or research institution
+	OrganizationTypeCommunity          OrganizationType = "COMMUNITY"           // Community organization
+	OrganizationTypeOrganization       OrganizationType = "ORGANIZATION"        // Generic organization type
+	OrganizationTypeFoundation         OrganizationType = "FOUNDATION"          // Non-profit foundation
+	OrganizationTypeBranchOffice       OrganizationType = "BRANCH_OFFICE"       // Branch office location
+	OrganizationTypeBranchOutlet       OrganizationType = "BRANCH_OUTLET"       // Branch outlet location
+	OrganizationTypeBranchStore        OrganizationType = "BRANCH_STORE"        // Branch store location
+	OrganizationTypeRegional           OrganizationType = "REGIONAL"            // Regional organization
+	OrganizationTypeFranchisee         OrganizationType = "FRANCHISEE"          // Franchisee organization
+	OrganizationTypePartner            OrganizationType = "PARTNER"             // Partner organization
 )
 
+// Organization status constants defining the operational states.
+// These values represent the current status of organizations in the system.
 const (
-	OrganizationStatusActive    OrganizationStatus = "ACTIVE"
-	OrganizationStatusInactive  OrganizationStatus = "INACTIVE"
-	OrganizationStatusSuspended OrganizationStatus = "SUSPENDED"
+	OrganizationStatusActive    OrganizationStatus = "ACTIVE"    // Organization is fully operational
+	OrganizationStatusInactive  OrganizationStatus = "INACTIVE"  // Organization is temporarily inactive
+	OrganizationStatusSuspended OrganizationStatus = "SUSPENDED" // Organization is suspended from operations
 )
 
-// Organization represents the core organization domain entity with nested set hierarchy
+// Organization represents the core organization domain entity with nested set hierarchy.
+// It supports hierarchical organization structures through parent-child relationships
+// and nested set model implementation for efficient tree traversal and querying.
+//
+// The entity includes:
+// - Basic organization information (name, description, code, type)
+// - Status management for operational control
+// - Hierarchical structure support through nested set model
+// - Audit trail with creation, update, and deletion tracking
+// - Soft delete functionality for data retention
 type Organization struct {
-	ID             uuid.UUID          `json:"id"`
-	Name           string             `json:"name"`
-	Description    *string            `json:"description,omitempty"`
-	Code           *string            `json:"code,omitempty"`
-	Type           *OrganizationType  `json:"type,omitempty"`
-	Status         OrganizationStatus `json:"status"`
-	ParentID       *uuid.UUID         `json:"parent_id,omitempty"`
-	RecordLeft     *uint64            `json:"record_left,omitempty"`
-	RecordRight    *uint64            `json:"record_right,omitempty"`
-	RecordDepth    *uint64            `json:"record_depth,omitempty"`
-	RecordOrdering *uint64            `json:"record_ordering,omitempty"`
-	CreatedBy      uuid.UUID          `json:"created_by"`
-	UpdatedBy      uuid.UUID          `json:"updated_by"`
-	DeletedBy      *uuid.UUID         `json:"deleted_by,omitempty"`
-	CreatedAt      time.Time          `json:"created_at"`
-	UpdatedAt      time.Time          `json:"updated_at"`
-	DeletedAt      *time.Time         `json:"deleted_at,omitempty"`
+	ID             uuid.UUID          `json:"id"`                        // Unique identifier for the organization
+	Name           string             `json:"name"`                      // Display name of the organization
+	Description    *string            `json:"description,omitempty"`     // Optional description of the organization
+	Code           *string            `json:"code,omitempty"`            // Optional organization code/identifier
+	Type           *OrganizationType  `json:"type,omitempty"`            // Optional organization type classification
+	Status         OrganizationStatus `json:"status"`                    // Current operational status of the organization
+	ParentID       *uuid.UUID         `json:"parent_id,omitempty"`       // ID of parent organization (nil for root)
+	RecordLeft     *uint64            `json:"record_left,omitempty"`     // Left boundary for nested set model
+	RecordRight    *uint64            `json:"record_right,omitempty"`    // Right boundary for nested set model
+	RecordDepth    *uint64            `json:"record_depth,omitempty"`    // Depth level in the hierarchy
+	RecordOrdering *uint64            `json:"record_ordering,omitempty"` // Display order within the same level
+	CreatedBy      uuid.UUID          `json:"created_by"`                // ID of user who created this organization
+	UpdatedBy      uuid.UUID          `json:"updated_by"`                // ID of user who last updated this organization
+	DeletedBy      *uuid.UUID         `json:"deleted_by,omitempty"`      // ID of user who deleted this organization (soft delete)
+	CreatedAt      time.Time          `json:"created_at"`                // Timestamp when organization was created
+	UpdatedAt      time.Time          `json:"updated_at"`                // Timestamp when organization was last updated
+	DeletedAt      *time.Time         `json:"deleted_at,omitempty"`      // Timestamp when organization was soft deleted
+
 	// Relationships
-	Parent   *Organization   `json:"parent,omitempty"`
-	Children []*Organization `json:"children,omitempty"`
+	Parent   *Organization   `json:"parent,omitempty"`   // Reference to parent organization
+	Children []*Organization `json:"children,omitempty"` // Collection of child organizations
 }
 
-// NewOrganization creates a new organization with validation
+// NewOrganization creates a new organization with validation.
+// This constructor validates required fields and initializes the organization
+// with default status and generated UUID and timestamps.
+//
+// Parameters:
+//   - name: Display name of the organization (required)
+//   - description: Optional description of the organization
+//   - code: Optional organization code/identifier
+//   - organizationType: Optional organization type classification
+//   - parentID: Optional ID of parent organization (nil for root organizations)
+//
+// Returns:
+//   - *Organization: Pointer to the newly created organization entity
+//   - error: Validation error if name is empty
+//
+// Default values:
+//   - Status: OrganizationStatusActive (organization is active by default)
+//   - CreatedAt/UpdatedAt: Current timestamp
 func NewOrganization(name, description, code string, organizationType OrganizationType, parentID *uuid.UUID) (*Organization, error) {
+	// Validate required fields
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
 
+	// Create organization with current timestamp
 	now := time.Now()
 	org := &Organization{
-		ID:        uuid.New(),
-		Name:      name,
-		Status:    OrganizationStatusActive,
-		ParentID:  parentID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:        uuid.New(),               // Generate new unique identifier
+		Name:      name,                     // Set organization name
+		Status:    OrganizationStatusActive, // Set as active by default
+		ParentID:  parentID,                 // Set parent organization ID
+		CreatedAt: now,                      // Set creation timestamp
+		UpdatedAt: now,                      // Set initial update timestamp
 	}
 
 	// Set optional fields if provided

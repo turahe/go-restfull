@@ -14,12 +14,20 @@ import (
 )
 
 // AddressRepositoryImpl provides the concrete implementation of the AddressRepository interface
-// using PostgreSQL as the underlying data store
+// using PostgreSQL as the underlying data store. This struct handles all address-related
+// database operations including CRUD operations, search, and address management.
 type AddressRepositoryImpl struct {
-	db *pgxpool.Pool
+	db *pgxpool.Pool // PostgreSQL connection pool for database operations
 }
 
 // NewAddressRepository creates a new instance of AddressRepositoryImpl
+// This constructor function initializes the repository with the required dependencies.
+//
+// Parameters:
+//   - db: PostgreSQL connection pool for database operations
+//
+// Returns:
+//   - repositories.AddressRepository: interface implementation for address management
 func NewAddressRepository(db *pgxpool.Pool) repositories.AddressRepository {
 	return &AddressRepositoryImpl{
 		db: db,
@@ -27,6 +35,15 @@ func NewAddressRepository(db *pgxpool.Pool) repositories.AddressRepository {
 }
 
 // Create persists a new address to the database
+// This method inserts a new address record with all required fields including
+// addressable entity association, location details, and metadata.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - address: pointer to the address entity to create
+//
+// Returns:
+//   - error: nil if successful, or database error if the operation fails
 func (r *AddressRepositoryImpl) Create(ctx context.Context, address *entities.Address) error {
 	query := `
 		INSERT INTO addresses (
@@ -60,6 +77,15 @@ func (r *AddressRepositoryImpl) Create(ctx context.Context, address *entities.Ad
 }
 
 // GetByID retrieves an address by its unique identifier
+// This method performs a soft-delete aware query, only returning addresses that haven't been deleted.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - id: UUID of the address to retrieve
+//
+// Returns:
+//   - *entities.Address: pointer to the found address entity, or nil if not found
+//   - error: nil if successful, or database error if the operation fails
 func (r *AddressRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Address, error) {
 	query := `
 		SELECT id, addressable_id, addressable_type, address_line1, address_line2,

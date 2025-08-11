@@ -15,12 +15,22 @@ import (
 )
 
 // organizationRepository implements the OrganizationRepository interface using nested set model
+// This struct provides concrete implementations for organization management operations
+// using PostgreSQL for persistence and nested set for hierarchical tree structure.
 type organizationRepository struct {
-	db        *pgxpool.Pool
-	nestedSet *nestedset.NestedSetManager
+	db        *pgxpool.Pool               // PostgreSQL connection pool for database operations
+	nestedSet *nestedset.NestedSetManager // Manager for nested set tree operations
 }
 
 // NewOrganizationRepository creates a new organization repository instance
+// This constructor function initializes the repository with the required dependencies
+// including the nested set manager for tree structure operations.
+//
+// Parameters:
+//   - db: PostgreSQL connection pool for database operations
+//
+// Returns:
+//   - repositories.OrganizationRepository: interface implementation for organization management
 func NewOrganizationRepository(db *pgxpool.Pool) repositories.OrganizationRepository {
 	return &organizationRepository{
 		db:        db,
@@ -29,6 +39,15 @@ func NewOrganizationRepository(db *pgxpool.Pool) repositories.OrganizationReposi
 }
 
 // getCacheKey generates a consistent cache key for organization operations
+// This helper method creates standardized cache keys for various repository operations
+// to ensure consistent caching behavior across the application.
+//
+// Parameters:
+//   - operation: string identifier for the operation type
+//   - params: variadic parameters to include in the cache key
+//
+// Returns:
+//   - string: formatted cache key for the operation
 func (r *organizationRepository) getCacheKey(operation string, params ...interface{}) string {
 	key := fmt.Sprintf("organization:%s", operation)
 	for _, param := range params {
@@ -56,6 +75,16 @@ func (r *organizationRepository) invalidateCache(ctx context.Context, pattern st
 	// In a real implementation, you would invalidate Redis or in-memory cache
 }
 
+// Create adds a new organization to the organizations table with nested set positioning
+// This method calculates the appropriate tree position using nested set values
+// and inserts the organization record with all required fields including tree structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - organization: pointer to the organization entity to create
+//
+// Returns:
+//   - error: nil if successful, or wrapped error if the operation fails
 func (r *organizationRepository) Create(ctx context.Context, organization *entities.Organization) error {
 	// Calculate nested set values using the shared manager
 	values, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, 1)

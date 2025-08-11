@@ -14,24 +14,57 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// MenuRepository defines the interface for managing menu entities
+// This repository handles CRUD operations for menu items with support for
+// nested set tree structure, hierarchical navigation, and menu management.
 type MenuRepository interface {
+	// Create adds a new menu item to the system with nested set positioning
 	Create(ctx context.Context, menu *entities.Menu) error
+
+	// GetByID retrieves a specific menu item by its UUID
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Menu, error)
+
+	// GetAll retrieves all non-deleted menu items with pagination support
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Menu, error)
+
+	// GetByParentID retrieves menu items with a specific parent ID
 	GetByParentID(ctx context.Context, parentID uuid.UUID) ([]*entities.Menu, error)
+
+	// GetRootMenus retrieves all top-level menu items (no parent)
 	GetRootMenus(ctx context.Context) ([]*entities.Menu, error)
+
+	// Update modifies an existing menu item's information
 	Update(ctx context.Context, menu *entities.Menu) error
+
+	// Delete performs a soft delete by setting deleted_at timestamp
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	// ExistsBySlug checks if a menu item with the given slug exists
 	ExistsBySlug(ctx context.Context, slug string) (bool, error)
+
+	// Count returns the total number of non-deleted menu items
 	Count(ctx context.Context) (int64, error)
 }
 
+// menuRepository implements the MenuRepository interface
+// This struct provides concrete implementations for menu management operations
+// using PostgreSQL for persistence, Redis for caching, and nested set for tree structure.
 type menuRepository struct {
-	db          *pgxpool.Pool
-	redisClient redis.Cmdable
-	nestedSet   *nestedset.NestedSetManager
+	db          *pgxpool.Pool               // PostgreSQL connection pool for database operations
+	redisClient redis.Cmdable               // Redis client for caching operations
+	nestedSet   *nestedset.NestedSetManager // Manager for nested set tree operations
 }
 
+// NewMenuRepository creates a new instance of menuRepository
+// This constructor function initializes the repository with the required dependencies
+// including the nested set manager for tree structure operations.
+//
+// Parameters:
+//   - pgxPool: PostgreSQL connection pool for database operations
+//   - redisClient: Redis client for caching operations
+//
+// Returns:
+//   - MenuRepository: interface implementation for menu management
 func NewMenuRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MenuRepository {
 	return &menuRepository{
 		db:          pgxPool,
@@ -40,6 +73,16 @@ func NewMenuRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) MenuRep
 	}
 }
 
+// Create adds a new menu item to the menus table with nested set positioning
+// This method calculates the appropriate tree position using nested set values
+// and inserts the menu record with all required fields including tree structure.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - menu: pointer to the menu entity to create
+//
+// Returns:
+//   - error: nil if successful, or wrapped error if the operation fails
 func (r *menuRepository) Create(ctx context.Context, menu *entities.Menu) error {
 	// Calculate nested set values using the shared manager
 	values, err := r.nestedSet.CreateNode(ctx, "menus", menu.ParentID, 1)

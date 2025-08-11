@@ -17,8 +17,9 @@ import "golang.org/x/crypto/bcrypt"
 // handling this error more gracefully.
 //
 // Usage example:
-//   hashedPassword := GeneratePassword("mySecurePassword123")
-//   // Store hashedPassword in database
+//
+//	hashedPassword := GeneratePassword("mySecurePassword123")
+//	// Store hashedPassword in database
 func GeneratePassword(p string) string {
 	// Generate bcrypt hash with default cost (10)
 	// Higher cost = more secure but slower to generate and verify
@@ -47,11 +48,12 @@ func GeneratePassword(p string) string {
 //   - The function will return false for invalid bcrypt hashes
 //
 // Usage example:
-//   if ComparePassword(storedHash, userInput) {
-//       // Password is correct, proceed with authentication
-//   } else {
-//       // Password is incorrect, deny access
-//   }
+//
+//	if ComparePassword(storedHash, userInput) {
+//	    // Password is correct, proceed with authentication
+//	} else {
+//	    // Password is incorrect, deny access
+//	}
 func ComparePassword(hashedPassword, password string) bool {
 	// Compare the plain text password with the stored hash
 	// bcrypt.CompareHashAndPassword handles all the security aspects

@@ -3,10 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/turahe/go-restfull/pkg/logger"
 	"log"
 	"os"
 	"time"
+
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	internal_minio "github.com/turahe/go-restfull/pkg/minio"
 

@@ -21,14 +21,23 @@ import (
 )
 
 // UserRepositoryImpl provides the PostgreSQL implementation of UserRepository.
-// It uses pgx for database operations and includes Redis for caching.
+// This struct handles all user-related database operations including CRUD operations,
+// user authentication, role management, and Redis caching for performance.
 type UserRepositoryImpl struct {
-	pgxPool     *pgxpool.Pool // PostgreSQL connection pool
+	pgxPool     *pgxpool.Pool // PostgreSQL connection pool for database operations
 	redisClient redis.Cmdable // Redis client for caching operations
 }
 
 // NewUserRepository creates a new instance of UserRepositoryImpl
-// with the provided database and cache dependencies.
+// This constructor function initializes the repository with the required dependencies
+// including PostgreSQL connection pool and Redis client for caching.
+//
+// Parameters:
+//   - pgxPool: PostgreSQL connection pool for database operations
+//   - redisClient: Redis client for caching operations
+//
+// Returns:
+//   - repositories.UserRepository: interface implementation for user management
 func NewUserRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) repositories.UserRepository {
 	return &UserRepositoryImpl{
 		pgxPool:     pgxPool,
@@ -36,8 +45,17 @@ func NewUserRepository(pgxPool *pgxpool.Pool, redisClient redis.Cmdable) reposit
 	}
 }
 
-// Save persists a user aggregate to the database.
-// It handles both insert and update operations based on whether the user exists.
+// Save persists a user aggregate to the database
+// This method handles both insert and update operations based on whether the user exists.
+// It first attempts to insert a new user, and if a unique constraint violation occurs,
+// it updates the existing user record instead.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - user: pointer to the user aggregate to save
+//
+// Returns:
+//   - error: nil if successful, or database error if the operation fails
 func (r *UserRepositoryImpl) Save(ctx context.Context, user *aggregates.UserAggregate) error {
 	// Try to insert first (for new users)
 	insertQuery := `
@@ -89,8 +107,16 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, user *aggregates.UserAggr
 	return err
 }
 
-// Delete performs a soft delete by setting the deleted_at timestamp.
-// The record remains in the database but is excluded from normal queries.
+// Delete performs a soft delete by setting the deleted_at timestamp
+// This method marks a user as deleted without physically removing the record
+// from the database. The record remains but is excluded from normal queries.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - userID: UUID of the user to delete
+//
+// Returns:
+//   - error: nil if successful, or database error if the operation fails
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID uuid.UUID) error {
 	query := `UPDATE users SET deleted_at = $1 WHERE id = $2`
 	_, err := r.pgxPool.Exec(ctx, query, time.Now(), userID)
@@ -103,6 +129,17 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, userID uuid.UUID) error
 
 // FindByID retrieves a user aggregate by its unique identifier.
 // Returns nil and error if the user is not found or has been deleted.
+// FindByID retrieves a user aggregate by its UUID from the database
+// This method queries the database for a specific user and converts the result
+// to a UserAggregate with all associated entities and value objects.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - userID: UUID of the user to retrieve
+//
+// Returns:
+//   - *aggregates.UserAggregate: pointer to the found user aggregate, or nil if not found
+//   - error: nil if successful, or database error if the operation fails
 func (r *UserRepositoryImpl) FindByID(ctx context.Context, userID uuid.UUID) (*aggregates.UserAggregate, error) {
 	query := `
 		SELECT id, username, email, phone, password, email_verified_at, phone_verified_at, created_at, updated_at, deleted_at
