@@ -17,6 +17,7 @@ func RegisterV1Routes(v1Group fiber.Router, container *container.Container) {
 	protected := v1Group.Group("/", middleware.JWTAuth(), middleware.RBACMiddleware(container.RBACService))
 	RegisterUserRoutes(protected, container)
 	RegisterPostRoutes(protected, container)
+	RegisterRoleRoutes(protected, container)
 	RegisterMenuRoutes(protected, container)
 	RegisterTaxonomyRoutes(protected, container)
 	RegisterAddressRoutes(protected, container)
