@@ -12,16 +12,13 @@ A modern, production-ready Go REST API boilerplate built with hexagonal architec
 
 This boilerplate is intended to be used as a starting point for a Go application. It provides a solid foundation with best practices, clean architecture, and essential features for building scalable REST APIs.
 
-<p align="center">
-<img src="docs/images/console.png"  width="600" />
-</p>
-
 ## 🚀 Features
 
 - **Hexagonal Architecture** - Clean separation of concerns with domain-driven design
-- **JWT Authentication** - Secure token-based authentication system
+- **JWT Authentication** - Secure token-based authentication system with profile management
 - **RBAC (Role-Based Access Control)** - Fine-grained permission management
-- **PostgreSQL** - Robust relational database with migrations
+- **User Profile Management** - Authenticated user profile endpoints (`/profile`)
+- **PostgreSQL** - Robust relational database with automated migrations
 - **Redis Cache** - High-performance caching layer
 - **Fiber Router** - Fast HTTP framework with middleware support
 - **Docker Support** - Containerized deployment ready
@@ -31,10 +28,12 @@ This boilerplate is intended to be used as a starting point for a Go application
 - **Logging** - Structured logging with Zap
 - **API Documentation** - Swagger/OpenAPI documentation
 - **Database Seeding** - Development data seeding system
+- **Nested Set Operations** - Advanced hierarchical data management
+- **Meilisearch Integration** - Full-text search capabilities
 
 ## 📋 Prerequisites
 
-- **Go 1.20+** - Latest stable version recommended
+- **Go 1.24+** - Latest stable version recommended
 - **Docker & Docker Compose** - For containerized development
 - **PostgreSQL 13+** - Database (included in Docker setup)
 - **Redis 6+** - Caching layer (included in Docker setup)
@@ -80,11 +79,65 @@ This boilerplate is intended to be used as a starting point for a Go application
 7. **Start the application**
    ```sh
    # Development mode
-   go run main.go serve-api
+   go run main.go server
 
    # With hot reload (requires air)
-   air serve-api
+   air server
    ```
+
+## 🔐 Authentication & Authorization
+
+### JWT Authentication
+The API uses JWT (JSON Web Tokens) for secure authentication:
+
+```sh
+# Register a new user
+curl -X POST http://localhost:8001/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "test@example.com",
+    "phone": "+1234567890",
+    "password": "SecurePass123!",
+    "confirm_password": "SecurePass123!"
+  }'
+
+# Login to get access token
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identity": "test@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+### User Profile Management
+Authenticated users can manage their profiles:
+
+```sh
+# Get user profile (requires JWT token)
+curl -X GET http://localhost:8001/api/v1/users/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Update user profile (requires JWT token)
+curl -X PUT http://localhost:8001/api/v1/users/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "updated_username",
+    "email": "updated@example.com",
+    "phone": "+1234567890"
+  }'
+```
+
+### Protected Routes
+All user management endpoints require valid JWT authentication:
+- `GET /api/v1/users/profile` - Get authenticated user profile
+- `PUT /api/v1/users/profile` - Update authenticated user profile
+- `GET /api/v1/users` - List users (with pagination)
+- `GET /api/v1/users/:id` - Get specific user by ID
+- `PUT /api/v1/users/:id` - Update specific user
+- `DELETE /api/v1/users/:id` - Delete specific user
 
 ## 🗄️ Database Management
 
@@ -103,6 +156,14 @@ go run main.go migrate:down --step N
 # Drop all tables and reset schema (use with caution!)
 go run main.go migrate:flush
 ```
+
+### Database Schema
+The application includes comprehensive database schemas for:
+- **Users & Authentication** - User accounts, roles, and permissions
+- **Content Management** - Posts, taxonomies, tags, and comments
+- **Media Management** - File uploads and media handling
+- **Organization Management** - Hierarchical organizational structures
+- **Menu System** - Dynamic menu management with nested sets
 
 ### Seeding Commands
 
@@ -138,7 +199,7 @@ make sonar
 ├── config/                 # Configuration files
 ├── docs/                   # Documentation and API specs
 ├── internal/               # Application code
-│   ├── application/        # Application services
+│   ├── application/        # Application services and ports
 │   ├── domain/            # Domain entities and business logic
 │   ├── infrastructure/    # External adapters (DB, external APIs)
 │   └── interfaces/        # HTTP controllers and routes
@@ -154,6 +215,13 @@ The application uses YAML configuration with the following key files:
 - `config/config.example.yaml` - Example configuration
 - `config/rbac_model.conf` - RBAC model configuration
 - `config/rbac_policy.csv` - RBAC policy definitions
+
+### Key Configuration Options
+- **JWT Settings** - Token expiration, signing secrets
+- **Database Configuration** - Connection pools, timeouts
+- **Redis Settings** - Caching and session storage
+- **Meilisearch** - Search engine configuration
+- **RabbitMQ** - Message queue settings
 
 ## 🔧 Development
 
@@ -219,6 +287,28 @@ Key environment variables (see `config/config.example.yaml`):
 - **API Specs**: Located in `docs/swagger.yaml`
 - **Health Check**: `/healthz` endpoint for monitoring
 
+### API Endpoints Overview
+
+#### Authentication
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - User logout
+
+#### User Management
+- `GET /api/v1/users/profile` - Get authenticated user profile
+- `PUT /api/v1/users/profile` - Update authenticated user profile
+- `GET /api/v1/users` - List users (paginated)
+- `GET /api/v1/users/:id` - Get user by ID
+- `PUT /api/v1/users/:id` - Update user
+- `DELETE /api/v1/users/:id` - Delete user
+
+#### Content Management
+- `GET /api/v1/posts` - List posts
+- `POST /api/v1/posts` - Create post
+- `GET /api/v1/taxonomies` - List taxonomies
+- `GET /api/v1/tags` - List tags
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -233,6 +323,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
+- [x] User profile management endpoints
+- [x] JWT authentication system
+- [x] Database migration system
+- [x] RBAC implementation
+- [x] Nested set operations
 - [ ] Add gRPC API support
 - [ ] Implement WebSocket functionality
 - [ ] Add GraphQL support
@@ -248,4 +343,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Zap](https://github.com/uber-go/zap) - Structured logging
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
 - [Casbin](https://casbin.org/) - Authorization library
+- [Meilisearch](https://www.meilisearch.com/) - Search engine
+- [pgx](https://github.com/jackc/pgx) - PostgreSQL driver
 
