@@ -178,18 +178,15 @@ func (s *authService) LoginUser(ctx context.Context, identity, password string) 
 	var userAggregate *aggregates.UserAggregate
 	var err error
 
-	// Try to get user by username first
-	userAggregate, err = s.userRepo.FindByUsername(ctx, identity)
-	if err != nil {
-		// Try to get user by email if username lookup fails
-		userAggregate, err = s.userRepo.FindByEmail(ctx, identity)
-		if err != nil {
-			// Try to get user by phone if email lookup fails
-			userAggregate, err = s.userRepo.FindByPhone(ctx, identity)
-			if err != nil {
-				return nil, nil, errors.New("invalid credentials")
-			}
-		}
+	// Try username first
+	userAggregate, _ = s.userRepo.FindByUsername(ctx, identity)
+	// Then email if not found
+	if userAggregate == nil {
+		userAggregate, _ = s.userRepo.FindByEmail(ctx, identity)
+	}
+	// Then phone if still not found
+	if userAggregate == nil {
+		userAggregate, _ = s.userRepo.FindByPhone(ctx, identity)
 	}
 
 	// Ensure user was found
