@@ -71,14 +71,16 @@ func customErrorHandler(c *fiber.Ctx, err error) error {
 			reqID = s
 		}
 	}
-	logger.Log.Error("http_error",
-		zap.Int("status", code),
-		zap.String("method", c.Method()),
-		zap.String("path", c.Path()),
-		zap.String("ip", c.IP()),
-		zap.String("request-id", reqID),
-		zap.Error(err),
-	)
+	if logger.Log != nil {
+		logger.Log.Error("http_error",
+			zap.Int("status", code),
+			zap.String("method", c.Method()),
+			zap.String("path", c.Path()),
+			zap.String("ip", c.IP()),
+			zap.String("request-id", reqID),
+			zap.Error(err),
+		)
+	}
 
 	return c.Status(code).JSON(fiber.Map{
 		"status":  "error",
