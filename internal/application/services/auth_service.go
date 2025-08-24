@@ -192,6 +192,11 @@ func (s *authService) LoginUser(ctx context.Context, identity, password string) 
 		}
 	}
 
+	// Ensure user was found
+	if userAggregate == nil {
+		return nil, nil, errors.New("invalid credentials")
+	}
+
 	// Check if user is deleted
 	if userAggregate.IsDeleted() {
 		return nil, nil, errors.New("account has been deleted")
