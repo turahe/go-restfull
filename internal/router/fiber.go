@@ -65,12 +65,18 @@ func customErrorHandler(c *fiber.Ctx, err error) error {
 	}
 
 	// Log the error with context to file/console
+	var reqID string
+	if v := c.Locals("requestid"); v != nil {
+		if s, ok := v.(string); ok {
+			reqID = s
+		}
+	}
 	logger.Log.Error("http_error",
 		zap.Int("status", code),
 		zap.String("method", c.Method()),
 		zap.String("path", c.Path()),
 		zap.String("ip", c.IP()),
-		zap.String("request-id", c.Locals("requestid").(string)),
+		zap.String("request-id", reqID),
 		zap.Error(err),
 	)
 
