@@ -9,7 +9,7 @@ on:
     types: [published]
 
 env:
-  GO_VERSION: '1.20'
+  GO_VERSION: '1.24.5'
   DOCKER_IMAGE: go-restfull
 
 jobs:
@@ -179,9 +179,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run gosec security scanner
-        uses: securecodewarrior/github-action-gosec@master
-        with:
-          args: '-fmt sarif -out results.sarif ./...'
+        run: |
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out results.sarif ./...
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
@@ -237,12 +237,14 @@ jobs:
       - name: Build Docker image
         run: docker build -t ${{ env.DOCKER_IMAGE }} .
 
+      - name: Save Docker image
+        run: docker save ${{ env.DOCKER_IMAGE }} -o /tmp/docker-image.tar
+
       - name: Upload Docker image
         uses: actions/upload-artifact@v3
         with:
           name: docker-image
           path: /tmp/docker-image.tar
-        run: docker save ${{ env.DOCKER_IMAGE }} -o /tmp/docker-image.tar
 
   # SonarQube Analysis
   sonarqube:
@@ -280,7 +282,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, docker-build]
     if: github.ref == 'refs/heads/develop'
-    environment: staging
     steps:
       - name: Deploy to staging
         run: echo "Deploy to staging environment"
@@ -292,7 +293,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, docker-build]
     if: github.event_name == 'release' && github.event.action == 'published'
-    environment: production
     steps:
       - name: Deploy to production
         run: echo "Deploy to production environment"
