@@ -24,6 +24,7 @@ func NewTaxonomyController(taxonomyService ports.TaxonomyService) *TaxonomyContr
 }
 
 // CreateTaxonomy godoc
+//
 //	@Summary		Create a new taxonomy
 //	@Description	Create a new taxonomy with optional parent taxonomy
 //	@Tags			taxonomies
@@ -51,26 +52,17 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var parentID *uuid.UUID
-	if req.ParentID != "" {
-		parsedID, err := uuid.Parse(req.ParentID)
-		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
-				Status:  "error",
-				Message: "Invalid parent ID format",
-			})
-		}
-		parentID = &parsedID
+	// Transform request to entity
+	taxonomy, err := req.ToEntity()
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 	}
 
-	taxonomy, err := c.taxonomyService.CreateTaxonomy(
-		ctx.Context(),
-		req.Name,
-		req.Slug,
-		req.Code,
-		req.Description,
-		parentID,
-	)
+	// Create taxonomy using the entity
+	createdTaxonomy, err := c.taxonomyService.CreateTaxonomy(ctx.Context(), taxonomy)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -80,11 +72,12 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   taxonomy,
+		Data:   createdTaxonomy,
 	})
 }
 
 // GetTaxonomyByID godoc
+//
 //	@Summary		Get taxonomy by ID
 //	@Description	Retrieve a taxonomy by its unique identifier
 //	@Tags			taxonomies
@@ -121,6 +114,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomyBySlug godoc
+//
 //	@Summary		Get taxonomy by slug
 //	@Description	Retrieve a taxonomy by its slug identifier
 //	@Tags			taxonomies
@@ -134,13 +128,6 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 //	@Security		BearerAuth
 func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
-	if slug == "" {
-		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
-			Status:  "error",
-			Message: "Slug is required",
-		})
-	}
-
 	taxonomy, err := c.taxonomyService.GetTaxonomyBySlug(ctx.Context(), slug)
 	if err != nil {
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
@@ -156,6 +143,7 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomies godoc
+//
 //	@Summary		Get all taxonomies
 //	@Description	Retrieve all taxonomies with pagination
 //	@Tags			taxonomies
@@ -203,6 +191,7 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 }
 
 // GetRootTaxonomies godoc
+//
 //	@Summary		Get root taxonomies
 //	@Description	Retrieve all root taxonomies (taxonomies without parent)
 //	@Tags			taxonomies
@@ -228,6 +217,7 @@ func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomyHierarchy godoc
+//
 //	@Summary		Get taxonomy hierarchy
 //	@Description	Retrieve the complete taxonomy hierarchy tree
 //	@Tags			taxonomies
@@ -253,6 +243,7 @@ func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomyChildren godoc
+//
 //	@Summary		Get taxonomy children
 //	@Description	Retrieve direct children of a taxonomy
 //	@Tags			taxonomies
@@ -289,6 +280,7 @@ func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomyDescendants godoc
+//
 //	@Summary		Get taxonomy descendants
 //	@Description	Retrieve all descendants of a taxonomy (children, grandchildren, etc.)
 //	@Tags			taxonomies
@@ -325,6 +317,7 @@ func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomyAncestors godoc
+//
 //	@Summary		Get taxonomy ancestors
 //	@Description	Retrieve all ancestors of a taxonomy (parent, grandparent, etc.)
 //	@Tags			taxonomies
@@ -361,6 +354,7 @@ func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 }
 
 // GetTaxonomySiblings godoc
+//
 //	@Summary		Get taxonomy siblings
 //	@Description	Retrieve all siblings of a taxonomy (taxonomies with the same parent)
 //	@Tags			taxonomies
@@ -397,6 +391,7 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 }
 
 // SearchTaxonomies godoc
+//
 //	@Summary		Search taxonomies
 //	@Description	Search taxonomies by name, slug, or description with pagination
 //	@Tags			taxonomies
@@ -453,6 +448,7 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 }
 
 // SearchTaxonomiesWithPagination godoc
+//
 //	@Summary		Search taxonomies with pagination
 //	@Description	Search taxonomies with advanced pagination and sorting options
 //	@Tags			taxonomies
@@ -519,12 +515,13 @@ func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) erro
 }
 
 // UpdateTaxonomy godoc
+//
 //	@Summary		Update a taxonomy
-//	@Description	Update an existing taxonomy by ID
+//	@Description	Update an existing taxonomy with new information
 //	@Tags			taxonomies
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		string												true	"Taxonomy ID"	format(uuid)
+//	@Param			id		path		string								true	"Taxonomy ID"	format(uuid)
 //	@Param			request	body		requests.UpdateTaxonomyRequest						true	"Taxonomy update request"
 //	@Success		200		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
@@ -556,27 +553,26 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var parentID *uuid.UUID
-	if req.ParentID != "" {
-		parsedID, err := uuid.Parse(req.ParentID)
-		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
-				Status:  "error",
-				Message: "Invalid parent ID format",
-			})
-		}
-		parentID = &parsedID
+	// Get existing taxonomy
+	existingTaxonomy, err := c.taxonomyService.GetTaxonomyByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Taxonomy not found",
+		})
 	}
 
-	taxonomy, err := c.taxonomyService.UpdateTaxonomy(
-		ctx.Context(),
-		id,
-		req.Name,
-		req.Slug,
-		req.Code,
-		req.Description,
-		parentID,
-	)
+	// Transform request to entity
+	updatedTaxonomy, err := req.ToEntity(existingTaxonomy)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Update taxonomy using the entity
+	taxonomy, err := c.taxonomyService.UpdateTaxonomy(ctx.Context(), updatedTaxonomy)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -591,6 +587,7 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 }
 
 // DeleteTaxonomy godoc
+//
 //	@Summary		Delete a taxonomy
 //	@Description	Delete a taxonomy by its ID
 //	@Tags			taxonomies

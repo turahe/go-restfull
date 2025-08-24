@@ -24,6 +24,7 @@ func NewOrganizationController(organizationService ports.OrganizationService) *O
 }
 
 // CreateOrganization godoc
+//
 //	@Summary		Create a new organization
 //	@Description	Create a new organization, optionally with a parent
 //	@Tags			organizations
@@ -50,30 +51,17 @@ func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var parentID *uuid.UUID
-	if req.ParentID != "" {
-		parsedID, err := uuid.Parse(req.ParentID)
-		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
-				Status:  "error",
-				Message: "Invalid parent ID format",
-			})
-		}
-		parentID = &parsedID
+	// Transform request to entity
+	organization, err := req.ToEntity()
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 	}
 
-	organization, err := c.organizationService.CreateOrganization(
-		ctx.Context(),
-		req.Name,
-		req.Description,
-		req.Code,
-		req.Email,
-		req.Phone,
-		req.Address,
-		req.Website,
-		req.LogoURL,
-		parentID,
-	)
+	// Create organization using the entity
+	createdOrganization, err := c.organizationService.CreateOrganization(ctx.Context(), organization)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -83,11 +71,12 @@ func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   organization,
+		Data:   createdOrganization,
 	})
 }
 
 // GetOrganizationByID godoc
+//
 //	@Summary		Get organization by ID
 //	@Description	Get a single organization by its ID
 //	@Tags			organizations
@@ -123,6 +112,7 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 }
 
 // GetAllOrganizations godoc
+//
 //	@Summary		Get all organizations
 //	@Description	Get a paginated list of all organizations
 //	@Tags			organizations
@@ -169,6 +159,7 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 }
 
 // UpdateOrganization godoc
+//
 //	@Summary		Update an organization
 //	@Description	Update an organization's details
 //	@Tags			organizations
@@ -205,18 +196,26 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 		})
 	}
 
-	organization, err := c.organizationService.UpdateOrganization(
-		ctx.Context(),
-		id,
-		req.Name,
-		req.Description,
-		req.Code,
-		req.Email,
-		req.Phone,
-		req.Address,
-		req.Website,
-		req.LogoURL,
-	)
+	// Get existing organization
+	existingOrganization, err := c.organizationService.GetOrganizationByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Organization not found",
+		})
+	}
+
+	// Transform request to entity
+	updatedOrganization, err := req.ToEntity(existingOrganization)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Update organization using the entity
+	organization, err := c.organizationService.UpdateOrganization(ctx.Context(), updatedOrganization)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -231,6 +230,7 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 }
 
 // DeleteOrganization godoc
+//
 //	@Summary		Delete an organization
 //	@Description	Delete an organization by its ID
 //	@Tags			organizations
@@ -266,6 +266,7 @@ func (c *OrganizationController) DeleteOrganization(ctx *fiber.Ctx) error {
 }
 
 // GetRootOrganizations godoc
+//
 //	@Summary		Get root organizations
 //	@Description	Get all root organizations (organizations without a parent)
 //	@Tags			organizations
@@ -290,6 +291,7 @@ func (c *OrganizationController) GetRootOrganizations(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationChildren godoc
+//
 //	@Summary		Get children of an organization
 //	@Description	Get direct children of an organization
 //	@Tags			organizations
@@ -325,6 +327,7 @@ func (c *OrganizationController) GetOrganizationChildren(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationDescendants godoc
+//
 //	@Summary		Get descendants of an organization
 //	@Description	Get all descendant organizations of an organization
 //	@Tags			organizations
@@ -360,6 +363,7 @@ func (c *OrganizationController) GetOrganizationDescendants(ctx *fiber.Ctx) erro
 }
 
 // GetOrganizationAncestors godoc
+//
 //	@Summary		Get ancestors of an organization
 //	@Description	Get all ancestor organizations of an organization
 //	@Tags			organizations
@@ -395,6 +399,7 @@ func (c *OrganizationController) GetOrganizationAncestors(ctx *fiber.Ctx) error 
 }
 
 // GetOrganizationSiblings godoc
+//
 //	@Summary		Get siblings of an organization
 //	@Description	Get all sibling organizations of an organization
 //	@Tags			organizations
@@ -430,6 +435,7 @@ func (c *OrganizationController) GetOrganizationSiblings(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationPath godoc
+//
 //	@Summary		Get path to an organization
 //	@Description	Get the path from the root to the specified organization
 //	@Tags			organizations
@@ -465,6 +471,7 @@ func (c *OrganizationController) GetOrganizationPath(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationTree godoc
+//
 //	@Summary		Get the full organization tree
 //	@Description	Get the entire organization tree structure
 //	@Tags			organizations
@@ -489,6 +496,7 @@ func (c *OrganizationController) GetOrganizationTree(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationSubtree godoc
+//
 //	@Summary		Get a subtree of an organization
 //	@Description	Get the subtree rooted at the specified organization
 //	@Tags			organizations
@@ -524,6 +532,7 @@ func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 }
 
 // AddOrganizationChild godoc
+//
 //	@Summary		Add a child organization
 //	@Description	Add a new child organization to a parent
 //	@Tags			organizations
@@ -560,19 +569,20 @@ func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Create the child organization first
-	childOrg, err := c.organizationService.CreateOrganization(
-		ctx.Context(),
-		req.Name,
-		req.Description,
-		req.Code,
-		req.Email,
-		req.Phone,
-		req.Address,
-		req.Website,
-		req.LogoURL,
-		&parentID,
-	)
+	// Transform request to entity and set parent ID
+	childOrg, err := req.ToEntity()
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Set the parent ID
+	childOrg.ParentID = &parentID
+
+	// Create the child organization using the entity
+	createdChildOrg, err := c.organizationService.CreateOrganization(ctx.Context(), childOrg)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -582,11 +592,12 @@ func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   childOrg,
+		Data:   createdChildOrg,
 	})
 }
 
 // MoveOrganizationSubtree godoc
+//
 //	@Summary		Move an organization subtree
 //	@Description	Move an organization and all its descendants to a new parent
 //	@Tags			organizations
@@ -646,6 +657,7 @@ func (c *OrganizationController) MoveOrganizationSubtree(ctx *fiber.Ctx) error {
 }
 
 // DeleteOrganizationSubtree godoc
+//
 //	@Summary		Delete an organization subtree
 //	@Description	Delete an organization and all its descendants
 //	@Tags			organizations
@@ -681,6 +693,7 @@ func (c *OrganizationController) DeleteOrganizationSubtree(ctx *fiber.Ctx) error
 }
 
 // SetOrganizationStatus godoc
+//
 //	@Summary		Set organization status
 //	@Description	Set the status of an organization
 //	@Tags			organizations
@@ -733,6 +746,7 @@ func (c *OrganizationController) SetOrganizationStatus(ctx *fiber.Ctx) error {
 }
 
 // SearchOrganizations godoc
+//
 //	@Summary		Search organizations
 //	@Description	Search organizations by query string
 //	@Tags			organizations
@@ -784,6 +798,7 @@ func (c *OrganizationController) SearchOrganizations(ctx *fiber.Ctx) error {
 }
 
 // GetOrganizationStats godoc
+//
 //	@Summary		Get organization statistics
 //	@Description	Get statistics for an organization (children and descendants count)
 //	@Tags			organizations
@@ -832,6 +847,7 @@ func (c *OrganizationController) GetOrganizationStats(ctx *fiber.Ctx) error {
 }
 
 // ValidateOrganizationHierarchy godoc
+//
 //	@Summary		Validate organization hierarchy
 //	@Description	Validate if a parent-child relationship is valid
 //	@Tags			organizations

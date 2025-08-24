@@ -11,11 +11,11 @@ import (
 // OrganizationService defines the interface for organization business logic
 type OrganizationService interface {
 	// Basic CRUD operations
-	CreateOrganization(ctx context.Context, name, description, code, email, phone, address, website, logoURL string, parentID *uuid.UUID) (*entities.Organization, error)
+	CreateOrganization(ctx context.Context, organization *entities.Organization) (*entities.Organization, error)
 	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*entities.Organization, error)
 	GetOrganizationByCode(ctx context.Context, code string) (*entities.Organization, error)
 	GetAllOrganizations(ctx context.Context, limit, offset int) ([]*entities.Organization, error)
-	UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code, email, phone, address, website, logoURL string) (*entities.Organization, error)
+	UpdateOrganization(ctx context.Context, organization *entities.Organization) (*entities.Organization, error)
 	DeleteOrganization(ctx context.Context, id uuid.UUID) error
 
 	// Hierarchy operations

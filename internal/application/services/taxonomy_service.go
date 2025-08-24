@@ -53,37 +53,30 @@ func NewTaxonomyService(taxonomyRepository repositories.TaxonomyRepository) port
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - name: Display name of the taxonomy
-//   - slug: Unique identifier for the taxonomy
-//   - code: Programmatic code for the taxonomy
-//   - description: Optional description of the taxonomy
-//   - parentID: Optional parent taxonomy ID for hierarchical structure
+//   - taxonomy: The taxonomy entity to create
 //
 // Returns:
 //   - *entities.Taxonomy: The created taxonomy entity
 //   - error: Any error that occurred during the operation
-func (s *TaxonomyService) CreateTaxonomy(ctx context.Context, name, slug, code, description string, parentID *uuid.UUID) (*entities.Taxonomy, error) {
+func (s *TaxonomyService) CreateTaxonomy(ctx context.Context, taxonomy *entities.Taxonomy) (*entities.Taxonomy, error) {
 	// Validate taxonomy name to ensure it's provided and meaningful
-	if strings.TrimSpace(name) == "" {
+	if strings.TrimSpace(taxonomy.Name) == "" {
 		return nil, errors.New("taxonomy name is required")
 	}
 
 	// Validate taxonomy slug to ensure it's provided and meaningful
-	if strings.TrimSpace(slug) == "" {
+	if strings.TrimSpace(taxonomy.Slug) == "" {
 		return nil, errors.New("taxonomy slug is required")
 	}
 
 	// Check if slug already exists to maintain uniqueness
-	exists, err := s.taxonomyRepository.ExistsBySlug(ctx, slug)
+	exists, err := s.taxonomyRepository.ExistsBySlug(ctx, taxonomy.Slug)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
 		return nil, errors.New("taxonomy slug already exists")
 	}
-
-	// Create taxonomy entity with the provided parameters
-	taxonomy := entities.NewTaxonomy(name, slug, code, description, parentID)
 
 	// Validate the taxonomy entity to ensure proper structure
 	if err := taxonomy.Validate(); err != nil {
@@ -257,48 +250,43 @@ func (s *TaxonomyService) SearchTaxonomies(ctx context.Context, query string, li
 	return s.taxonomyRepository.Search(ctx, query, limit, offset)
 }
 
-// UpdateTaxonomy updates an existing taxonomy's information and metadata.
-// This method enforces business rules and maintains data integrity during updates.
+// UpdateTaxonomy updates an existing taxonomy with new information while maintaining
+// data integrity and enforcing business rules for taxonomy updates.
 //
 // Business Rules:
 //   - Taxonomy must exist and be accessible
-//   - Taxonomy name and slug are required and validated
-//   - Slug must be unique (excluding current taxonomy)
-//   - Taxonomy validation ensures proper structure
-//   - Hierarchical relationships are maintained
+//   - Updated name and slug are validated
+//   - Slug uniqueness is maintained during updates
+//   - Parent ID changes are validated for hierarchy integrity
+//   - Soft deleted taxonomies cannot be updated
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - id: UUID of the taxonomy to update
-//   - name: Updated display name of the taxonomy
-//   - slug: Updated unique identifier for the taxonomy
-//   - code: Updated programmatic code for the taxonomy
-//   - description: Updated description of the taxonomy
-//   - parentID: Updated parent taxonomy ID for hierarchical structure
+//   - taxonomy: The taxonomy entity to update
 //
 // Returns:
 //   - *entities.Taxonomy: The updated taxonomy entity
 //   - error: Any error that occurred during the operation
-func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, id uuid.UUID, name, slug, code, description string, parentID *uuid.UUID) (*entities.Taxonomy, error) {
+func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, taxonomy *entities.Taxonomy) (*entities.Taxonomy, error) {
 	// Retrieve existing taxonomy to ensure it exists and is accessible
-	taxonomy, err := s.taxonomyRepository.GetByID(ctx, id)
+	existingTaxonomy, err := s.taxonomyRepository.GetByID(ctx, taxonomy.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate updated taxonomy name to ensure it's provided and meaningful
-	if strings.TrimSpace(name) == "" {
+	if strings.TrimSpace(taxonomy.Name) == "" {
 		return nil, errors.New("taxonomy name is required")
 	}
 
 	// Validate updated taxonomy slug to ensure it's provided and meaningful
-	if strings.TrimSpace(slug) == "" {
+	if strings.TrimSpace(taxonomy.Slug) == "" {
 		return nil, errors.New("taxonomy slug is required")
 	}
 
 	// Check if updated slug already exists (excluding current taxonomy)
-	if slug != taxonomy.Slug {
-		exists, err := s.taxonomyRepository.ExistsBySlug(ctx, slug)
+	if taxonomy.Slug != existingTaxonomy.Slug {
+		exists, err := s.taxonomyRepository.ExistsBySlug(ctx, taxonomy.Slug)
 		if err != nil {
 			return nil, err
 		}
@@ -306,9 +294,6 @@ func (s *TaxonomyService) UpdateTaxonomy(ctx context.Context, id uuid.UUID, name
 			return nil, errors.New("taxonomy slug already exists")
 		}
 	}
-
-	// Update the taxonomy entity with new information
-	taxonomy.UpdateTaxonomy(name, slug, code, description, parentID)
 
 	// Persist the updated taxonomy to the repository
 	err = s.taxonomyRepository.Update(ctx, taxonomy)

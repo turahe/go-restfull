@@ -48,29 +48,12 @@ func NewCommentService(commentRepository repositories.CommentRepository) ports.C
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - content: The comment text content
-//   - postID: UUID of the post this comment belongs to
-//   - userID: UUID of the user creating the comment
-//   - parentID: Optional UUID of the parent comment (for replies)
-//   - status: Comment status (pending, approved, rejected)
+//   - comment: The comment entity to create
 //
 // Returns:
 //   - *entities.Comment: The created comment entity
 //   - error: Any error that occurred during the operation
-func (s *commentService) CreateComment(ctx context.Context, content string, postID, userID uuid.UUID, parentID *uuid.UUID, status string) (*entities.Comment, error) {
-	// Map incoming status string to domain status type
-	domainStatus := entities.CommentStatus(status)
-
-	// Create new comment entity; content is handled separately (content model)
-	comment, err := entities.NewComment("post", postID, parentID, domainStatus)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set authorship
-	comment.CreatedBy = userID
-	comment.UpdatedBy = userID
-
+func (s *commentService) CreateComment(ctx context.Context, comment *entities.Comment) (*entities.Comment, error) {
 	// Persist the comment to the repository
 	if err := s.commentRepository.Create(ctx, comment); err != nil {
 		return nil, err
@@ -187,40 +170,26 @@ func (s *commentService) GetPendingComments(ctx context.Context, limit, offset i
 	return s.commentRepository.GetPending(ctx, limit, offset)
 }
 
-// UpdateComment updates an existing comment's content and status.
+// UpdateComment updates an existing comment with new content and status.
 // This method enforces business rules and maintains data integrity
 // during the update process.
 //
 // Business Rules:
-//   - Comment must exist and not be deleted
-//   - Content must be provided and validated
-//   - Status changes are tracked for moderation purposes
+//   - Comment must exist and be accessible
+//   - Content updates are managed via the content module
+//   - Status changes follow moderation workflow rules
+//   - Soft deleted comments cannot be updated
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - id: UUID of the comment to update
-//   - content: Updated comment text content
-//   - status: Updated comment status
+//   - comment: The comment entity to update
 //
 // Returns:
 //   - *entities.Comment: The updated comment entity
 //   - error: Any error that occurred during the operation
-func (s *commentService) UpdateComment(ctx context.Context, id uuid.UUID, content, status string) (*entities.Comment, error) {
-	_ = content // content managed via content module; unused here
-	// Retrieve existing comment to ensure it exists and is not deleted
-	comment, err := s.commentRepository.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Update the comment entity with new content and status
-	err = comment.UpdateComment(entities.CommentStatus(status))
-	if err != nil {
-		return nil, err
-	}
-
+func (s *commentService) UpdateComment(ctx context.Context, comment *entities.Comment) (*entities.Comment, error) {
 	// Persist the updated comment to the repository
-	err = s.commentRepository.Update(ctx, comment)
+	err := s.commentRepository.Update(ctx, comment)
 	if err != nil {
 		return nil, err
 	}

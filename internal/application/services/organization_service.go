@@ -63,11 +63,11 @@ func NewOrganizationService(
 //   - *entities.Organization: The created organization entity
 //   - error: Any error that occurred during the operation
 //
-// Adapter to the ports interface signature; non-used fields are accepted but ignored at domain level
-func (s *organizationService) CreateOrganization(ctx context.Context, name, description, code string, email, phone, address, website, logoURL string, parentID *uuid.UUID) (*entities.Organization, error) {
+// CreateOrganization creates a new organization using the provided entity
+func (s *organizationService) CreateOrganization(ctx context.Context, organization *entities.Organization) (*entities.Organization, error) {
 	// Validate code uniqueness if provided
-	if code != "" {
-		exists, err := s.organizationRepo.ExistsByCode(ctx, code)
+	if organization.Code != nil && *organization.Code != "" {
+		exists, err := s.organizationRepo.ExistsByCode(ctx, *organization.Code)
 		if err != nil {
 			return nil, err
 		}
@@ -77,21 +77,14 @@ func (s *organizationService) CreateOrganization(ctx context.Context, name, desc
 	}
 
 	// Validate parent exists if provided
-	if parentID != nil {
-		exists, err := s.organizationRepo.ExistsByID(ctx, *parentID)
+	if organization.ParentID != nil {
+		exists, err := s.organizationRepo.ExistsByID(ctx, *organization.ParentID)
 		if err != nil {
 			return nil, err
 		}
 		if !exists {
 			return nil, errors.New("parent organization not found")
 		}
-	}
-
-	// Create organization entity with the provided parameters
-	// Default type information is not part of the current interface; keep entity with optional fields
-	organization, err := entities.NewOrganization(name, description, code, "", parentID)
-	if err != nil {
-		return nil, err
 	}
 
 	// Persist the organization to the repository
@@ -177,37 +170,27 @@ func (s *organizationService) GetAllOrganizations(ctx context.Context, limit, of
 //   - name: Updated display name of the organization
 //   - description: Updated description of the organization
 //   - code: Updated unique code for the organization
-//   - organizationType: Updated type of the organization
 //
-// Returns:
-//   - *entities.Organization: The updated organization entity
-//   - error: Any error that occurred during the operation
-//
-// Adapter to the ports interface signature; unused fields are accepted but ignored
-func (s *organizationService) UpdateOrganization(ctx context.Context, id uuid.UUID, name, description, code, email, phone, address, website, logoURL string) (*entities.Organization, error) {
+// UpdateOrganization updates an existing organization using the provided entity
+func (s *organizationService) UpdateOrganization(ctx context.Context, organization *entities.Organization) (*entities.Organization, error) {
 	// Retrieve existing organization to ensure it exists and is not deleted
-	organization, err := s.organizationRepo.GetByID(ctx, id)
+	existingOrg, err := s.organizationRepo.GetByID(ctx, organization.ID)
 	if err != nil {
 		return nil, err
 	}
-	if organization.IsDeleted() {
+	if existingOrg.IsDeleted() {
 		return nil, errors.New("organization not found")
 	}
 
 	// Validate code uniqueness if changed
-	if code != "" && (organization.Code == nil || *organization.Code != code) {
-		exists, err := s.organizationRepo.ExistsByCode(ctx, code)
+	if organization.Code != nil && *organization.Code != "" && (existingOrg.Code == nil || *existingOrg.Code != *organization.Code) {
+		exists, err := s.organizationRepo.ExistsByCode(ctx, *organization.Code)
 		if err != nil {
 			return nil, err
 		}
 		if exists {
 			return nil, errors.New("organization with this code already exists")
 		}
-	}
-
-	// Update the organization entity with new information
-	if err := organization.UpdateOrganization(name, description, code, ""); err != nil {
-		return nil, err
 	}
 
 	// Persist the updated organization to the repository

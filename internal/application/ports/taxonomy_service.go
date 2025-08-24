@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/helper/pagination"
 
@@ -10,7 +11,7 @@ import (
 
 // TaxonomyService defines the interface for taxonomy business operations
 type TaxonomyService interface {
-	CreateTaxonomy(ctx context.Context, name, slug, code, description string, parentID *uuid.UUID) (*entities.Taxonomy, error)
+	CreateTaxonomy(ctx context.Context, taxonomy *entities.Taxonomy) (*entities.Taxonomy, error)
 	GetTaxonomyByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error)
 	GetTaxonomyBySlug(ctx context.Context, slug string) (*entities.Taxonomy, error)
 	GetAllTaxonomies(ctx context.Context, limit, offset int) ([]*entities.Taxonomy, error)
@@ -22,7 +23,7 @@ type TaxonomyService interface {
 	GetTaxonomyAncestors(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error)
 	GetTaxonomySiblings(ctx context.Context, id uuid.UUID) ([]*entities.Taxonomy, error)
 	SearchTaxonomies(ctx context.Context, query string, limit, offset int) ([]*entities.Taxonomy, error)
-	UpdateTaxonomy(ctx context.Context, id uuid.UUID, name, slug, code, description string, parentID *uuid.UUID) (*entities.Taxonomy, error)
+	UpdateTaxonomy(ctx context.Context, taxonomy *entities.Taxonomy) (*entities.Taxonomy, error)
 	DeleteTaxonomy(ctx context.Context, id uuid.UUID) error
 	GetTaxonomyCount(ctx context.Context) (int64, error)
 	GetTaxonomyCountWithSearch(ctx context.Context, query string) (int64, error)

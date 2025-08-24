@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/helper/utils"
@@ -25,6 +26,7 @@ func NewCommentController(commentService ports.CommentService) *CommentControlle
 }
 
 // GetComments godoc
+//
 //	@Summary		List comments
 //	@Description	Get all comments with optional filtering
 //	@Tags			comments
@@ -101,6 +103,7 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 }
 
 // GetCommentByID godoc
+//
 //	@Summary		Get comment by ID
 //	@Description	Get a single comment by its ID
 //	@Tags			comments
@@ -149,8 +152,9 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 }
 
 // CreateComment godoc
+//
 //	@Summary		Create comment
-//	@Description	Create a new comment
+//	@Description	Create a new comment for a post
 //	@Tags			comments
 //	@Accept			json
 //	@Produce		json
@@ -158,8 +162,8 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 //	@Success		201		{object}	responses.CommonResponse
 //	@Failure		400		{object}	responses.CommonResponse
 //	@Failure		401		{object}	responses.CommonResponse
-//	@Failure		500		{object}	responses.CommonResponse
 //	@Router			/v1/comments [post]
+//	@Security		BearerAuth
 func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	userID, err := utils.GetUserID(ctx)
@@ -181,8 +185,11 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Create comment
-	comment, err := c.commentService.CreateComment(ctx.Context(), req.Content, req.PostID, userID, req.ParentID, "pending")
+	// Transform request to entity
+	comment := req.ToEntity(userID)
+
+	// Create comment using the entity
+	createdComment, err := c.commentService.CreateComment(ctx.Context(), comment)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
@@ -194,11 +201,12 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(responses.CommonResponse{
 		ResponseCode:    fiber.StatusCreated,
 		ResponseMessage: "Comment created successfully",
-		Data:            comment,
+		Data:            createdComment,
 	})
 }
 
 // UpdateComment godoc
+//
 //	@Summary		Update comment
 //	@Description	Update an existing comment
 //	@Tags			comments
@@ -212,6 +220,7 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 //	@Failure		404		{object}	responses.CommonResponse
 //	@Failure		500		{object}	responses.CommonResponse
 //	@Router			/v1/comments/{id} [put]
+//	@Security		BearerAuth
 func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
@@ -244,8 +253,28 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Update comment
-	comment, err := c.commentService.UpdateComment(ctx.Context(), commentID, req.Content, "")
+	// Get existing comment
+	existingComment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Comment not found",
+				Data:            nil,
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve comment",
+			Data:            nil,
+		})
+	}
+
+	// Transform request to entity
+	updatedComment := req.ToEntity(existingComment)
+
+	// Update comment using the entity
+	comment, err := c.commentService.UpdateComment(ctx.Context(), updatedComment)
 	if err != nil {
 		if err == exception.DataNotFoundError {
 			return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
@@ -269,6 +298,7 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 }
 
 // DeleteComment godoc
+//
 //	@Summary		Delete comment
 //	@Description	Delete a comment by its ID
 //	@Tags			comments
@@ -328,6 +358,7 @@ func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 }
 
 // ApproveComment godoc
+//
 //	@Summary		Approve comment
 //	@Description	Approve a comment by its ID
 //	@Tags			comments
@@ -387,6 +418,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 }
 
 // RejectComment godoc
+//
 //	@Summary		Reject comment
 //	@Description	Reject a comment by its ID
 //	@Tags			comments
