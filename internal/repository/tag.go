@@ -269,7 +269,7 @@ func (r *TagRepositoryImpl) GetTagsForEntity(ctx context.Context, taggableID uui
 func (r *TagRepositoryImpl) scanTagRow(rows pgx.Rows) (*entities.Tag, error) {
 	var tag entities.Tag
 	err := rows.Scan(
-		&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt)
+		&tag.ID, &tag.Name, &tag.Slug, &tag.Color)
 	if err != nil {
 		return nil, err
 	}
