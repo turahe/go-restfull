@@ -5,9 +5,20 @@ package entities
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+// Media group constants for common use cases
+const (
+	MediaGroupAvatar   = "avatar"
+	MediaGroupCover    = "cover"
+	MediaGroupGallery  = "gallery"
+	MediaGroupDocument = "document"
+	MediaGroupVideo    = "video"
+	MediaGroupAudio    = "audio"
 )
 
 // Media represents the core media domain entity that manages file metadata
@@ -217,4 +228,23 @@ func (m *Media) GetFileExtension() string {
 		}
 	}
 	return "" // No extension found
+}
+
+func (m *Media) GetURL() string {
+	return fmt.Sprintf("%s/%s", m.Disk, m.FileName)
+}
+
+// IsAvatar checks if the media is marked as an avatar
+func (m *Media) IsAvatar() bool {
+	return m.MimeType != "" && len(m.MimeType) >= 5 && m.MimeType[:5] == "image"
+}
+
+// GetFileSizeInMB returns the file size in megabytes
+func (m *Media) GetFileSizeInMB() float64 {
+	return float64(m.Size) / (1024 * 1024)
+}
+
+// GetFileSizeInKB returns the file size in kilobytes
+func (m *Media) GetFileSizeInKB() float64 {
+	return float64(m.Size) / 1024
 }

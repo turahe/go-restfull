@@ -22,6 +22,7 @@ type UserResponse struct {
 	Username        string     `json:"username"`
 	Email           string     `json:"email"`
 	Phone           string     `json:"phone"`
+	Avatar          *string    `json:"avatar,omitempty"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	PhoneVerifiedAt *time.Time `json:"phone_verified_at,omitempty"`
 }
@@ -57,11 +58,17 @@ func NewTokenResponse(tokenPair *utils.TokenPair) *TokenResponse {
 
 // NewUserResponse creates a new UserResponse from user entity
 func NewUserResponse(user *entities.User) *UserResponse {
+	var avatar *string
+	if user.Avatar != "" {
+		avatar = &user.Avatar
+	}
+
 	return &UserResponse{
 		ID:       user.ID.String(),
 		Username: user.UserName,
 		Email:    user.Email,
 		Phone:    user.Phone,
+		Avatar:   avatar,
 	}
 }
 

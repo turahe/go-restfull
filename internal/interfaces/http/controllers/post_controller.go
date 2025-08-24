@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/internal/router/middleware"
@@ -70,13 +70,27 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 			Message: err.Error(),
 		})
 	}
-	// if slug is not provided, generate it from title
-	if req.Slug == "" {
-		req.Slug = strings.ToLower(strings.ReplaceAll(req.Title, " ", "-"))
+
+	// Get current user ID from JWT context
+	userID, ok := ctx.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
 	}
 
-	// Create post
-	post, err := c.postService.CreatePost(ctx.Context(), req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Content, req.Layout, req.IsSticky, req.PublishedAt)
+	// Transform request to entity
+	post, err := req.ToEntity(userID)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Create post with current user as author
+	createdPost, err := c.postService.CreatePost(ctx.Context(), post)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -84,9 +98,12 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// For newly created posts, there won't be any images yet
+	images := []*entities.Media{}
+
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   responses.NewPostResponse(post),
+		Data:   responses.NewPostResponseWithImages(createdPost, images),
 	})
 }
 
@@ -121,9 +138,16 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get images associated with this post
+	images, err := c.postService.GetPostMediaGallery(ctx.Context(), id, "gallery", 100, 0)
+	if err != nil {
+		// Log error but don't fail the request - images are optional
+		images = []*entities.Media{} // Empty slice if error occurs
+	}
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   responses.NewPostResponse(post),
+		Data:   responses.NewPostResponseWithImages(post, images),
 	})
 }
 
@@ -157,9 +181,16 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get images associated with this post
+	images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 100, 0)
+	if err != nil {
+		// Log error but don't fail the request - images are optional
+		images = []*entities.Media{} // Empty slice if error occurs
+	}
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   responses.NewPostResponse(post),
+		Data:   responses.NewPostResponseWithImages(post, images),
 	})
 }
 
@@ -194,10 +225,16 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to response DTOs
+	// Convert to response DTOs with images
 	postResponses := make([]responses.PostResponse, len(posts))
 	for i, post := range posts {
-		postResponses[i] = *responses.NewPostResponse(post)
+		// Get images for each post
+		images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 10, 0) // Limit to 10 images per post
+		if err != nil {
+			// Log error but don't fail the request - images are optional
+			images = []*entities.Media{} // Empty slice if error occurs
+		}
+		postResponses[i] = *responses.NewPostResponseWithImages(post, images)
 	}
 
 	// Create paginated response using helper
@@ -246,10 +283,16 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to response DTOs
+	// Convert to response DTOs with images
 	postResponses := make([]responses.PostResponse, len(posts))
 	for i, post := range posts {
-		postResponses[i] = *responses.NewPostResponse(post)
+		// Get images for each post
+		images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 10, 0) // Limit to 10 images per post
+		if err != nil {
+			// Log error but don't fail the request - images are optional
+			images = []*entities.Media{} // Empty slice if error occurs
+		}
+		postResponses[i] = *responses.NewPostResponseWithImages(post, images)
 	}
 
 	// For now, use simple count. In real implementation, get total count
@@ -305,8 +348,35 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get current user ID from JWT context
+	userID, ok := ctx.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
+	}
+
+	// Get existing post
+	existingPost, err := c.postService.GetPostByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Post not found",
+		})
+	}
+
+	// Transform request to entity
+	updatedPost, err := req.ToEntity(existingPost, userID)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
 	// Update post
-	post, err := c.postService.UpdatePost(ctx.Context(), id, req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Layout, req.IsSticky, req.PublishedAt)
+	post, err := c.postService.UpdatePost(ctx.Context(), updatedPost)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -314,9 +384,16 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get images associated with this post
+	images, err := c.postService.GetPostMediaGallery(ctx.Context(), id, "gallery", 100, 0)
+	if err != nil {
+		// Log error but don't fail the request - images are optional
+		images = []*entities.Media{} // Empty slice if error occurs
+	}
+
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   responses.NewPostResponse(post),
+		Data:   responses.NewPostResponseWithImages(post, images),
 	})
 }
 
@@ -344,7 +421,16 @@ func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	err = c.postService.DeletePost(ctx.Context(), id)
+	// Get current user ID from JWT context
+	userID, ok := ctx.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
+	}
+
+	err = c.postService.DeletePost(ctx.Context(), id, userID)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -382,7 +468,16 @@ func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	err = c.postService.PublishPost(ctx.Context(), id)
+	// Get current user ID from JWT context
+	userID, ok := ctx.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
+	}
+
+	err = c.postService.PublishPost(ctx.Context(), id, userID)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -420,7 +515,16 @@ func (c *PostController) UnpublishPost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	err = c.postService.UnpublishPost(ctx.Context(), id)
+	// Get current user ID from JWT context
+	userID, ok := ctx.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
+	}
+
+	err = c.postService.UnpublishPost(ctx.Context(), id, userID)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",

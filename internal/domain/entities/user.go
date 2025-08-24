@@ -26,6 +26,7 @@ type User struct {
 	Email           string     `json:"email"`                       // User's email address for communication
 	Phone           string     `json:"phone"`                       // User's phone number for contact
 	Password        string     `json:"-"`                           // Hashed password (excluded from JSON for security)
+	Avatar          string     `json:"avatar,omitempty"`            // User's avatar URL (optional)
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"` // Timestamp when email was verified
 	PhoneVerifiedAt *time.Time `json:"phone_verified_at,omitempty"` // Timestamp when phone was verified
 	Roles           []*Role    `json:"roles,omitempty"`             // Collection of roles assigned to the user

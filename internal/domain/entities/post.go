@@ -20,15 +20,16 @@ import (
 // - Audit trail with creation, update, and deletion tracking
 // - Soft delete functionality for content preservation
 type Post struct {
-	ID          uuid.UUID  `json:"id"`          // Unique identifier for the post
-	Title       string     `json:"title"`       // Main title of the post
-	Slug        string     `json:"slug"`        // URL-friendly identifier for the post
-	Subtitle    string     `json:"subtitle"`    // Secondary title or subtitle
-	Description string     `json:"description"` // Brief description or summary of the post
-	IsSticky    bool       `json:"is_sticky"`   // Whether the post should be pinned/sticky
-	Language    string     `json:"language"`    // Language code for the post content
-	Layout      string     `json:"layout"`      // Layout template identifier for rendering
-	Content     string     `json:"content"`
+	ID          uuid.UUID  `json:"id"`                     // Unique identifier for the post
+	Title       string     `json:"title"`                  // Main title of the post
+	Slug        string     `json:"slug"`                   // URL-friendly identifier for the post
+	Subtitle    string     `json:"subtitle"`               // Secondary title or subtitle
+	Description string     `json:"description"`            // Brief description or summary of the post
+	Type        string     `json:"type"`                   // Type of post (e.g., "post", "page", "article")
+	IsSticky    bool       `json:"is_sticky"`              // Whether the post should be pinned/sticky
+	Language    string     `json:"language"`               // Language code for the post content
+	Layout      string     `json:"layout"`                 // Layout template identifier for rendering
+	Content     string     `json:"content"`                // insert to table contents
 	PublishedAt *time.Time `json:"published_at,omitempty"` // Timestamp when post was published (nil for drafts)
 	CreatedBy   uuid.UUID  `json:"created_by"`             // ID of user who created this post
 	UpdatedBy   uuid.UUID  `json:"updated_by"`             // ID of user who last updated this post
@@ -47,8 +48,11 @@ type Post struct {
 //   - slug: URL-friendly identifier (required)
 //   - subtitle: Secondary title or subtitle (required)
 //   - description: Brief description or summary (required)
+//   - type: Type of post (e.g., "post", "page", "article") (required)
 //   - language: Language code for content (required)
 //   - layout: Layout template identifier (required)
+//   - content: Content body of the post (required)
+//   - createdBy: UUID of the user creating the post (required)
 //   - isSticky: Whether post should be pinned/sticky
 //   - publishedAt: Optional timestamp for immediate publishing (nil for drafts)
 //
@@ -57,8 +61,8 @@ type Post struct {
 //   - error: Validation error if any required field is empty
 //
 // Validation rules:
-// - title, slug, subtitle, description, language, and layout cannot be empty
-func NewPost(title, slug, subtitle, description, language, layout, content string, isSticky bool, publishedAt *time.Time) (*Post, error) {
+// - title, slug, subtitle, description, type, language, content, layout, and createdBy cannot be empty
+func NewPost(title, slug, subtitle, description, postType, language, layout, content string, createdBy uuid.UUID, isSticky bool, publishedAt *time.Time) (*Post, error) {
 	// Validate required fields
 	if title == "" {
 		return nil, errors.New("title is required")
@@ -72,6 +76,9 @@ func NewPost(title, slug, subtitle, description, language, layout, content strin
 	if description == "" {
 		return nil, errors.New("description is required")
 	}
+	if postType == "" {
+		return nil, errors.New("type is required")
+	}
 	if language == "" {
 		return nil, errors.New("language is required")
 	}
@@ -80,6 +87,9 @@ func NewPost(title, slug, subtitle, description, language, layout, content strin
 	}
 	if layout == "" {
 		return nil, errors.New("layout is required")
+	}
+	if createdBy == uuid.Nil {
+		return nil, errors.New("created_by is required")
 	}
 
 	// Create post with current timestamp
@@ -90,10 +100,13 @@ func NewPost(title, slug, subtitle, description, language, layout, content strin
 		Slug:        slug,        // Set post slug
 		Subtitle:    subtitle,    // Set post subtitle
 		Description: description, // Set post description
+		Type:        postType,    // Set post type
 		IsSticky:    isSticky,    // Set sticky status
 		Language:    language,    // Set content language
 		Layout:      layout,      // Set layout template
 		Content:     content,     // Set content
+		CreatedBy:   createdBy,   // Set creator ID
+		UpdatedBy:   createdBy,   // Initially same as creator
 		CreatedAt:   now,         // Set creation timestamp
 		UpdatedAt:   now,         // Set initial update timestamp
 		PublishedAt: publishedAt, // Set publication timestamp (may be nil for drafts)
@@ -109,6 +122,7 @@ func NewPost(title, slug, subtitle, description, language, layout, content strin
 //   - slug: New post slug (optional, only updated if not empty)
 //   - subtitle: New post subtitle (optional, only updated if not empty)
 //   - description: New post description (optional, only updated if not empty)
+//   - type: New post type (optional, only updated if not empty)
 //   - language: New content language (optional, only updated if not empty)
 //   - layout: New layout template (optional, only updated if not empty)
 //   - isSticky: New sticky status
@@ -118,7 +132,7 @@ func NewPost(title, slug, subtitle, description, language, layout, content strin
 //   - error: Always nil, included for interface consistency
 //
 // Note: This method automatically updates the UpdatedAt timestamp
-func (p *Post) UpdatePost(title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) error {
+func (p *Post) UpdatePost(title, slug, subtitle, description, postType, language, layout string, isSticky bool, publishedAt *time.Time) error {
 	// Update fields only if new values are provided
 	if title != "" {
 		p.Title = title
@@ -131,6 +145,9 @@ func (p *Post) UpdatePost(title, slug, subtitle, description, language, layout s
 	}
 	if description != "" {
 		p.Description = description
+	}
+	if postType != "" {
+		p.Type = postType
 	}
 	if language != "" {
 		p.Language = language

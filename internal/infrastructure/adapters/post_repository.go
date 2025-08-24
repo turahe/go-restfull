@@ -37,43 +37,6 @@ func NewPostgresPostRepository(db *pgxpool.Pool) repositories.PostRepository {
 	}
 }
 
-// Create persists a new post to the database
-// This method inserts a new post record with all required fields including
-// title, slug, content, and metadata.
-//
-// Parameters:
-//   - ctx: context for the database operation
-//   - post: pointer to the post entity to create
-//
-// Returns:
-//   - error: nil if successful, or database error if the operation fails
-func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
-	query := `
-		INSERT INTO posts (
-			id, title, slug, subtitle, description, language, layout,
-			is_sticky, published_at, created_at, updated_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-		)
-	`
-
-	_, err := r.db.Exec(ctx, query,
-		post.ID,
-		post.Title,
-		post.Slug,
-		post.Subtitle,
-		post.Description,
-		post.Language,
-		post.Layout,
-		post.IsSticky,
-		post.PublishedAt,
-		post.CreatedAt,
-		post.UpdatedAt,
-	)
-
-	return err
-}
-
 // CreateWithContent persists a new post to the database with its associated content
 // This method uses a database transaction to ensure both post and content
 // are inserted atomically, maintaining data consistency.
@@ -87,9 +50,9 @@ func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post
 //
 // Returns:
 //   - error: nil if successful, or database error if the operation fails
-func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *entities.Post, contentRaw string, createdBy uuid.UUID) error {
+func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post) error {
 	// Convert markdown to HTML
-	contentHTML := string(markdown.ToHTML([]byte(contentRaw), nil, nil))
+	contentHTML := string(markdown.ToHTML([]byte(post.Content), nil, nil))
 
 	// Use a transaction to ensure both post and content are inserted atomically
 	tx, err := r.db.Begin(ctx)
@@ -109,10 +72,10 @@ func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *en
 	// Insert post
 	postQuery := `
 		INSERT INTO posts (
-			id, title, slug, subtitle, description, language, layout,
+			id, title, slug, subtitle, description, type, language, layout,
 			is_sticky, published_at, created_at, updated_at, created_by, updated_by
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 		)
 	`
 
@@ -122,14 +85,15 @@ func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *en
 		post.Slug,
 		post.Subtitle,
 		post.Description,
+		post.Type,
 		post.Language,
 		post.Layout,
 		post.IsSticky,
 		post.PublishedAt,
 		post.CreatedAt,
 		post.UpdatedAt,
-		createdBy,
-		createdBy,
+		post.CreatedBy,
+		post.UpdatedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert post: %w", err)
@@ -147,10 +111,10 @@ func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *en
 		contentID,
 		"post", // model type is "post"
 		post.ID,
-		contentRaw,
+		post.Content,
 		contentHTML,
-		createdBy,
-		createdBy,
+		post.CreatedBy,
+		post.UpdatedBy,
 		now,
 		now,
 	)
@@ -178,7 +142,7 @@ func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *en
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE id = $1 AND deleted_at IS NULL
@@ -191,6 +155,7 @@ func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 		&post.Slug,
 		&post.Subtitle,
 		&post.Description,
+		&post.Type,
 		&post.Language,
 		&post.Layout,
 		&post.IsSticky,
@@ -222,7 +187,7 @@ func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE slug = $1 AND deleted_at IS NULL
@@ -235,6 +200,7 @@ func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 		&post.Slug,
 		&post.Subtitle,
 		&post.Description,
+		&post.Type,
 		&post.Language,
 		&post.Layout,
 		&post.IsSticky,
@@ -268,7 +234,7 @@ func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE author_id = $1 AND deleted_at IS NULL
@@ -298,7 +264,7 @@ func (r *PostgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE deleted_at IS NULL
@@ -328,7 +294,7 @@ func (r *PostgresPostRepository) GetAll(ctx context.Context, limit, offset int) 
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE published_at IS NOT NULL AND deleted_at IS NULL
@@ -359,7 +325,7 @@ func (r *PostgresPostRepository) GetPublished(ctx context.Context, limit, offset
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE deleted_at IS NULL AND (
@@ -391,9 +357,9 @@ func (r *PostgresPostRepository) Search(ctx context.Context, query string, limit
 func (r *PostgresPostRepository) Update(ctx context.Context, post *entities.Post) error {
 	query := `
 		UPDATE posts SET
-			title = $2, slug = $3, subtitle = $4, description = $5,
-			language = $6, layout = $7, is_sticky = $8, published_at = $9,
-			updated_at = $10
+			title = $2, slug = $3, subtitle = $4, description = $5, type = $6,
+			language = $7, layout = $8, is_sticky = $9, published_at = $10,
+			updated_at = $11
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 
@@ -403,6 +369,7 @@ func (r *PostgresPostRepository) Update(ctx context.Context, post *entities.Post
 		post.Slug,
 		post.Subtitle,
 		post.Description,
+		post.Type,
 		post.Language,
 		post.Layout,
 		post.IsSticky,
@@ -628,7 +595,7 @@ func (r *PostgresPostRepository) CountBySearchPublished(ctx context.Context, que
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, slug, subtitle, description, language, layout,
+		SELECT id, title, slug, subtitle, description, type, language, layout,
 			   is_sticky, published_at, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE published_at IS NOT NULL AND deleted_at IS NULL AND (
@@ -668,6 +635,7 @@ func (r *PostgresPostRepository) scanPosts(rows pgx.Rows) ([]*entities.Post, err
 			&post.Slug,
 			&post.Subtitle,
 			&post.Description,
+			&post.Type,
 			&post.Language,
 			&post.Layout,
 			&post.IsSticky,

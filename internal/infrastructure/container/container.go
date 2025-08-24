@@ -154,14 +154,15 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.RabbitMQService = rabbitmq.NewService()
 
 	// Initialize application services
+	// Media service (needed by user service)
+	container.MediaService = appservices.NewMediaService(container.MediaRepository)
 	// User service
-	container.UserService = appservices.NewUserService(container.UserRepository, container.PasswordService, container.EmailService)
+	container.UserService = appservices.NewUserService(container.UserRepository, container.PasswordService, container.EmailService, container.MediaService)
 	container.RoleService = appservices.NewRoleService(container.RoleRepository)
 	container.UserRoleService = appservices.NewUserRoleService(container.UserRoleRepository)
 	// Auth service
 	container.AuthService = appservices.NewAuthService(container.UserRepository, container.PasswordService, container.EmailService, container.RoleService, container.UserRoleService)
-	container.PostService = appservices.NewPostService(container.PostRepository)
-	container.MediaService = appservices.NewMediaService(container.MediaRepository)
+	container.PostService = appservices.NewPostService(container.PostRepository, container.MediaService)
 	container.TagService = appservices.NewTagService(container.TagRepository)
 	container.CommentService = appservices.NewCommentService(container.CommentRepository)
 	container.MenuService = appservices.NewMenuService(container.MenuRepository)

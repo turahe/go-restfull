@@ -242,3 +242,52 @@ func (s *mediaService) GetMediaCount(ctx context.Context) (int64, error) {
 func (s *mediaService) GetMediaCountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
 	return s.mediaRepository.CountByUserID(ctx, userID)
 }
+
+// GetAvatarByUserID retrieves the avatar image for a specific user.
+// This method returns the first JPEG image uploaded by the user, which is typically used as their avatar.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - userID: UUID of the user to get avatar for
+//
+// Returns:
+//   - *entities.Media: The user's avatar media entity, or nil if no avatar exists
+//   - error: Any error that occurred during the operation
+func (s *mediaService) GetAvatarByUserID(ctx context.Context, userID uuid.UUID) (*entities.Media, error) {
+	return s.mediaRepository.GetAvatarByUserID(ctx, userID)
+}
+
+// GetMediaByGroup retrieves media by group for a specific entity.
+// This method is useful for getting different types of media (avatar, cover, gallery, etc.)
+// for any entity type (User, Post, Organization, etc.).
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - mediableID: UUID of the entity to get media for
+//   - mediableType: Type of the entity (e.g., "User", "Post", "Organization")
+//   - group: Group/category of the media (e.g., "avatar", "cover", "gallery")
+//
+// Returns:
+//   - *entities.Media: The media entity if found, or nil if no media exists
+//   - error: Any error that occurred during the operation
+func (s *mediaService) GetMediaByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string) (*entities.Media, error) {
+	return s.mediaRepository.GetByGroup(ctx, mediableID, mediableType, group)
+}
+
+// GetAllMediaByGroup retrieves all media by group for a specific entity with pagination.
+// This method is useful for getting galleries or collections of media for any entity type.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - mediableID: UUID of the entity to get media for
+//   - mediableType: Type of the entity (e.g., "User", "Post", "Organization")
+//   - group: Group/category of the media (e.g., "avatar", "cover", "gallery")
+//   - limit: Maximum number of media files to return
+//   - offset: Number of media files to skip for pagination
+//
+// Returns:
+//   - []*entities.Media: List of media entities
+//   - error: Any error that occurred during the operation
+func (s *mediaService) GetAllMediaByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string, limit, offset int) ([]*entities.Media, error) {
+	return s.mediaRepository.GetAllByGroup(ctx, mediableID, mediableType, group, limit, offset)
+}

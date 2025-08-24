@@ -11,20 +11,21 @@ import (
 
 // UserAggregate represents the user aggregate root
 type UserAggregate struct {
-	ID              uuid.UUID                    `json:"id"`
-	UserName        string                       `json:"username"`
-	Email           valueobjects.Email           `json:"email"`
-	Phone           valueobjects.Phone           `json:"phone"`
-	Password        valueobjects.HashedPassword  `json:"-"`
-	EmailVerifiedAt *time.Time                   `json:"email_verified_at,omitempty"`
-	PhoneVerifiedAt *time.Time                   `json:"phone_verified_at,omitempty"`
-	Roles           []valueobjects.Role          `json:"roles,omitempty"`
-	Profile         *valueobjects.UserProfile    `json:"profile,omitempty"`
-	CreatedAt       time.Time                    `json:"created_at"`
-	UpdatedAt       time.Time                    `json:"updated_at"`
-	DeletedAt       *time.Time                   `json:"deleted_at,omitempty"`
-	Version         int                          `json:"version"`
-	
+	ID              uuid.UUID                   `json:"id"`
+	UserName        string                      `json:"username"`
+	Email           valueobjects.Email          `json:"email"`
+	Phone           valueobjects.Phone          `json:"phone"`
+	Password        valueobjects.HashedPassword `json:"-"`
+	EmailVerifiedAt *time.Time                  `json:"email_verified_at,omitempty"`
+	PhoneVerifiedAt *time.Time                  `json:"phone_verified_at,omitempty"`
+	Roles           []valueobjects.Role         `json:"roles,omitempty"`
+	Profile         *valueobjects.UserProfile   `json:"profile,omitempty"`
+	Avatar          *string                     `json:"avatar,omitempty"`
+	CreatedAt       time.Time                   `json:"created_at"`
+	UpdatedAt       time.Time                   `json:"updated_at"`
+	DeletedAt       *time.Time                  `json:"deleted_at,omitempty"`
+	Version         int                         `json:"version"`
+
 	// Domain events
 	events []events.DomainEvent
 }
@@ -50,7 +51,7 @@ func NewUserAggregate(username string, email valueobjects.Email, phone valueobje
 
 	// Add domain event
 	user.addEvent(events.NewUserCreatedEvent(user.ID, user.UserName, user.Email.String()))
-	
+
 	return user, nil
 }
 
@@ -64,7 +65,7 @@ func (u *UserAggregate) VerifyEmail() error {
 	u.EmailVerifiedAt = &now
 	u.UpdatedAt = now
 	u.Version++
-	
+
 	u.addEvent(events.NewUserEmailVerifiedEvent(u.ID, u.Email.String()))
 	return nil
 }
@@ -79,7 +80,7 @@ func (u *UserAggregate) VerifyPhone() error {
 	u.PhoneVerifiedAt = &now
 	u.UpdatedAt = now
 	u.Version++
-	
+
 	u.addEvent(events.NewUserPhoneVerifiedEvent(u.ID, u.Phone.String()))
 	return nil
 }
@@ -89,7 +90,7 @@ func (u *UserAggregate) ChangePassword(newPassword valueobjects.HashedPassword) 
 	u.Password = newPassword
 	u.UpdatedAt = time.Now()
 	u.Version++
-	
+
 	u.addEvent(events.NewUserPasswordChangedEvent(u.ID))
 	return nil
 }
@@ -106,7 +107,7 @@ func (u *UserAggregate) AssignRole(role valueobjects.Role) error {
 	u.Roles = append(u.Roles, role)
 	u.UpdatedAt = time.Now()
 	u.Version++
-	
+
 	u.addEvent(events.NewUserRoleAssignedEvent(u.ID, role.ID, role.Name))
 	return nil
 }
@@ -118,12 +119,12 @@ func (u *UserAggregate) RemoveRole(roleID uuid.UUID) error {
 			u.Roles = append(u.Roles[:i], u.Roles[i+1:]...)
 			u.UpdatedAt = time.Now()
 			u.Version++
-			
+
 			u.addEvent(events.NewUserRoleRemovedEvent(u.ID, roleID, role.Name))
 			return nil
 		}
 	}
-	
+
 	return errors.New("role not found")
 }
 
@@ -132,7 +133,7 @@ func (u *UserAggregate) UpdateProfile(profile valueobjects.UserProfile) error {
 	u.Profile = &profile
 	u.UpdatedAt = time.Now()
 	u.Version++
-	
+
 	u.addEvent(events.NewUserProfileUpdatedEvent(u.ID))
 	return nil
 }
@@ -147,7 +148,7 @@ func (u *UserAggregate) SoftDelete() error {
 	u.DeletedAt = &now
 	u.UpdatedAt = now
 	u.Version++
-	
+
 	u.addEvent(events.NewUserDeletedEvent(u.ID, u.UserName))
 	return nil
 }

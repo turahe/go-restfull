@@ -170,3 +170,66 @@ func (r *PostgresMediaRepository) CountByUserID(ctx context.Context, userID uuid
 	}
 	return count, nil
 }
+
+func (r *PostgresMediaRepository) GetAvatarByUserID(ctx context.Context, userID uuid.UUID) (*entities.Media, error) {
+	return r.GetByGroup(ctx, userID, "User", "avatar")
+}
+
+func (r *PostgresMediaRepository) GetByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string) (*entities.Media, error) {
+	query := `SELECT m.id, m.name, m.file_name, m.hash, m.disk, m.mime_type, m.size,
+		m.record_left, m.record_right, m.record_depth, m.record_ordering,
+		m.created_by, m.updated_by, m.created_at, m.updated_at, m.deleted_at
+	FROM media m
+	INNER JOIN mediables mb ON m.id = mb.media_id
+	WHERE mb.mediable_id = $1 
+		AND mb.mediable_type = $2 
+		AND mb.group = $3
+		AND m.deleted_at IS NULL
+	ORDER BY m.created_at DESC
+	LIMIT 1`
+
+	var media entities.Media
+	if err := r.db.QueryRow(ctx, query, mediableID, mediableType, group).Scan(
+		&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+		&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+		&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt,
+	); err != nil {
+		return nil, err
+	}
+	return &media, nil
+}
+
+func (r *PostgresMediaRepository) GetAllByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string, limit, offset int) ([]*entities.Media, error) {
+	query := `SELECT m.id, m.name, m.file_name, m.hash, m.disk, m.mime_type, m.size,
+		m.record_left, m.record_right, m.record_depth, m.record_ordering,
+		m.created_by, m.updated_by, m.created_at, m.updated_at, m.deleted_at
+	FROM media m
+	INNER JOIN mediables mb ON m.id = mb.media_id
+	WHERE mb.mediable_id = $1 
+		AND mb.mediable_type = $2 
+		AND mb.group = $3
+		AND m.deleted_at IS NULL
+	ORDER BY m.created_at DESC
+	LIMIT $4 OFFSET $5`
+
+	rows, err := r.db.Query(ctx, query, mediableID, mediableType, group, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mediaList []*entities.Media
+	for rows.Next() {
+		var media entities.Media
+		if err := rows.Scan(
+			&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+			&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+			&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		mediaList = append(mediaList, &media)
+	}
+
+	return mediaList, nil
+}

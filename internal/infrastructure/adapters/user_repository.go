@@ -8,6 +8,7 @@ import (
 	"github.com/turahe/go-restfull/internal/application/queries"
 	"github.com/turahe/go-restfull/internal/domain/aggregates"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -106,18 +107,46 @@ func (r *PostgresUserRepository) FindByID(ctx context.Context, userID uuid.UUID)
 	`
 
 	var user aggregates.UserAggregate
+	var passwordHash, emailStr, phoneStr string
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&user.ID,
 		&user.UserName,
-		&user.Email,
-		&user.Phone,
-		&user.Password,
+		&emailStr,
+		&phoneStr,
+		&passwordHash,
 		&user.EmailVerifiedAt,
 		&user.PhoneVerifiedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.DeletedAt,
 	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to find user by ID: %w", err)
+	}
+
+	// Convert strings to value objects
+	email, err := valueobjects.NewEmail(emailStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create email from string: %w", err)
+	}
+	user.Email = email
+
+	phone, err := valueobjects.NewPhone(phoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create phone from string: %w", err)
+	}
+	user.Phone = phone
+
+	// Convert password hash string to HashedPassword value object
+	hashedPassword, err := valueobjects.NewHashedPasswordFromHash(passwordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create hashed password from hash: %w", err)
+	}
+	user.Password = hashedPassword
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -148,12 +177,13 @@ func (r *PostgresUserRepository) FindByEmail(ctx context.Context, email string) 
 	`
 
 	var user aggregates.UserAggregate
+	var passwordHash, emailStr, phoneStr string
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.UserName,
-		&user.Email,
-		&user.Phone,
-		&user.Password,
+		&emailStr,
+		&phoneStr,
+		&passwordHash,
 		&user.EmailVerifiedAt,
 		&user.PhoneVerifiedAt,
 		&user.CreatedAt,
@@ -167,6 +197,26 @@ func (r *PostgresUserRepository) FindByEmail(ctx context.Context, email string) 
 		}
 		return nil, fmt.Errorf("failed to find user by email: %w", err)
 	}
+
+	// Convert strings to value objects
+	emailVO, err := valueobjects.NewEmail(emailStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create email from string: %w", err)
+	}
+	user.Email = emailVO
+
+	phone, err := valueobjects.NewPhone(phoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create phone from string: %w", err)
+	}
+	user.Phone = phone
+
+	// Convert password hash string to HashedPassword value object
+	hashedPassword, err := valueobjects.NewHashedPasswordFromHash(passwordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create hashed password from hash: %w", err)
+	}
+	user.Password = hashedPassword
 
 	return &user, nil
 }
@@ -190,12 +240,13 @@ func (r *PostgresUserRepository) FindByUsername(ctx context.Context, username st
 	`
 
 	var user aggregates.UserAggregate
+	var passwordHash, emailStr, phoneStr string
 	err := r.db.QueryRow(ctx, query, username).Scan(
 		&user.ID,
 		&user.UserName,
-		&user.Email,
-		&user.Phone,
-		&user.Password,
+		&emailStr,
+		&phoneStr,
+		&passwordHash,
 		&user.EmailVerifiedAt,
 		&user.PhoneVerifiedAt,
 		&user.CreatedAt,
@@ -209,6 +260,26 @@ func (r *PostgresUserRepository) FindByUsername(ctx context.Context, username st
 		}
 		return nil, fmt.Errorf("failed to find user by username: %w", err)
 	}
+
+	// Convert strings to value objects
+	email, err := valueobjects.NewEmail(emailStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create email from string: %w", err)
+	}
+	user.Email = email
+
+	phone, err := valueobjects.NewPhone(phoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create phone from string: %w", err)
+	}
+	user.Phone = phone
+
+	// Convert password hash string to HashedPassword value object
+	hashedPassword, err := valueobjects.NewHashedPasswordFromHash(passwordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create hashed password from hash: %w", err)
+	}
+	user.Password = hashedPassword
 
 	return &user, nil
 }
@@ -232,12 +303,13 @@ func (r *PostgresUserRepository) FindByPhone(ctx context.Context, phone string) 
 	`
 
 	var user aggregates.UserAggregate
+	var passwordHash, emailStr, phoneStr string
 	err := r.db.QueryRow(ctx, query, phone).Scan(
 		&user.ID,
 		&user.UserName,
-		&user.Email,
-		&user.Phone,
-		&user.Password,
+		&emailStr,
+		&phoneStr,
+		&passwordHash,
 		&user.EmailVerifiedAt,
 		&user.PhoneVerifiedAt,
 		&user.CreatedAt,
@@ -251,6 +323,26 @@ func (r *PostgresUserRepository) FindByPhone(ctx context.Context, phone string) 
 		}
 		return nil, fmt.Errorf("failed to find user by phone: %w", err)
 	}
+
+	// Convert strings to value objects
+	email, err := valueobjects.NewEmail(emailStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create email from string: %w", err)
+	}
+	user.Email = email
+
+	phoneVO, err := valueobjects.NewPhone(phoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create phone from string: %w", err)
+	}
+	user.Phone = phoneVO
+
+	// Convert password hash string to HashedPassword value object
+	hashedPassword, err := valueobjects.NewHashedPasswordFromHash(passwordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create hashed password from hash: %w", err)
+	}
+	user.Password = hashedPassword
 
 	return &user, nil
 }
@@ -456,7 +548,7 @@ func (r *PostgresUserRepository) createUser(ctx context.Context, user *aggregate
 		user.UserName,
 		user.Email,
 		user.Phone,
-		user.Password,
+		user.Password.Hash(),
 		user.EmailVerifiedAt,
 		user.PhoneVerifiedAt,
 		user.CreatedAt,
@@ -492,7 +584,7 @@ func (r *PostgresUserRepository) updateUser(ctx context.Context, user *aggregate
 		user.UserName,
 		user.Email,
 		user.Phone,
-		user.Password,
+		user.Password.Hash(),
 		user.EmailVerifiedAt,
 		user.PhoneVerifiedAt,
 		user.UpdatedAt,

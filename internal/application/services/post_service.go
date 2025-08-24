@@ -7,7 +7,7 @@ package services
 import (
 	"context"
 	"errors"
-	"time"
+	"fmt"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
@@ -21,7 +21,8 @@ import (
 // content lifecycle, and post management while ensuring proper data integrity
 // and business rules.
 type postService struct {
-	postRepo repositories.PostRepository
+	postRepo     repositories.PostRepository
+	mediaService ports.MediaService
 }
 
 // NewPostService creates a new post service instance with the provided repository.
@@ -30,12 +31,14 @@ type postService struct {
 //
 // Parameters:
 //   - postRepo: Repository interface for post data access operations
+//   - mediaService: Service interface for media operations
 //
 // Returns:
 //   - ports.PostService: The post service interface implementation
-func NewPostService(postRepo repositories.PostRepository) ports.PostService {
+func NewPostService(postRepo repositories.PostRepository, mediaService ports.MediaService) ports.PostService {
 	return &postService{
-		postRepo: postRepo,
+		postRepo:     postRepo,
+		mediaService: mediaService,
 	}
 }
 
@@ -52,24 +55,22 @@ func NewPostService(postRepo repositories.PostRepository) ports.PostService {
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - title: Title of the post
-//   - content: Content body of the post
-//   - slug: Optional unique slug for URL-friendly routing
-//   - status: Initial status of the post (draft, published, etc.)
-//   - authorID: UUID of the post author
+//   - post: Post entity to create
 //
 // Returns:
 //   - *entities.Post: The created post entity
 //   - error: Any error that occurred during the operation
-func (s *postService) CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout, content string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
-	// Create post entity with the provided parameters
-	post, err := entities.NewPost(title, slug, subtitle, description, language, layout, content, isSticky, publishedAt)
-	if err != nil {
-		return nil, err
-	}
+func (s *postService) CreatePost(ctx context.Context, post *entities.Post) (*entities.Post, error) {
+	// Use transaction to ensure data consistency
+	err := s.postRepo.WithTransaction(ctx, func(tx repositories.Transaction) error {
+		// Persist the post to the repository
+		if err := s.postRepo.Create(ctx, post); err != nil {
+			return err
+		}
+		return nil
+	})
 
-	// Persist the post to the repository
-	if err := s.postRepo.Create(ctx, post); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -272,32 +273,22 @@ func (s *postService) GetPostsCount(ctx context.Context, search, status string) 
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - id: UUID of the post to update
-//   - title: Updated title of the post
-//   - content: Updated content body of the post
-//   - slug: Updated slug for URL-friendly routing
-//   - status: Updated status of the post
+//   - post: Post entity to update
 //
 // Returns:
 //   - *entities.Post: The updated post entity
 //   - error: Any error that occurred during the operation
-func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
-	// Retrieve existing post to ensure it exists and is not deleted
-	post, err := s.postRepo.GetByID(ctx, id)
+func (s *postService) UpdatePost(ctx context.Context, post *entities.Post) (*entities.Post, error) {
+	// Use transaction to ensure data consistency
+	err := s.postRepo.WithTransaction(ctx, func(tx repositories.Transaction) error {
+		// Persist the updated post to the repository
+		if err := s.postRepo.Update(ctx, post); err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
-		return nil, err
-	}
-	if post.IsDeleted() {
-		return nil, errors.New("post not found")
-	}
-
-	// Update the post entity with new information
-	if err := post.UpdatePost(title, slug, subtitle, description, language, layout, isSticky, publishedAt); err != nil {
-		return nil, err
-	}
-
-	// Persist the updated post to the repository
-	if err := s.postRepo.Update(ctx, post); err != nil {
 		return nil, err
 	}
 
@@ -316,10 +307,11 @@ func (s *postService) UpdatePost(ctx context.Context, id uuid.UUID, title, slug,
 // Parameters:
 //   - ctx: Context for the operation
 //   - id: UUID of the post to delete
+//   - deletedBy: UUID of the user deleting the post
 //
 // Returns:
 //   - error: Any error that occurred during the operation
-func (s *postService) DeletePost(ctx context.Context, id uuid.UUID) error {
+func (s *postService) DeletePost(ctx context.Context, id uuid.UUID, deletedBy uuid.UUID) error {
 	post, err := s.postRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -330,7 +322,14 @@ func (s *postService) DeletePost(ctx context.Context, id uuid.UUID) error {
 
 	// Perform soft delete by marking the post as deleted
 	post.SoftDelete()
-	return s.postRepo.Update(ctx, post)
+
+	// Set the deleted_by field
+	post.DeletedBy = &deletedBy
+
+	// Use transaction to ensure data consistency
+	return s.postRepo.WithTransaction(ctx, func(tx repositories.Transaction) error {
+		return s.postRepo.Update(ctx, post)
+	})
 }
 
 // PublishPost changes a post's status to published, making it publicly visible.
@@ -344,10 +343,11 @@ func (s *postService) DeletePost(ctx context.Context, id uuid.UUID) error {
 // Parameters:
 //   - ctx: Context for the operation
 //   - id: UUID of the post to publish
+//   - updatedBy: UUID of the user publishing the post
 //
 // Returns:
 //   - error: Any error that occurred during the operation
-func (s *postService) PublishPost(ctx context.Context, id uuid.UUID) error {
+func (s *postService) PublishPost(ctx context.Context, id uuid.UUID, updatedBy uuid.UUID) error {
 	post, err := s.postRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -358,7 +358,14 @@ func (s *postService) PublishPost(ctx context.Context, id uuid.UUID) error {
 
 	// Mark post as published
 	post.Publish()
-	return s.postRepo.Update(ctx, post)
+
+	// Set the updated_by field
+	post.UpdatedBy = updatedBy
+
+	// Use transaction to ensure data consistency
+	return s.postRepo.WithTransaction(ctx, func(tx repositories.Transaction) error {
+		return s.postRepo.Update(ctx, post)
+	})
 }
 
 // UnpublishPost changes a post's status to unpublished, making it private.
@@ -372,10 +379,11 @@ func (s *postService) PublishPost(ctx context.Context, id uuid.UUID) error {
 // Parameters:
 //   - ctx: Context for the operation
 //   - id: UUID of the post to unpublish
+//   - updatedBy: UUID of the user unpublishing the post
 //
 // Returns:
 //   - error: Any error that occurred during the operation
-func (s *postService) UnpublishPost(ctx context.Context, id uuid.UUID) error {
+func (s *postService) UnpublishPost(ctx context.Context, id uuid.UUID, updatedBy uuid.UUID) error {
 	post, err := s.postRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -386,5 +394,28 @@ func (s *postService) UnpublishPost(ctx context.Context, id uuid.UUID) error {
 
 	// Mark post as unpublished
 	post.Unpublish()
-	return s.postRepo.Update(ctx, post)
+
+	// Set the updated_by field
+	post.UpdatedBy = updatedBy
+
+	// Use transaction to ensure data consistency
+	return s.postRepo.WithTransaction(ctx, func(tx repositories.Transaction) error {
+		return s.postRepo.Update(ctx, post)
+	})
+}
+
+// GetPostMediaByGroup retrieves media by group for a specific post
+func (s *postService) GetPostMediaByGroup(ctx context.Context, postID uuid.UUID, group string) (*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, fmt.Errorf("media service not available")
+	}
+	return s.mediaService.GetMediaByGroup(ctx, postID, "Post", group)
+}
+
+// GetPostMediaGallery retrieves all media in a specific group for a post
+func (s *postService) GetPostMediaGallery(ctx context.Context, postID uuid.UUID, group string, limit, offset int) ([]*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, fmt.Errorf("media service not available")
+	}
+	return s.mediaService.GetAllMediaByGroup(ctx, postID, "Post", group, limit, offset)
 }

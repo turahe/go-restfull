@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
@@ -21,17 +22,20 @@ type userService struct {
 	userRepo        repositories.UserRepository
 	passwordService domainservices.PasswordService
 	emailService    domainservices.EmailService
+	mediaService    ports.MediaService
 }
 
 func NewUserService(
 	userRepo repositories.UserRepository,
 	passwordService domainservices.PasswordService,
 	emailService domainservices.EmailService,
+	mediaService ports.MediaService,
 ) ports.UserService {
 	return &userService{
 		userRepo:        userRepo,
 		passwordService: passwordService,
 		emailService:    emailService,
+		mediaService:    mediaService,
 	}
 }
 
@@ -43,12 +47,44 @@ func aggregateToEntity(u *aggregates.UserAggregate) *entities.User {
 		Email:           u.Email.String(),
 		Phone:           u.Phone.String(),
 		Password:        u.Password.Hash(),
+		Avatar:          "", // Will be populated by service methods
 		EmailVerifiedAt: u.EmailVerifiedAt,
 		PhoneVerifiedAt: u.PhoneVerifiedAt,
 		CreatedAt:       u.CreatedAt,
 		UpdatedAt:       u.UpdatedAt,
 		DeletedAt:       u.DeletedAt,
 	}
+}
+
+// aggregateToEntityWithAvatar converts a user aggregate to a user entity and fetches the avatar
+func (s *userService) aggregateToEntityWithAvatar(ctx context.Context, u *aggregates.UserAggregate) *entities.User {
+	user := aggregateToEntity(u)
+
+	// Fetch avatar if media service is available
+	if s.mediaService != nil {
+		media, err := s.mediaService.GetAvatarByUserID(ctx, u.ID)
+		if err == nil && media != nil {
+			user.Avatar = media.GetURL()
+		}
+	}
+
+	return user
+}
+
+// GetUserMediaByGroup retrieves media by group for a specific user
+func (s *userService) GetUserMediaByGroup(ctx context.Context, userID uuid.UUID, group string) (*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, fmt.Errorf("media service not available")
+	}
+	return s.mediaService.GetMediaByGroup(ctx, userID, "User", group)
+}
+
+// GetUserMediaGallery retrieves all media in a specific group for a user
+func (s *userService) GetUserMediaGallery(ctx context.Context, userID uuid.UUID, group string, limit, offset int) ([]*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, fmt.Errorf("media service not available")
+	}
+	return s.mediaService.GetAllMediaByGroup(ctx, userID, "User", group, limit, offset)
 }
 
 func (s *userService) CreateUser(ctx context.Context, username, email, phone, password string) (*entities.User, error) {
@@ -112,7 +148,7 @@ func (s *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*entities.
 	if agg.IsDeleted() {
 		return nil, errors.New("user not found")
 	}
-	return aggregateToEntity(agg), nil
+	return s.aggregateToEntityWithAvatar(ctx, agg), nil
 }
 
 func (s *userService) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
@@ -123,7 +159,7 @@ func (s *userService) GetUserByEmail(ctx context.Context, email string) (*entiti
 	if agg.IsDeleted() {
 		return nil, errors.New("user not found")
 	}
-	return aggregateToEntity(agg), nil
+	return s.aggregateToEntityWithAvatar(ctx, agg), nil
 }
 
 func (s *userService) GetUserByUsername(ctx context.Context, username string) (*entities.User, error) {
@@ -134,7 +170,7 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 	if agg.IsDeleted() {
 		return nil, errors.New("user not found")
 	}
-	return aggregateToEntity(agg), nil
+	return s.aggregateToEntityWithAvatar(ctx, agg), nil
 }
 
 func (s *userService) GetUserByPhone(ctx context.Context, phone string) (*entities.User, error) {
@@ -145,7 +181,7 @@ func (s *userService) GetUserByPhone(ctx context.Context, phone string) (*entiti
 	if agg.IsDeleted() {
 		return nil, errors.New("user not found")
 	}
-	return aggregateToEntity(agg), nil
+	return s.aggregateToEntityWithAvatar(ctx, agg), nil
 }
 
 func (s *userService) GetAllUsers(ctx context.Context, limit, offset int) ([]*entities.User, error) {

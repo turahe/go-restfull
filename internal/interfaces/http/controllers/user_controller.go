@@ -118,7 +118,6 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 			Message: "User not found",
 		})
 	}
-
 	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
 		Data:   responses.NewUserResponse(user),

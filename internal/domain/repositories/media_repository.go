@@ -13,6 +13,9 @@ type MediaRepository interface {
 	Create(ctx context.Context, media *entities.Media) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Media, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Media, error)
+	GetAvatarByUserID(ctx context.Context, userID uuid.UUID) (*entities.Media, error)
+	GetByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string) (*entities.Media, error)
+	GetAllByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string, limit, offset int) ([]*entities.Media, error)
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Media, error)
 	Search(ctx context.Context, query string, limit, offset int) ([]*entities.Media, error)
 	Update(ctx context.Context, media *entities.Media) error
