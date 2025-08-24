@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/internal/interfaces/http/validation"
@@ -49,6 +50,17 @@ func (r *CreateUserRequest) Validate() error {
 	}
 
 	return nil
+}
+
+// ToEntity transforms CreateUserRequest to a User entity
+func (r *CreateUserRequest) ToEntity() (*entities.User, error) {
+	// Create user entity using the existing constructor
+	user, err := entities.NewUser(r.Username, r.Email, r.Phone, r.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 // ParsePhone parses the phone number and returns the phone value object
@@ -111,6 +123,26 @@ func (r *UpdateUserRequest) Validate() error {
 	}
 
 	return nil
+}
+
+// ToEntity transforms UpdateUserRequest to update an existing User entity
+func (r *UpdateUserRequest) ToEntity(existingUser *entities.User) (*entities.User, error) {
+	// Update username if provided
+	if r.Username != "" {
+		existingUser.UserName = r.Username
+	}
+
+	// Update email if provided
+	if r.Email != "" {
+		existingUser.Email = r.Email
+	}
+
+	// Update phone if provided
+	if r.Phone != "" {
+		existingUser.Phone = r.Phone
+	}
+
+	return existingUser, nil
 }
 
 // ParsePhone parses the phone number and returns the phone value object

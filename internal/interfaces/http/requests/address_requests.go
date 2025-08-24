@@ -2,6 +2,9 @@ package requests
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // CreateAddressRequest represents the request for creating an address
@@ -26,6 +29,31 @@ func (r *CreateAddressRequest) Validate() error {
 	return validate.Struct(r)
 }
 
+// ToEntity transforms CreateAddressRequest to an Address entity
+func (r *CreateAddressRequest) ToEntity() (*entities.Address, error) {
+	addressableID, err := uuid.Parse(r.AddressableID)
+	if err != nil {
+		return nil, err
+	}
+
+	address := &entities.Address{
+		AddressableID:   addressableID,
+		AddressableType: entities.AddressableType(r.AddressableType),
+		AddressLine1:    r.AddressLine1,
+		AddressLine2:    r.AddressLine2,
+		City:            r.City,
+		State:           r.State,
+		PostalCode:      r.PostalCode,
+		Country:         r.Country,
+		Latitude:        r.Latitude,
+		Longitude:       r.Longitude,
+		IsPrimary:       r.IsPrimary,
+		AddressType:     entities.AddressType(r.AddressType),
+	}
+
+	return address, nil
+}
+
 // UpdateAddressRequest represents the request for updating an address
 type UpdateAddressRequest struct {
 	AddressLine1 string   `json:"address_line1,omitempty" validate:"omitempty,min=1,max=255"`
@@ -44,6 +72,43 @@ type UpdateAddressRequest struct {
 func (r *UpdateAddressRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
+}
+
+// ToEntity transforms UpdateAddressRequest to update an existing Address entity
+func (r *UpdateAddressRequest) ToEntity(existingAddress *entities.Address) (*entities.Address, error) {
+	// Update fields only if provided
+	if r.AddressLine1 != "" {
+		existingAddress.AddressLine1 = r.AddressLine1
+	}
+	if r.AddressLine2 != nil {
+		existingAddress.AddressLine2 = r.AddressLine2
+	}
+	if r.City != "" {
+		existingAddress.City = r.City
+	}
+	if r.State != "" {
+		existingAddress.State = r.State
+	}
+	if r.PostalCode != "" {
+		existingAddress.PostalCode = r.PostalCode
+	}
+	if r.Country != "" {
+		existingAddress.Country = r.Country
+	}
+	if r.Latitude != nil {
+		existingAddress.Latitude = r.Latitude
+	}
+	if r.Longitude != nil {
+		existingAddress.Longitude = r.Longitude
+	}
+	if r.IsPrimary != nil {
+		existingAddress.IsPrimary = *r.IsPrimary
+	}
+	if r.AddressType != "" {
+		existingAddress.AddressType = entities.AddressType(r.AddressType)
+	}
+
+	return existingAddress, nil
 }
 
 // SetPrimaryAddressRequest represents the request for setting an address as primary

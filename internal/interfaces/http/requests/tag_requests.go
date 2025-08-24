@@ -3,6 +3,10 @@ package requests
 import (
 	"errors"
 	"regexp"
+
+	"github.com/google/uuid"
+
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // CreateTagRequest represents the request for creating a tag
@@ -39,6 +43,17 @@ func (r *CreateTagRequest) Validate() error {
 	return nil
 }
 
+// ToEntity transforms CreateTagRequest to a Tag entity
+func (r *CreateTagRequest) ToEntity() *entities.Tag {
+	return &entities.Tag{
+		ID:          uuid.New(),
+		Name:        r.Name,
+		Slug:        r.Slug,
+		Description: r.Description,
+		Color:       r.Color,
+	}
+}
+
 // UpdateTagRequest represents the request for updating a tag
 type UpdateTagRequest struct {
 	Name        string `json:"name"`
@@ -71,6 +86,25 @@ func (r *UpdateTagRequest) Validate() error {
 	}
 
 	return nil
+}
+
+// ToEntity transforms UpdateTagRequest to update an existing Tag entity
+func (r *UpdateTagRequest) ToEntity(existingTag *entities.Tag) *entities.Tag {
+	// Update fields only if provided
+	if r.Name != "" {
+		existingTag.Name = r.Name
+	}
+	if r.Slug != "" {
+		existingTag.Slug = r.Slug
+	}
+	if r.Description != "" {
+		existingTag.Description = r.Description
+	}
+	if r.Color != "" {
+		existingTag.Color = r.Color
+	}
+
+	return existingTag
 }
 
 // SearchTagsRequest represents the request for searching tags
