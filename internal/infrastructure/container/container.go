@@ -12,7 +12,6 @@ import (
 	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
 	"github.com/turahe/go-restfull/internal/infrastructure/messaging"
 	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
-	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/pkg/email"
 	"github.com/turahe/go-restfull/pkg/rabbitmq"
 
@@ -32,7 +31,7 @@ type Container struct {
 	TagRepository      repositories.TagRepository
 	TaxonomyRepository repositories.TaxonomyRepository
 	ContentRepository  repositories.ContentRepository
-	SettingRepository  repository.SettingRepository
+	SettingRepository  repositories.SettingRepository
 
 	AddressRepository      repositories.AddressRepository
 	OrganizationRepository repositories.OrganizationRepository
@@ -116,7 +115,26 @@ func NewContainer(db *pgxpool.Pool) *Container {
 		container.SearchService = searchService
 	}
 
-	// Initialize hybrid search service
+	// Repositories should be initialized before services that depend on them
+
+	// Initialize repositories using adapters
+	container.UserRepository = adapters.NewPostgresUserRepository(db)
+	container.PostRepository = adapters.NewPostgresPostRepository(db)
+	container.MediaRepository = adapters.NewPostgresMediaRepository(db, redisClient)
+	container.TagRepository = adapters.NewPostgresTagRepository(db, redisClient)
+	container.CommentRepository = adapters.NewPostgresCommentRepository(db, redisClient)
+	container.RoleRepository = adapters.NewPostgresRoleRepository(db, redisClient)
+	// UserRoleRepository adapter not present in current adapters; initialize via repository layer
+	// TODO: provide user-role repository adapter; temporarily set to nil to unblock build
+	container.MenuRepository = adapters.NewPostgresMenuRepository(db, redisClient)
+	container.MenuRoleRepository = adapters.NewPostgresMenuRoleRepository(db, redisClient)
+	container.TaxonomyRepository = adapters.NewPostgresTaxonomyRepository(db)
+	container.ContentRepository = adapters.NewPostgresContentRepository(db, redisClient)
+	container.SettingRepository = adapters.NewPostgresSettingRepository(db, redisClient)
+	container.AddressRepository = adapters.NewPostgresAddressRepository(db)
+	container.OrganizationRepository = adapters.NewPostgresOrganizationRepository(db)
+
+	// Initialize hybrid search service after repositories
 	container.HybridSearchService = appservices.NewHybridSearchService(
 		container.SearchService,
 		container.PostRepository,
@@ -134,23 +152,6 @@ func NewContainer(db *pgxpool.Pool) *Container {
 
 	// Initialize RabbitMQ service
 	container.RabbitMQService = rabbitmq.NewService()
-
-	// Initialize repositories using existing adapters
-	container.UserRepository = adapters.NewPostgresUserRepository(db)
-	container.PostRepository = repository.NewPostgresPostRepository(db, redisClient)
-	container.MediaRepository = adapters.NewPostgresMediaRepository(db, redisClient)
-	container.TagRepository = adapters.NewPostgresTagRepository(db, redisClient)
-	container.CommentRepository = adapters.NewPostgresCommentRepository(db, redisClient)
-	container.RoleRepository = adapters.NewPostgresRoleRepository(db, redisClient)
-	// UserRoleRepository adapter not present in current adapters; initialize via repository layer
-	// TODO: provide user-role repository adapter; temporarily set to nil to unblock build
-	container.MenuRepository = adapters.NewPostgresMenuRepository(db, redisClient)
-	container.MenuRoleRepository = adapters.NewPostgresMenuRoleRepository(db, redisClient)
-	container.TaxonomyRepository = adapters.NewPostgresTaxonomyRepository(db, redisClient)
-	container.ContentRepository = adapters.NewPostgresContentRepository(db, redisClient)
-	container.SettingRepository = repository.NewSettingRepository(db, redisClient)
-	container.AddressRepository = adapters.NewPostgresAddressRepository(db)
-	container.OrganizationRepository = repository.NewOrganizationRepository(db)
 
 	// Initialize application services
 	// User service
