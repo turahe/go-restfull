@@ -12,7 +12,7 @@ import (
 // PostService defines the application service interface for post operations
 type PostService interface {
 	// CreatePost creates a new post
-	CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error)
+	CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout, content string, isSticky bool, publishedAt *time.Time) (*entities.Post, error)
 
 	// GetPostByID retrieves a post by ID
 	GetPostByID(ctx context.Context, id uuid.UUID) (*entities.Post, error)

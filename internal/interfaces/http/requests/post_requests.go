@@ -13,6 +13,7 @@ type CreatePostRequest struct {
 	Description string     `json:"description"`
 	Language    string     `json:"language"`
 	Layout      string     `json:"layout"`
+	Content     string     `json:"content"`
 	IsSticky    bool       `json:"is_sticky"`
 	PublishedAt *time.Time `json:"published_at"`
 }
@@ -34,6 +35,7 @@ type UpdatePostRequest struct {
 	Description string     `json:"description"`
 	Language    string     `json:"language"`
 	Layout      string     `json:"layout"`
+	Content     string     `json:"content"`
 	IsSticky    bool       `json:"is_sticky"`
 	PublishedAt *time.Time `json:"published_at"`
 }

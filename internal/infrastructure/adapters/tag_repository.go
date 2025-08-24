@@ -3,9 +3,9 @@ package adapters
 import (
 	"context"
 	"strings"
+
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
-	"github.com/turahe/go-restfull/internal/repository"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,128 +13,102 @@ import (
 )
 
 type PostgresTagRepository struct {
-	repo repository.TagRepository
+	*BaseTransactionalRepository
+	db          *pgxpool.Pool
+	redisClient redis.Cmdable
 }
 
 func NewPostgresTagRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.TagRepository {
-	return &PostgresTagRepository{
-		repo: repository.NewTagRepository(db, redisClient),
-	}
+	return &PostgresTagRepository{BaseTransactionalRepository: NewBaseTransactionalRepository(db), db: db, redisClient: redisClient}
 }
 
 func (r *PostgresTagRepository) Create(ctx context.Context, tag *entities.Tag) error {
-	// The repository already works with entities, so we can pass through directly
-	return r.repo.Create(ctx, tag)
+	query := `INSERT INTO tags (id, name, slug, color, created_by, updated_by, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
+	_, err := r.db.Exec(ctx, query, tag.ID, tag.Name, tag.Slug, tag.Color, tag.CreatedBy, tag.UpdatedBy, tag.CreatedAt, tag.UpdatedAt)
+	return err
 }
 
 func (r *PostgresTagRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Tag, error) {
-	// The repository already works with entities, so we can pass through directly
-	return r.repo.GetByID(ctx, id)
+	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE id = $1 AND deleted_at IS NULL`
+	var tag entities.Tag
+	if err := r.db.QueryRow(ctx, query, id).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+		return nil, err
+	}
+	return &tag, nil
 }
 
 func (r *PostgresTagRepository) GetBySlug(ctx context.Context, slug string) (*entities.Tag, error) {
-	// This method is not available in the repository interface
-	// We need to implement it by filtering the results
-	allTags, err := r.repo.GetAll(ctx)
-	if err != nil {
+	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE slug = $1 AND deleted_at IS NULL`
+	var tag entities.Tag
+	if err := r.db.QueryRow(ctx, query, slug).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
 		return nil, err
 	}
-
-	for _, tag := range allTags {
-		if tag.Slug == slug {
-			return tag, nil
-		}
-	}
-
-	return nil, nil // Not found
+	return &tag, nil
 }
 
 func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Tag, error) {
-	// The repository method doesn't take limit and offset parameters
-	// We need to get all tags and then apply pagination
-	allTags, err := r.repo.GetAll(ctx)
+	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	// Apply pagination manually
-	start := offset
-	end := offset + limit
-	if start >= len(allTags) {
-		return []*entities.Tag{}, nil
+	defer rows.Close()
+	var tags []*entities.Tag
+	for rows.Next() {
+		var tag entities.Tag
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+			return nil, err
+		}
+		tags = append(tags, &tag)
 	}
-	if end > len(allTags) {
-		end = len(allTags)
-	}
-
-	return allTags[start:end], nil
+	return tags, nil
 }
 
 func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Tag, error) {
-	// This method is not available in the repository interface
-	// We need to implement it by searching through all tags
-	allTags, err := r.repo.GetAll(ctx)
+	q := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL AND (name ILIKE $1 OR slug ILIKE $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	pattern := "%" + strings.ToLower(query) + "%"
+	rows, err := r.db.Query(ctx, q, pattern, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	var searchResults []*entities.Tag
-	queryLower := strings.ToLower(query)
-	for _, tag := range allTags {
-		if strings.Contains(strings.ToLower(tag.Name), queryLower) ||
-			strings.Contains(strings.ToLower(tag.Slug), queryLower) ||
-			strings.Contains(strings.ToLower(tag.Description), queryLower) {
-			searchResults = append(searchResults, tag)
+	defer rows.Close()
+	var tags []*entities.Tag
+	for rows.Next() {
+		var tag entities.Tag
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+			return nil, err
 		}
+		tags = append(tags, &tag)
 	}
-
-	// Apply pagination to search results
-	start := offset
-	end := offset + limit
-	if start >= len(searchResults) {
-		return []*entities.Tag{}, nil
-	}
-	if end > len(searchResults) {
-		end = len(searchResults)
-	}
-
-	return searchResults[start:end], nil
+	return tags, nil
 }
 
 func (r *PostgresTagRepository) Update(ctx context.Context, tag *entities.Tag) error {
-	// The repository already works with entities, so we can pass through directly
-	return r.repo.Update(ctx, tag)
+	query := `UPDATE tags SET name=$1, slug=$2, color=$3, updated_at=$4, updated_by=$5 WHERE id=$6 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, tag.Name, tag.Slug, tag.Color, tag.UpdatedAt, tag.UpdatedBy, tag.ID)
+	return err
 }
 
 func (r *PostgresTagRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	// The repository already works with entities, so we can pass through directly
-	return r.repo.Delete(ctx, id)
+	query := `UPDATE tags SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
 }
 
 func (r *PostgresTagRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
-	// This method is not available in the repository interface
-	// We need to implement it by checking if a tag with the slug exists
-	allTags, err := r.repo.GetAll(ctx)
-	if err != nil {
+	query := `SELECT EXISTS(SELECT 1 FROM tags WHERE slug = $1 AND deleted_at IS NULL)`
+	var exists bool
+	if err := r.db.QueryRow(ctx, query, slug).Scan(&exists); err != nil {
 		return false, err
 	}
-
-	for _, tag := range allTags {
-		if tag.Slug == slug {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return exists, nil
 }
 
 func (r *PostgresTagRepository) Count(ctx context.Context) (int64, error) {
-	// This method is not available in the repository interface
-	// We need to implement it by counting all tags
-	allTags, err := r.repo.GetAll(ctx)
-	if err != nil {
+	query := `SELECT COUNT(*) FROM tags WHERE deleted_at IS NULL`
+	var count int64
+	if err := r.db.QueryRow(ctx, query).Scan(&count); err != nil {
 		return 0, err
 	}
-
-	return int64(len(allTags)), nil
+	return count, nil
 }

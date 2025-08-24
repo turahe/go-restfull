@@ -61,9 +61,9 @@ func NewPostService(postRepo repositories.PostRepository) ports.PostService {
 // Returns:
 //   - *entities.Post: The created post entity
 //   - error: Any error that occurred during the operation
-func (s *postService) CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
+func (s *postService) CreatePost(ctx context.Context, title, slug, subtitle, description, language, layout, content string, isSticky bool, publishedAt *time.Time) (*entities.Post, error) {
 	// Create post entity with the provided parameters
-	post, err := entities.NewPost(title, slug, subtitle, description, language, layout, isSticky, publishedAt)
+	post, err := entities.NewPost(title, slug, subtitle, description, language, layout, content, isSticky, publishedAt)
 	if err != nil {
 		return nil, err
 	}

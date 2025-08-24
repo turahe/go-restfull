@@ -76,7 +76,7 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 	}
 
 	// Create post
-	post, err := c.postService.CreatePost(ctx.Context(), req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Layout, req.IsSticky, req.PublishedAt)
+	post, err := c.postService.CreatePost(ctx.Context(), req.Title, req.Slug, req.Subtitle, req.Description, req.Language, req.Content, req.Layout, req.IsSticky, req.PublishedAt)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",

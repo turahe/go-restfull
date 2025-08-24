@@ -16,6 +16,7 @@ import (
 // using PostgreSQL as the underlying data store. This struct handles all address-related
 // database operations including CRUD operations, search, and address management.
 type PostgresAddressRepository struct {
+	*BaseTransactionalRepository
 	db *pgxpool.Pool // PostgreSQL connection pool for database operations
 }
 
@@ -29,7 +30,8 @@ type PostgresAddressRepository struct {
 //   - repositories.AddressRepository: interface implementation for address management
 func NewPostgresAddressRepository(db *pgxpool.Pool) repositories.AddressRepository {
 	return &PostgresAddressRepository{
-		db: db,
+		BaseTransactionalRepository: NewBaseTransactionalRepository(db),
+		db:                          db,
 	}
 }
 

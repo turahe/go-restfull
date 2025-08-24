@@ -3,10 +3,12 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 
+	"github.com/gomarkdown/markdown"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -70,6 +72,98 @@ func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post
 	)
 
 	return err
+}
+
+// CreateWithContent persists a new post to the database with its associated content
+// This method uses a database transaction to ensure both post and content
+// are inserted atomically, maintaining data consistency.
+// The markdown content is automatically converted to HTML for storage.
+//
+// Parameters:
+//   - ctx: context for the database operation
+//   - post: pointer to the post entity to create
+//   - contentRaw: raw markdown content text
+//   - createdBy: UUID of the user creating the post
+//
+// Returns:
+//   - error: nil if successful, or database error if the operation fails
+func (r *PostgresPostRepository) CreateWithContent(ctx context.Context, post *entities.Post, contentRaw string, createdBy uuid.UUID) error {
+	// Convert markdown to HTML
+	contentHTML := string(markdown.ToHTML([]byte(contentRaw), nil, nil))
+
+	// Use a transaction to ensure both post and content are inserted atomically
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			// Rollback on error
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				// Log rollback error but return the original error
+				fmt.Printf("failed to rollback transaction: %v\n", rollbackErr)
+			}
+		}
+	}()
+
+	// Insert post
+	postQuery := `
+		INSERT INTO posts (
+			id, title, slug, subtitle, description, language, layout,
+			is_sticky, published_at, created_at, updated_at, created_by, updated_by
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+		)
+	`
+
+	_, err = tx.Exec(ctx, postQuery,
+		post.ID,
+		post.Title,
+		post.Slug,
+		post.Subtitle,
+		post.Description,
+		post.Language,
+		post.Layout,
+		post.IsSticky,
+		post.PublishedAt,
+		post.CreatedAt,
+		post.UpdatedAt,
+		createdBy,
+		createdBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert post: %w", err)
+	}
+
+	// Insert content
+	contentQuery := `
+		INSERT INTO contents (id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+
+	contentID := uuid.New()
+	now := time.Now()
+	_, err = tx.Exec(ctx, contentQuery,
+		contentID,
+		"post", // model type is "post"
+		post.ID,
+		contentRaw,
+		contentHTML,
+		createdBy,
+		createdBy,
+		now,
+		now,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert content: %w", err)
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // GetByID retrieves a post by its unique identifier

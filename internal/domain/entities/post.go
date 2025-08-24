@@ -20,14 +20,15 @@ import (
 // - Audit trail with creation, update, and deletion tracking
 // - Soft delete functionality for content preservation
 type Post struct {
-	ID          uuid.UUID  `json:"id"`                     // Unique identifier for the post
-	Title       string     `json:"title"`                  // Main title of the post
-	Slug        string     `json:"slug"`                   // URL-friendly identifier for the post
-	Subtitle    string     `json:"subtitle"`               // Secondary title or subtitle
-	Description string     `json:"description"`            // Brief description or summary of the post
-	IsSticky    bool       `json:"is_sticky"`              // Whether the post should be pinned/sticky
-	Language    string     `json:"language"`               // Language code for the post content
-	Layout      string     `json:"layout"`                 // Layout template identifier for rendering
+	ID          uuid.UUID  `json:"id"`          // Unique identifier for the post
+	Title       string     `json:"title"`       // Main title of the post
+	Slug        string     `json:"slug"`        // URL-friendly identifier for the post
+	Subtitle    string     `json:"subtitle"`    // Secondary title or subtitle
+	Description string     `json:"description"` // Brief description or summary of the post
+	IsSticky    bool       `json:"is_sticky"`   // Whether the post should be pinned/sticky
+	Language    string     `json:"language"`    // Language code for the post content
+	Layout      string     `json:"layout"`      // Layout template identifier for rendering
+	Content     string     `json:"content"`
 	PublishedAt *time.Time `json:"published_at,omitempty"` // Timestamp when post was published (nil for drafts)
 	CreatedBy   uuid.UUID  `json:"created_by"`             // ID of user who created this post
 	UpdatedBy   uuid.UUID  `json:"updated_by"`             // ID of user who last updated this post
@@ -57,7 +58,7 @@ type Post struct {
 //
 // Validation rules:
 // - title, slug, subtitle, description, language, and layout cannot be empty
-func NewPost(title, slug, subtitle, description, language, layout string, isSticky bool, publishedAt *time.Time) (*Post, error) {
+func NewPost(title, slug, subtitle, description, language, layout, content string, isSticky bool, publishedAt *time.Time) (*Post, error) {
 	// Validate required fields
 	if title == "" {
 		return nil, errors.New("title is required")
@@ -74,6 +75,9 @@ func NewPost(title, slug, subtitle, description, language, layout string, isStic
 	if language == "" {
 		return nil, errors.New("language is required")
 	}
+	if content == "" {
+		return nil, errors.New("content is required")
+	}
 	if layout == "" {
 		return nil, errors.New("layout is required")
 	}
@@ -89,6 +93,7 @@ func NewPost(title, slug, subtitle, description, language, layout string, isStic
 		IsSticky:    isSticky,    // Set sticky status
 		Language:    language,    // Set content language
 		Layout:      layout,      // Set layout template
+		Content:     content,     // Set content
 		CreatedAt:   now,         // Set creation timestamp
 		UpdatedAt:   now,         // Set initial update timestamp
 		PublishedAt: publishedAt, // Set publication timestamp (may be nil for drafts)
