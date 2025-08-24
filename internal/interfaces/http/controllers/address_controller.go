@@ -24,6 +24,7 @@ func NewAddressController(addressService ports.AddressService) *AddressControlle
 }
 
 // CreateAddress godoc
+//
 //	@Summary		Create a new address
 //	@Description	Create a new address for a user or organization
 //	@Tags			addresses
@@ -51,32 +52,17 @@ func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 		})
 	}
 
-	addressableID, err := uuid.Parse(req.AddressableID)
+	// Transform request to entity
+	address, err := req.ToEntity()
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: "Invalid addressable ID format",
+			Message: err.Error(),
 		})
 	}
 
-	addressableType := entities.AddressableType(req.AddressableType)
-	addressType := entities.AddressType(req.AddressType)
-
-	address, err := c.addressService.CreateAddress(
-		ctx.Context(),
-		addressableID,
-		addressableType,
-		req.AddressLine1,
-		req.City,
-		req.State,
-		req.PostalCode,
-		req.Country,
-		req.AddressLine2,
-		req.Latitude,
-		req.Longitude,
-		req.IsPrimary,
-		addressType,
-	)
+	// Create address using the entity
+	createdAddress, err := c.addressService.CreateAddress(ctx.Context(), address)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -86,11 +72,12 @@ func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   address,
+		Data:   createdAddress,
 	})
 }
 
 // GetAddressByID godoc
+//
 //	@Summary		Get address by ID
 //	@Description	Retrieve an address by its unique identifier
 //	@Tags			addresses
@@ -127,16 +114,17 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 }
 
 // UpdateAddress godoc
+//
 //	@Summary		Update an address
-//	@Description	Update an existing address by ID
+//	@Description	Update an existing address with new information
 //	@Tags			addresses
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		string												true	"Address ID"	format(uuid)
+//	@Param			id		path		string								true	"Address ID"	format(uuid)
 //	@Param			request	body		requests.UpdateAddressRequest						true	"Address update request"
 //	@Success		200		{object}	responses.SuccessResponse{data=entities.Address}	"Address updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
-//	@Failure		404		{object}	responses.ErrorResponse								"Address not found"
+//	@Failure		404		{object}	responses.ErrorResponse								"Not found - Address does not exist"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses/{id} [put]
 //	@Security		BearerAuth
@@ -174,71 +162,17 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Update only provided fields
-	addressLine1 := req.AddressLine1
-	if addressLine1 == "" {
-		addressLine1 = currentAddress.AddressLine1
+	// Transform request to entity
+	updatedAddress, err := req.ToEntity(currentAddress)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 	}
 
-	city := req.City
-	if city == "" {
-		city = currentAddress.City
-	}
-
-	state := req.State
-	if state == "" {
-		state = currentAddress.State
-	}
-
-	postalCode := req.PostalCode
-	if postalCode == "" {
-		postalCode = currentAddress.PostalCode
-	}
-
-	country := req.Country
-	if country == "" {
-		country = currentAddress.Country
-	}
-
-	addressLine2 := req.AddressLine2
-	if addressLine2 == nil {
-		addressLine2 = currentAddress.AddressLine2
-	}
-
-	latitude := req.Latitude
-	if latitude == nil {
-		latitude = currentAddress.Latitude
-	}
-
-	longitude := req.Longitude
-	if longitude == nil {
-		longitude = currentAddress.Longitude
-	}
-
-	isPrimary := currentAddress.IsPrimary
-	if req.IsPrimary != nil {
-		isPrimary = *req.IsPrimary
-	}
-
-	addressType := currentAddress.AddressType
-	if req.AddressType != "" {
-		addressType = entities.AddressType(req.AddressType)
-	}
-
-	address, err := c.addressService.UpdateAddress(
-		ctx.Context(),
-		id,
-		addressLine1,
-		city,
-		state,
-		postalCode,
-		country,
-		addressLine2,
-		latitude,
-		longitude,
-		isPrimary,
-		addressType,
-	)
+	// Update address using the entity
+	address, err := c.addressService.UpdateAddress(ctx.Context(), updatedAddress)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -246,13 +180,14 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
+	return ctx.JSON(responses.SuccessResponse{
 		Status: "success",
 		Data:   address,
 	})
 }
 
 // DeleteAddress godoc
+//
 //	@Summary		Delete an address
 //	@Description	Delete an address by its ID
 //	@Tags			addresses
@@ -289,6 +224,7 @@ func (c *AddressController) DeleteAddress(ctx *fiber.Ctx) error {
 }
 
 // GetAddressesByAddressable godoc
+//
 //	@Summary		Get addresses by addressable entity
 //	@Description	Retrieve all addresses for a specific user or organization
 //	@Tags			addresses
@@ -336,6 +272,7 @@ func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 }
 
 // GetPrimaryAddressByAddressable godoc
+//
 //	@Summary		Get primary address by addressable entity
 //	@Description	Retrieve the primary address for a specific user or organization
 //	@Tags			addresses
@@ -383,6 +320,7 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 }
 
 // GetAddressesByAddressableAndType godoc
+//
 //	@Summary		Get addresses by addressable entity and type
 //	@Description	Retrieve addresses for a specific user or organization filtered by address type
 //	@Tags			addresses
@@ -442,6 +380,7 @@ func (c *AddressController) GetAddressesByAddressableAndType(ctx *fiber.Ctx) err
 }
 
 // SetPrimaryAddress godoc
+//
 //	@Summary		Set address as primary
 //	@Description	Set a specific address as the primary address for an addressable entity
 //	@Tags			addresses
@@ -504,6 +443,7 @@ func (c *AddressController) SetPrimaryAddress(ctx *fiber.Ctx) error {
 }
 
 // SetAddressType godoc
+//
 //	@Summary		Set address type
 //	@Description	Update the type of an address
 //	@Tags			addresses
@@ -558,6 +498,7 @@ func (c *AddressController) SetAddressType(ctx *fiber.Ctx) error {
 }
 
 // SearchAddressesByCity godoc
+//
 //	@Summary		Search addresses by city
 //	@Description	Search for addresses in a specific city with pagination
 //	@Tags			addresses
@@ -614,6 +555,7 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 }
 
 // SearchAddressesByState godoc
+//
 //	@Summary		Search addresses by state
 //	@Description	Search for addresses in a specific state with pagination
 //	@Tags			addresses
@@ -670,6 +612,7 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 }
 
 // SearchAddressesByCountry godoc
+//
 //	@Summary		Search addresses by country
 //	@Description	Search for addresses in a specific country with pagination
 //	@Tags			addresses
@@ -726,6 +669,7 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 }
 
 // SearchAddressesByPostalCode godoc
+//
 //	@Summary		Search addresses by postal code
 //	@Description	Search for addresses with a specific postal code with pagination
 //	@Tags			addresses

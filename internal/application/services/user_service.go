@@ -87,37 +87,37 @@ func (s *userService) GetUserMediaGallery(ctx context.Context, userID uuid.UUID,
 	return s.mediaService.GetAllMediaByGroup(ctx, userID, "User", group, limit, offset)
 }
 
-func (s *userService) CreateUser(ctx context.Context, username, email, phone, password string) (*entities.User, error) {
+func (s *userService) CreateUser(ctx context.Context, user *entities.User) (*entities.User, error) {
 	// Validate password, uniqueness
-	if err := s.passwordService.ValidatePassword(password); err != nil {
+	if err := s.passwordService.ValidatePassword(user.Password); err != nil {
 		return nil, err
 	}
-	if exists, err := s.userRepo.ExistsByEmail(ctx, email); err != nil {
+	if exists, err := s.userRepo.ExistsByEmail(ctx, user.Email); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, errors.New("user with this email already exists")
 	}
-	if exists, err := s.userRepo.ExistsByUsername(ctx, username); err != nil {
+	if exists, err := s.userRepo.ExistsByUsername(ctx, user.UserName); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, errors.New("user with this username already exists")
 	}
-	if exists, err := s.userRepo.ExistsByPhone(ctx, phone); err != nil {
+	if exists, err := s.userRepo.ExistsByPhone(ctx, user.Phone); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, errors.New("user with this phone already exists")
 	}
 
 	// Build aggregate
-	emailVO, err := valueobjects.NewEmail(email)
+	emailVO, err := valueobjects.NewEmail(user.Email)
 	if err != nil {
 		return nil, err
 	}
-	phoneVO, err := valueobjects.NewPhone(phone)
+	phoneVO, err := valueobjects.NewPhone(user.Phone)
 	if err != nil {
 		return nil, err
 	}
-	hashed, err := s.passwordService.HashPassword(password)
+	hashed, err := s.passwordService.HashPassword(user.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (s *userService) CreateUser(ctx context.Context, username, email, phone, pa
 	if err != nil {
 		return nil, err
 	}
-	agg, err := aggregates.NewUserAggregate(username, emailVO, phoneVO, passVO)
+	agg, err := aggregates.NewUserAggregate(user.UserName, emailVO, phoneVO, passVO)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (s *userService) CreateUser(ctx context.Context, username, email, phone, pa
 	}
 
 	// Fire-and-forget welcome email
-	go func(to, name string) { _ = s.emailService.SendWelcomeEmail(to, name) }(email, username)
+	go func(to, name string) { _ = s.emailService.SendWelcomeEmail(to, name) }(user.Email, user.UserName)
 
 	return aggregateToEntity(agg), nil
 }
@@ -265,8 +265,8 @@ func (s *userService) GetUsersCount(ctx context.Context, search string) (int64, 
 	return s.userRepo.Count(ctx)
 }
 
-func (s *userService) UpdateUser(ctx context.Context, id uuid.UUID, username, email, phone string) (*entities.User, error) {
-	agg, err := s.userRepo.FindByID(ctx, id)
+func (s *userService) UpdateUser(ctx context.Context, user *entities.User) (*entities.User, error) {
+	agg, err := s.userRepo.FindByID(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -274,18 +274,18 @@ func (s *userService) UpdateUser(ctx context.Context, id uuid.UUID, username, em
 		return nil, errors.New("user not found")
 	}
 
-	if username != "" {
-		agg.UserName = username
+	if user.UserName != "" {
+		agg.UserName = user.UserName
 	}
-	if email != "" {
-		emailVO, err := valueobjects.NewEmail(email)
+	if user.Email != "" {
+		emailVO, err := valueobjects.NewEmail(user.Email)
 		if err != nil {
 			return nil, err
 		}
 		agg.Email = emailVO
 	}
-	if phone != "" {
-		phoneVO, err := valueobjects.NewPhone(phone)
+	if user.Phone != "" {
+		phoneVO, err := valueobjects.NewPhone(user.Phone)
 		if err != nil {
 			return nil, err
 		}

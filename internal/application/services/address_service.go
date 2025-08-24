@@ -66,52 +66,25 @@ func NewAddressService(addressRepo repositories.AddressRepository) ports.Address
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - addressableID: UUID of the entity (user/organization) this address belongs to
-//   - addressableType: Type of the addressable entity (user/organization)
-//   - addressLine1: Primary address line (required)
-//   - city: City name (required)
-//   - state: State/province name (required)
-//   - postalCode: Postal/ZIP code (required)
-//   - country: Country name (required)
-//   - addressLine2: Secondary address line (optional)
-//   - latitude: Geographic latitude coordinate (optional)
-//   - longitude: Geographic longitude coordinate (optional)
-//   - isPrimary: Whether this address should be the primary address
-//   - addressType: Type of address (home, work, billing, shipping, other)
+//   - address: The address entity to create
 //
 // Returns:
 //   - *entities.Address: The created address entity
 //   - error: Any error that occurred during the operation
-func (s *addressService) CreateAddress(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType, addressLine1, city, state, postalCode, country string, addressLine2 *string, latitude, longitude *float64, isPrimary bool, addressType entities.AddressType) (*entities.Address, error) {
+func (s *addressService) CreateAddress(ctx context.Context, address *entities.Address) (*entities.Address, error) {
 	// Validate input parameters to ensure data integrity
-	if err := s.ValidateAddress(ctx, addressLine1, city, state, postalCode, country); err != nil {
+	if err := s.ValidateAddress(ctx, address.AddressLine1, address.City, address.State, address.PostalCode, address.Country); err != nil {
 		return nil, err
 	}
 
 	// Business rule: If this is a primary address, unset other primary addresses
 	// for the same addressable entity to maintain data consistency
-	if isPrimary {
-		err := s.addressRepo.UnsetOtherPrimaries(ctx, addressableID, addressableType, uuid.Nil)
+	if address.IsPrimary {
+		err := s.addressRepo.UnsetOtherPrimaries(ctx, address.AddressableID, address.AddressableType, uuid.Nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	// Create new address entity with the provided data
-	address := entities.NewAddress(
-		addressableID,
-		addressableType,
-		addressLine1,
-		city,
-		state,
-		postalCode,
-		country,
-		addressLine2,
-		latitude,
-		longitude,
-		isPrimary,
-		addressType,
-	)
 
 	// Persist the address to the repository
 	err := s.addressRepo.Create(ctx, address)
@@ -159,51 +132,38 @@ func (s *addressService) GetAddressByID(ctx context.Context, id uuid.UUID) (*ent
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - id: UUID of the address to update
-//   - addressLine1: Updated primary address line
-//   - city: Updated city name
-//   - state: Updated state/province name
-//   - postalCode: Updated postal/ZIP code
-//   - country: Updated country name
-//   - addressLine2: Updated secondary address line (optional)
-//   - latitude: Updated geographic latitude coordinate (optional)
-//   - longitude: Updated geographic longitude coordinate (optional)
-//   - isPrimary: Whether this address should be the primary address
-//   - addressType: Updated address type
+//   - address: The address entity to update
 //
 // Returns:
 //   - *entities.Address: The updated address entity
 //   - error: Any error that occurred during the operation
-func (s *addressService) UpdateAddress(ctx context.Context, id uuid.UUID, addressLine1, city, state, postalCode, country string, addressLine2 *string, latitude, longitude *float64, isPrimary bool, addressType entities.AddressType) (*entities.Address, error) {
+func (s *addressService) UpdateAddress(ctx context.Context, address *entities.Address) (*entities.Address, error) {
 	// Retrieve existing address to ensure it exists and is not deleted
-	address, err := s.addressRepo.GetByID(ctx, id)
+	existingAddress, err := s.addressRepo.GetByID(ctx, address.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if the address has been soft deleted
-	if address.IsDeleted() {
+	if existingAddress.IsDeleted() {
 		return nil, errors.New("address not found")
 	}
 
-	// Validate the updated address data
-	if err := s.ValidateAddress(ctx, addressLine1, city, state, postalCode, country); err != nil {
+	// Validate input parameters to ensure data integrity
+	if err := s.ValidateAddress(ctx, address.AddressLine1, address.City, address.State, address.PostalCode, address.Country); err != nil {
 		return nil, err
 	}
 
-	// Business rule: If setting as primary, unset other primary addresses
-	// for the same addressable entity
-	if isPrimary && !address.IsPrimary {
-		err := s.addressRepo.UnsetOtherPrimaries(ctx, address.AddressableID, address.AddressableType, id)
+	// Business rule: If this is a primary address, unset other primary addresses
+	// for the same addressable entity to maintain data consistency
+	if address.IsPrimary && !existingAddress.IsPrimary {
+		err := s.addressRepo.UnsetOtherPrimaries(ctx, address.AddressableID, address.AddressableType, address.ID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Update the address entity with new information
-	address.UpdateAddress(addressLine1, city, state, postalCode, country, addressLine2, latitude, longitude, isPrimary, addressType)
-
-	// Persist the updated address to the repository
+	// Update the address in the repository
 	err = s.addressRepo.Update(ctx, address)
 	if err != nil {
 		return nil, err

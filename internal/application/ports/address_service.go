@@ -10,9 +10,9 @@ import (
 
 type AddressService interface {
 	// Basic CRUD operations
-	CreateAddress(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType, addressLine1, city, state, postalCode, country string, addressLine2 *string, latitude, longitude *float64, isPrimary bool, addressType entities.AddressType) (*entities.Address, error)
+	CreateAddress(ctx context.Context, address *entities.Address) (*entities.Address, error)
 	GetAddressByID(ctx context.Context, id uuid.UUID) (*entities.Address, error)
-	UpdateAddress(ctx context.Context, id uuid.UUID, addressLine1, city, state, postalCode, country string, addressLine2 *string, latitude, longitude *float64, isPrimary bool, addressType entities.AddressType) (*entities.Address, error)
+	UpdateAddress(ctx context.Context, address *entities.Address) (*entities.Address, error)
 	DeleteAddress(ctx context.Context, id uuid.UUID) error
 
 	// Get addresses by addressable entity

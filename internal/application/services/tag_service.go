@@ -50,33 +50,24 @@ func NewTagService(tagRepository repositories.TagRepository) ports.TagService {
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - name: Display name of the tag
-//   - slug: URL-friendly identifier (auto-generated if empty)
-//   - description: Optional description of the tag
-//   - color: Optional color code for visual identification
+//   - tag: The tag entity to create
 //
 // Returns:
 //   - *entities.Tag: The created tag entity
 //   - error: Any error that occurred during the operation
-func (s *tagService) CreateTag(ctx context.Context, name, slug, description, color string) (*entities.Tag, error) {
+func (s *tagService) CreateTag(ctx context.Context, tag *entities.Tag) (*entities.Tag, error) {
 	// Generate slug automatically if not provided
-	if slug == "" {
-		slug = s.generateSlug(name)
+	if tag.Slug == "" {
+		tag.Slug = s.generateSlug(tag.Name)
 	}
 
 	// Check if slug already exists to maintain uniqueness
-	exists, err := s.tagRepository.ExistsBySlug(ctx, slug)
+	exists, err := s.tagRepository.ExistsBySlug(ctx, tag.Slug)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return nil, fmt.Errorf("tag with slug '%s' already exists", slug)
-	}
-
-	// Create tag entity with the provided parameters
-	tag, err := entities.NewTag(name, slug, description, color)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tag with slug '%s' already exists", tag.Slug)
 	}
 
 	// Persist the tag to the repository
@@ -148,37 +139,38 @@ func (s *tagService) SearchTags(ctx context.Context, query string, limit, offset
 	return s.tagRepository.Search(ctx, query, limit, offset)
 }
 
-// UpdateTag updates an existing tag's information and metadata.
-// This method enforces business rules and maintains data integrity during updates.
+// UpdateTag updates an existing tag with new information while maintaining
+// data integrity and enforcing business rules for tag updates.
 //
 // Business Rules:
 //   - Tag must exist and be accessible
-//   - Updated information must be provided and validated
-//   - Slug uniqueness is maintained during updates
-//   - Tag validation ensures proper structure
+//   - Slug uniqueness is validated if changed
+//   - All fields are validated before update
+//   - Soft deleted tags cannot be updated
 //
 // Parameters:
 //   - ctx: Context for the operation
-//   - id: UUID of the tag to update
-//   - name: Updated display name of the tag
-//   - slug: Updated URL-friendly identifier
-//   - description: Updated description of the tag
-//   - color: Updated color code for visual identification
+//   - tag: The tag entity to update
 //
 // Returns:
 //   - *entities.Tag: The updated tag entity
 //   - error: Any error that occurred during the operation
-func (s *tagService) UpdateTag(ctx context.Context, id uuid.UUID, name, slug, description, color string) (*entities.Tag, error) {
+func (s *tagService) UpdateTag(ctx context.Context, tag *entities.Tag) (*entities.Tag, error) {
 	// Retrieve existing tag to ensure it exists and is accessible
-	tag, err := s.tagRepository.GetByID(ctx, id)
+	existingTag, err := s.tagRepository.GetByID(ctx, tag.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update the tag entity with new information
-	err = tag.UpdateTag(name, slug, description, color)
-	if err != nil {
-		return nil, err
+	// Check if slug has changed and validate uniqueness
+	if tag.Slug != existingTag.Slug {
+		exists, err := s.tagRepository.ExistsBySlug(ctx, tag.Slug)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, fmt.Errorf("tag with slug '%s' already exists", tag.Slug)
+		}
 	}
 
 	// Persist the updated tag to the repository

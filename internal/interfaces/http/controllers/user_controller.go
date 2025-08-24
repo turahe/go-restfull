@@ -72,8 +72,17 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Create user
-	user, err := c.userService.CreateUser(ctx.Context(), req.Username, req.Email, req.Phone, req.Password)
+	// Transform request to entity
+	user, err := req.ToEntity()
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Create user using the entity
+	createdUser, err := c.userService.CreateUser(ctx.Context(), user)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -83,7 +92,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
 		Status: "success",
-		Data:   responses.NewUserResponse(user),
+		Data:   responses.NewUserResponse(createdUser),
 	})
 }
 
@@ -170,11 +179,11 @@ func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
 // UpdateUser handles PUT /users/:id
 //
 //	@Summary		Update user
-//	@Description	Update an existing user's information
+//	@Description	Update an existing user account with new information
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		string													true	"User ID"	format(uuid)
+//	@Param			id		path		string								true	"User ID"	format(uuid)
 //	@Param			user	body		requests.UpdateUserRequest								true	"User update request"
 //	@Success		200		{object}	responses.SuccessResponse{data=responses.UserResponse}	"User updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
@@ -208,8 +217,26 @@ func (c *UserController) UpdateUser(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Update user
-	user, err := c.userService.UpdateUser(ctx.Context(), id, req.Username, req.Email, req.Phone)
+	// Get existing user
+	existingUser, err := c.userService.GetUserByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not found",
+		})
+	}
+
+	// Transform request to entity
+	updatedUser, err := req.ToEntity(existingUser)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Update user using the entity
+	user, err := c.userService.UpdateUser(ctx.Context(), updatedUser)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -415,8 +442,26 @@ func (c *UserController) UpdateProfile(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Update user profile
-	user, err := c.userService.UpdateUser(ctx.Context(), id, req.Username, req.Email, req.Phone)
+	// Get existing user
+	existingUser, err := c.userService.GetUserByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not found",
+		})
+	}
+
+	// Transform request to entity
+	updatedUser, err := req.ToEntity(existingUser)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Update user profile using the entity
+	user, err := c.userService.UpdateUser(ctx.Context(), updatedUser)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",

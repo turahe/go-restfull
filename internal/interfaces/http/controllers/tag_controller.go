@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
@@ -11,6 +12,7 @@ import (
 )
 
 // TagController handles HTTP requests for tag operations
+//
 //	@title						Tag Management API
 //	@version					1.0
 //	@description				This is a tag management API for creating, reading, updating, and deleting tags
@@ -36,6 +38,7 @@ func NewTagController(tagService ports.TagService) *TagController {
 }
 
 // GetTags handles GET /v1/tags requests
+//
 //	@Summary		Get all tags
 //	@Description	Retrieve a list of all tags with pagination
 //	@Tags			tags
@@ -91,6 +94,7 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 }
 
 // GetTagByID handles GET /v1/tags/:id requests
+//
 //	@Summary		Get tag by ID
 //	@Description	Retrieve a tag by its ID
 //	@Tags			tags
@@ -138,16 +142,17 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 }
 
 // CreateTag handles POST /v1/tags requests
+//
 //	@Summary		Create tag
 //	@Description	Create a new tag
 //	@Tags			tags
 //	@Accept			json
 //	@Produce		json
-//	@Param			tag	body		requests.CreateTagRequest					true	"Tag object"
-//	@Success		201	{object}	responses.SuccessResponse{data=interface{}}	"Tag created successfully"
-//	@Failure		400	{object}	responses.ErrorResponse						"Bad request - Invalid input data"
-//	@Failure		409	{object}	responses.ErrorResponse						"Conflict - Tag with same slug already exists"
-//	@Failure		500	{object}	responses.ErrorResponse						"Internal server error"
+//	@Param			tag	body		requests.CreateTagRequest	true	"Tag object"
+//	@Success		201	{object}	responses.SuccessResponse	"Tag created successfully"
+//	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid input data"
+//	@Failure		409	{object}	responses.ErrorResponse		"Conflict - Tag with same slug already exists"
+//	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/tags [post]
 func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
@@ -168,8 +173,11 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Transform request to entity
+	tag := req.ToEntity()
+
 	// Create tag using service
-	tag, err := c.tagService.CreateTag(ctx.Context(), req.Name, req.Slug, req.Description, req.Color)
+	createdTag, err := c.tagService.CreateTag(ctx.Context(), tag)
 	if err != nil {
 		// Check for specific errors
 		if err.Error() == "tag with this slug already exists" {
@@ -187,23 +195,24 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tag created successfully",
-		Data:    tag,
+		Data:    createdTag,
 	})
 }
 
 // UpdateTag handles PUT /v1/tags/:id requests
+//
 //	@Summary		Update tag
 //	@Description	Update an existing tag by its ID
 //	@Tags			tags
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		string										true	"Tag ID"	format(uuid)
-//	@Param			tag	body		requests.UpdateTagRequest					true	"Tag object"
-//	@Success		200	{object}	responses.SuccessResponse{data=interface{}}	"Tag updated successfully"
-//	@Failure		400	{object}	responses.ErrorResponse						"Bad request - Invalid tag ID or input data"
-//	@Failure		404	{object}	responses.ErrorResponse						"Not found - Tag does not exist"
-//	@Failure		409	{object}	responses.ErrorResponse						"Conflict - Tag with same slug already exists"
-//	@Failure		500	{object}	responses.ErrorResponse						"Internal server error"
+//	@Param			id		path		string										true	"Tag ID"	format(uuid)
+//	@Param			tag		body		requests.UpdateTagRequest					true	"Tag object"
+//	@Success		200		{object}	responses.SuccessResponse{data=interface{}}	"Tag updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse						"Bad request - Invalid tag ID or input data"
+//	@Failure		404		{object}	responses.ErrorResponse						"Not found - Tag does not exist"
+//	@Failure		409		{object}	responses.ErrorResponse						"Conflict - Tag with same slug already exists"
+//	@Failure		500		{object}	responses.ErrorResponse						"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/tags/{id} [put]
 func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
@@ -234,8 +243,26 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get existing tag
+	existingTag, err := c.tagService.GetTagByID(ctx.Context(), tagID)
+	if err != nil {
+		if err.Error() == "tag not found" {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tag not found",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to retrieve tag: " + err.Error(),
+		})
+	}
+
+	// Transform request to entity
+	updatedTag := req.ToEntity(existingTag)
+
 	// Update tag using service
-	tag, err := c.tagService.UpdateTag(ctx.Context(), tagID, req.Name, req.Slug, req.Description, req.Color)
+	tag, err := c.tagService.UpdateTag(ctx.Context(), updatedTag)
 	if err != nil {
 		// Check for specific errors
 		if err.Error() == "tag not found" {
@@ -264,6 +291,7 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 }
 
 // DeleteTag handles DELETE /v1/tags/:id requests
+//
 //	@Summary		Delete tag
 //	@Description	Delete a tag by its ID
 //	@Tags			tags
@@ -311,6 +339,7 @@ func (c *TagController) DeleteTag(ctx *fiber.Ctx) error {
 }
 
 // SearchTags handles GET /v1/tags/search requests
+//
 //	@Summary		Search tags
 //	@Description	Search tags by query with pagination
 //	@Tags			tags

@@ -11,7 +11,7 @@ import (
 // UserService defines the application service interface for user operations
 type UserService interface {
 	// CreateUser creates a new user
-	CreateUser(ctx context.Context, username, email, phone, password string) (*entities.User, error)
+	CreateUser(ctx context.Context, user *entities.User) (*entities.User, error)
 
 	// GetUserByID retrieves a user by ID
 	GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
@@ -38,7 +38,7 @@ type UserService interface {
 	GetUsersCount(ctx context.Context, search string) (int64, error)
 
 	// UpdateUser updates user information
-	UpdateUser(ctx context.Context, id uuid.UUID, username, email, phone string) (*entities.User, error)
+	UpdateUser(ctx context.Context, user *entities.User) (*entities.User, error)
 
 	// DeleteUser soft deletes a user
 	DeleteUser(ctx context.Context, id uuid.UUID) error
