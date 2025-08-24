@@ -31,9 +31,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/swagger"
 	"github.com/turahe/go-restfull/cmd"
-	"github.com/turahe/go-restfull/docs" // Import for Swagger documentation
+	_ "github.com/turahe/go-restfull/docs/api" // Import for Swagger documentation
 	"github.com/turahe/go-restfull/internal/db/pgx"
 	"github.com/turahe/go-restfull/internal/db/seeds"
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
@@ -44,7 +43,7 @@ import (
 // Initialize Swagger documentation
 func init() {
 	// This ensures the docs package is imported and its init function runs
-	_ = docs.SwaggerInfo
+	// SwaggerInfo is now imported from docs/api package
 }
 
 func main() {
@@ -109,12 +108,6 @@ func main() {
 	// Middleware
 	app.Use(cors.New())
 	app.Use(fiberlogger.New())
-
-	// Swagger documentation
-	app.Get("/swagger/*", swagger.New(swagger.Config{
-		URL:         "/swagger/doc.json",
-		DeepLinking: true,
-	}))
 
 	// Setup routes using Hexagonal Architecture
 	routes.RegisterRoutes(app, container)

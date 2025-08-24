@@ -136,7 +136,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.RabbitMQService = rabbitmq.NewService()
 
 	// Initialize repositories using existing adapters
-	container.UserRepository = adapters.NewPostgresUserRepository(db, redisClient)
+	container.UserRepository = adapters.NewPostgresUserRepository(db)
 	container.PostRepository = repository.NewPostgresPostRepository(db, redisClient)
 	container.MediaRepository = adapters.NewPostgresMediaRepository(db, redisClient)
 	container.TagRepository = adapters.NewPostgresTagRepository(db, redisClient)
