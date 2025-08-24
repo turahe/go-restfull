@@ -276,24 +276,4 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # Deploy to Staging
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build, docker-build]
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: Deploy to staging
-        run: echo "Deploy to staging environment"
-        # Add your staging deployment steps here
-
-  # Deploy to Production
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build, docker-build]
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-      - name: Deploy to production
-        run: echo "Deploy to production environment"
-        # Add your production deployment steps here 
+ 
