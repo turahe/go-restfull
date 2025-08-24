@@ -7,8 +7,8 @@ app:
   accessTokenExpiration: 24
 
 httpServer:
-  port: 8000
-  swaggerURL: "http://localhost:8000/swagger/"
+  port: 8001
+  swaggerURL: "http://localhost:8001/swagger/"
 
 log:
   level: "debug"
@@ -48,7 +48,7 @@ casbin:
 
 minio:
   enable: false
-  endpoint: '127.0.0.1:9000'
+  endpoint: 'localhost:9000'
   accessKeyID: 'minioadmin'
   secretAccessKey: 'minioadmin'
   useSSL: false

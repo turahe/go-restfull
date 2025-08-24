@@ -13,6 +13,7 @@ func init() {
 var createAddressesTable = &Migration{
 	Name: "20250729213850_create_addresses_table",
 	Up: func() error {
+		// Create the addresses table
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE IF NOT EXISTS addresses (
 				"id" UUID NOT NULL,
@@ -41,20 +42,30 @@ var createAddressesTable = &Migration{
 				CONSTRAINT "addresses_pkey" PRIMARY KEY ("id"),
 				CONSTRAINT "addresses_addressable_type_check" CHECK ("addressable_type" IN ('user', 'organization')),
 				CONSTRAINT "addresses_address_type_check" CHECK ("address_type" IN ('home', 'work', 'billing', 'shipping', 'other'))
-			);
-
-			-- Create indexes for better performance
-			CREATE INDEX IF NOT EXISTS "addresses_addressable_id_idx" ON "addresses" ("addressable_id");
-			CREATE INDEX IF NOT EXISTS "addresses_addressable_type_idx" ON "addresses" ("addressable_type");
-			CREATE INDEX IF NOT EXISTS "addresses_addressable_composite_idx" ON "addresses" ("addressable_id", "addressable_type");
-			CREATE INDEX IF NOT EXISTS "addresses_is_primary_idx" ON "addresses" ("is_primary");
-			CREATE INDEX IF NOT EXISTS "addresses_address_type_idx" ON "addresses" ("address_type");
-			CREATE INDEX IF NOT EXISTS "addresses_deleted_at_idx" ON "addresses" ("deleted_at");
+			)
 		`)
 
 		if err != nil {
 			return err
 		}
+
+		// Create indexes for better performance separately
+		indexes := []string{
+			`CREATE INDEX IF NOT EXISTS "addresses_addressable_id_idx" ON "addresses" ("addressable_id")`,
+			`CREATE INDEX IF NOT EXISTS "addresses_addressable_type_idx" ON "addresses" ("addressable_type")`,
+			`CREATE INDEX IF NOT EXISTS "addresses_addressable_composite_idx" ON "addresses" ("addressable_id", "addressable_type")`,
+			`CREATE INDEX IF NOT EXISTS "addresses_is_primary_idx" ON "addresses" ("is_primary")`,
+			`CREATE INDEX IF NOT EXISTS "addresses_address_type_idx" ON "addresses" ("address_type")`,
+			`CREATE INDEX IF NOT EXISTS "addresses_deleted_at_idx" ON "addresses" ("deleted_at")`,
+		}
+
+		for _, indexSQL := range indexes {
+			_, err := pgx.GetPgxPool().Exec(context.Background(), indexSQL)
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 
 	},

@@ -33,12 +33,19 @@ import (
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
 	"github.com/turahe/go-restfull/cmd"
+	"github.com/turahe/go-restfull/docs" // Import for Swagger documentation
 	"github.com/turahe/go-restfull/internal/db/pgx"
 	"github.com/turahe/go-restfull/internal/db/seeds"
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
 	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
 	"go.uber.org/automaxprocs/maxprocs"
 )
+
+// Initialize Swagger documentation
+func init() {
+	// This ensures the docs package is imported and its init function runs
+	_ = docs.SwaggerInfo
+}
 
 func main() {
 	// Check if command line arguments are provided
@@ -104,7 +111,10 @@ func main() {
 	app.Use(fiberlogger.New())
 
 	// Swagger documentation
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	app.Get("/swagger/*", swagger.New(swagger.Config{
+		URL:         "/swagger/doc.json",
+		DeepLinking: true,
+	}))
 
 	// Setup routes using Hexagonal Architecture
 	routes.RegisterRoutes(app, container)

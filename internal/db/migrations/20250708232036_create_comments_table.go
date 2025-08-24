@@ -49,18 +49,21 @@ var createCommentTable = &Migration{
 			return err
 		}
 
-		// Create indexes for nested set operations
-		_, err = pgx.GetPgxPool().Exec(context.Background(), `
-			CREATE INDEX IF NOT EXISTS "comments_record_left_idx" ON "comments" ("record_left");
-			CREATE INDEX IF NOT EXISTS "comments_record_right_idx" ON "comments" ("record_right");
-			CREATE INDEX IF NOT EXISTS "comments_record_ordering_idx" ON "comments" ("record_ordering");
-			CREATE INDEX IF NOT EXISTS "comments_record_depth_idx" ON "comments" ("record_depth");
-			CREATE INDEX IF NOT EXISTS "comments_parent_id_idx" ON "comments" ("parent_id");
-			CREATE INDEX IF NOT EXISTS "comments_status_idx" ON "comments" ("status")
-		`)
+		// Create indexes for nested set operations separately
+		indexes := []string{
+			`CREATE INDEX IF NOT EXISTS "comments_record_left_idx" ON "comments" ("record_left")`,
+			`CREATE INDEX IF NOT EXISTS "comments_record_right_idx" ON "comments" ("record_right")`,
+			`CREATE INDEX IF NOT EXISTS "comments_record_ordering_idx" ON "comments" ("record_ordering")`,
+			`CREATE INDEX IF NOT EXISTS "comments_record_depth_idx" ON "comments" ("record_depth")`,
+			`CREATE INDEX IF NOT EXISTS "comments_parent_id_idx" ON "comments" ("parent_id")`,
+			`CREATE INDEX IF NOT EXISTS "comments_status_idx" ON "comments" ("status")`,
+		}
 
-		if err != nil {
-			return err
+		for _, indexSQL := range indexes {
+			_, err := pgx.GetPgxPool().Exec(context.Background(), indexSQL)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

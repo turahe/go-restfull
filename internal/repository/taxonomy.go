@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
-	"github.com/turahe/go-restfull/internal/domain/repositories"
-	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,26 +18,24 @@ import (
 // This struct handles all taxonomy-related database operations including CRUD operations,
 // hierarchical tree management using nested sets, and Redis caching for performance.
 type TaxonomyRepository struct {
-	pgxPool     *pgxpool.Pool               // PostgreSQL connection pool for database operations
-	redisClient redis.Cmdable               // Redis client for caching operations
-	nestedSet   *nestedset.NestedSetManager // Manager for nested set tree operations
+	pgxPool     *pgxpool.Pool // PostgreSQL connection pool for database operations
+	redisClient redis.Cmdable // Redis client for caching operations
 }
 
 // NewTaxonomyRepository creates a new instance of TaxonomyRepository
 // This constructor function initializes the repository with the required dependencies
-// including the nested set manager for tree structure operations and Redis for caching.
+// including Redis for caching.
 //
 // Parameters:
 //   - db: PostgreSQL connection pool for database operations
 //   - redisClient: Redis client for caching operations
 //
 // Returns:
-//   - repositories.TaxonomyRepository: interface implementation for taxonomy management
-func NewTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.TaxonomyRepository {
+//   - *TaxonomyRepository: concrete implementation for taxonomy management
+func NewTaxonomyRepository(db *pgxpool.Pool, redisClient redis.Cmdable) *TaxonomyRepository {
 	return &TaxonomyRepository{
 		pgxPool:     db,
 		redisClient: redisClient,
-		nestedSet:   nestedset.NewNestedSetManager(db),
 	}
 }
 
@@ -117,15 +113,63 @@ func (r *TaxonomyRepository) invalidateCache(ctx context.Context, pattern string
 // Returns:
 //   - error: nil if successful, or wrapped error if the operation fails
 func (r *TaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
-	// Calculate nested set values using the shared manager
-	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, 1)
+	tx, err := r.pgxPool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to calculate nested set values: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback(ctx)
 
-	taxonomy.RecordLeft = &values.Left
-	taxonomy.RecordRight = &values.Right
-	taxonomy.RecordDepth = &values.Depth
+	// If this is a root taxonomy (no parent)
+	if taxonomy.ParentID == nil {
+		// Get the maximum right value and add 1 for the new node
+		var maxRight uint64
+		err = tx.QueryRow(ctx, `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies WHERE deleted_at IS NULL`).Scan(&maxRight)
+		if err != nil {
+			return fmt.Errorf("failed to get max right value: %w", err)
+		}
+
+		// Create new values for nested set model
+		newLeft := maxRight + 1
+		newRight := maxRight + 2
+		newDepth := uint64(0)
+
+		taxonomy.RecordLeft = &newLeft
+		taxonomy.RecordRight = &newRight
+		taxonomy.RecordDepth = &newDepth
+	} else {
+		// Get the parent's right value
+		var parentRight uint64
+		err = tx.QueryRow(ctx, `SELECT record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, taxonomy.ParentID.String()).Scan(&parentRight)
+		if err != nil {
+			return fmt.Errorf("failed to get parent right value: %w", err)
+		}
+
+		// Make space for the new node by shifting all nodes to the right
+		_, err = tx.Exec(ctx, `
+			UPDATE taxonomies 
+			SET record_left = CASE 
+				WHEN record_left > $1 THEN record_left + 2 
+				ELSE record_left 
+			END,
+			record_right = CASE 
+				WHEN record_right >= $1 THEN record_right + 2 
+				ELSE record_right 
+			END
+			WHERE deleted_at IS NULL
+		`, parentRight)
+		if err != nil {
+			return fmt.Errorf("failed to shift nodes: %w", err)
+		}
+
+		// Create new values for nested set model
+		newLeft := parentRight
+		newRight := parentRight + 1
+		newDepth := uint64(0)
+
+		taxonomy.RecordLeft = &newLeft
+		taxonomy.RecordRight = &newRight
+		taxonomy.RecordDepth = &newDepth
+	}
 
 	// Insert the new taxonomy
 	query := `
@@ -151,7 +195,7 @@ func (r *TaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxo
 	// Invalidate relevant caches
 	r.invalidateCache(ctx, "taxonomy:*")
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (r *TaxonomyRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Taxonomy, error) {
@@ -618,22 +662,49 @@ func (r *TaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxo
 }
 
 func (r *TaxonomyRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	// Soft delete - mark as deleted
-	query := `
-		UPDATE taxonomies 
-		SET deleted_at = NOW(), updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`
-
-	_, err := r.pgxPool.Exec(ctx, query, id.String())
+	tx, err := r.pgxPool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to delete taxonomy: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Get the node's left and right values
+	var left, right uint64
+	err = tx.QueryRow(ctx, `SELECT record_left, record_right FROM taxonomies WHERE id = $1 AND deleted_at IS NULL`, id.String()).Scan(&left, &right)
+	if err != nil {
+		return fmt.Errorf("failed to get node boundaries: %w", err)
+	}
+
+	// Calculate the width of the subtree
+	width := right - left + 1
+
+	// Delete the node and all its descendants (soft delete)
+	_, err = tx.Exec(ctx, `UPDATE taxonomies SET deleted_at = NOW() WHERE record_left >= $1 AND record_right <= $2 AND deleted_at IS NULL`, left, right)
+	if err != nil {
+		return fmt.Errorf("failed to soft delete subtree: %w", err)
+	}
+
+	// Close the gap by shifting all nodes to the left
+	_, err = tx.Exec(ctx, `
+		UPDATE taxonomies 
+		SET record_left = CASE 
+			WHEN record_left > $1 THEN record_left - $2 
+			ELSE record_left 
+		END,
+		record_right = CASE 
+			WHEN record_right > $1 THEN record_right - $2 
+			ELSE record_right 
+		END
+		WHERE deleted_at IS NULL
+	`, right, width)
+	if err != nil {
+		return fmt.Errorf("failed to close gap: %w", err)
 	}
 
 	// Invalidate relevant caches
 	r.invalidateCache(ctx, "taxonomy:*")
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (r *TaxonomyRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {

@@ -50,17 +50,20 @@ var createMediaTable = &Migration{
 			return err
 		}
 
-		// Create indexes for nested set operations
-		_, err = pgx.GetPgxPool().Exec(context.Background(), `
-			CREATE INDEX IF NOT EXISTS "media_record_left_idx" ON "media" ("record_left");
-			CREATE INDEX IF NOT EXISTS "media_record_right_idx" ON "media" ("record_right");
-			CREATE INDEX IF NOT EXISTS "media_record_ordering_idx" ON "media" ("record_ordering");
-			CREATE INDEX IF NOT EXISTS "media_record_depth_idx" ON "media" ("record_depth");
-			CREATE INDEX IF NOT EXISTS "media_parent_id_idx" ON "media" ("parent_id")
-		`)
+		// Create indexes for nested set operations separately
+		indexes := []string{
+			`CREATE INDEX IF NOT EXISTS "media_record_left_idx" ON "media" ("record_left")`,
+			`CREATE INDEX IF NOT EXISTS "media_record_right_idx" ON "media" ("record_right")`,
+			`CREATE INDEX IF NOT EXISTS "media_record_ordering_idx" ON "media" ("record_ordering")`,
+			`CREATE INDEX IF NOT EXISTS "media_record_depth_idx" ON "media" ("record_depth")`,
+			`CREATE INDEX IF NOT EXISTS "media_parent_id_idx" ON "media" ("parent_id")`,
+		}
 
-		if err != nil {
-			return err
+		for _, indexSQL := range indexes {
+			_, err := pgx.GetPgxPool().Exec(context.Background(), indexSQL)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Create the mediables table

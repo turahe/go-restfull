@@ -54,17 +54,21 @@ var createMenusTable20250708232039 = &Migration{
 			return err
 		}
 
-		// Create indexes for nested set operations
-		_, err = pgx.GetPgxPool().Exec(context.Background(), `
-			CREATE INDEX IF NOT EXISTS "menus_record_left_idx" ON "menus" ("record_left");
-			CREATE INDEX IF NOT EXISTS "menus_record_right_idx" ON "menus" ("record_right");
-			CREATE INDEX IF NOT EXISTS "menus_record_ordering_idx" ON "menus" ("record_ordering");
-			CREATE INDEX IF NOT EXISTS "menus_parent_id_idx" ON "menus" ("parent_id");
-			CREATE INDEX IF NOT EXISTS "menus_is_active_idx" ON "menus" ("is_active");
-			CREATE INDEX IF NOT EXISTS "menus_is_visible_idx" ON "menus" ("is_visible")
-		`)
-		if err != nil {
-			return err
+		// Create indexes for nested set operations separately
+		indexes := []string{
+			`CREATE INDEX IF NOT EXISTS "menus_record_left_idx" ON "menus" ("record_left")`,
+			`CREATE INDEX IF NOT EXISTS "menus_record_right_idx" ON "menus" ("record_right")`,
+			`CREATE INDEX IF NOT EXISTS "menus_record_ordering_idx" ON "menus" ("record_ordering")`,
+			`CREATE INDEX IF NOT EXISTS "menus_parent_id_idx" ON "menus" ("parent_id")`,
+			`CREATE INDEX IF NOT EXISTS "menus_is_active_idx" ON "menus" ("is_active")`,
+			`CREATE INDEX IF NOT EXISTS "menus_is_visible_idx" ON "menus" ("is_visible")`,
+		}
+
+		for _, indexSQL := range indexes {
+			_, err := pgx.GetPgxPool().Exec(context.Background(), indexSQL)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

@@ -22,13 +22,17 @@ func RegisterUserRoutes(protected fiber.Router, container *container.Container) 
 	users := protected.Group("/users")
 	users.Post("/", userController.CreateUser)
 	users.Get("/", userController.GetUsers)
+
+	// Profile routes (protected) - must come before /:id routes
+	users.Get("/profile", userController.GetProfile)
+	users.Put("/profile", userController.UpdateProfile)
+
+	// User-Menu routes (protected) - must come before /:id routes
+	users.Get("/:user_id/menus", menuController.GetUserMenus)
+
+	// User CRUD routes (protected) - parameterized routes come last
 	users.Get("/:id", userController.GetUserByID)
 	users.Put("/:id", userController.UpdateUser)
 	users.Delete("/:id", userController.DeleteUser)
 	users.Put("/:id/password", userController.ChangePassword)
-	users.Get("/profile", userController.GetUserByID)
-	users.Put("/profile", userController.UpdateUser)
-
-	// User-Menu routes (protected)
-	users.Get("/:user_id/menus", menuController.GetUserMenus)
 }

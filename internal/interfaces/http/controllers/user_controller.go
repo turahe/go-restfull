@@ -318,3 +318,115 @@ func (c *UserController) ChangePassword(ctx *fiber.Ctx) error {
 		Message: "Password changed successfully",
 	})
 }
+
+// GetProfile handles GET /profile
+//
+//	@Summary		Get user profile
+//	@Description	Retrieve the authenticated user's profile information
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	responses.SuccessResponse{data=responses.UserResponse}	"User profile retrieved successfully"
+//	@Failure		401	{object}	responses.ErrorResponse									"Unauthorized - Invalid or missing token"
+//	@Failure		404	{object}	responses.ErrorResponse									"Not found - User does not exist"
+//	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/profile [get]
+func (c *UserController) GetProfile(ctx *fiber.Ctx) error {
+	// Get user ID from JWT token (set by auth middleware)
+	userID := ctx.Locals("user_id")
+	if userID == nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Unauthorized - User not authenticated",
+		})
+	}
+
+	// The user_id from JWT claims is already a uuid.UUID, no need to parse
+	id, ok := userID.(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid user ID in token",
+		})
+	}
+
+	// Get user profile
+	user, err := c.userService.GetUserByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not found",
+		})
+	}
+
+	return ctx.JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   responses.NewUserResponse(user),
+	})
+}
+
+// UpdateProfile handles PUT /profile
+//
+//	@Summary		Update user profile
+//	@Description	Update the authenticated user's profile information
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			user	body		requests.UpdateUserRequest								true	"User profile update request"
+//	@Success		200		{object}	responses.SuccessResponse{data=responses.UserResponse}	"Profile updated successfully"
+//	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
+//	@Failure		401		{object}	responses.ErrorResponse									"Unauthorized - Invalid or missing token"
+//	@Failure		404		{object}	responses.ErrorResponse									"Not found - User does not exist"
+//	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/profile [put]
+func (c *UserController) UpdateProfile(ctx *fiber.Ctx) error {
+	// Get user ID from JWT token (set by auth middleware)
+	userID := ctx.Locals("user_id")
+	if userID == nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Unauthorized - User not authenticated",
+		})
+	}
+
+	// The user_id from JWT claims is already a uuid.UUID, no need to parse
+	id, ok := userID.(uuid.UUID)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid user ID in token",
+		})
+	}
+
+	var req requests.UpdateUserRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body",
+		})
+	}
+
+	// Validate request
+	if err := req.Validate(); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	// Update user profile
+	user, err := c.userService.UpdateUser(ctx.Context(), id, req.Username, req.Email, req.Phone)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+	}
+
+	return ctx.JSON(responses.SuccessResponse{
+		Status: "success",
+		Data:   responses.NewUserResponse(user),
+	})
+}
