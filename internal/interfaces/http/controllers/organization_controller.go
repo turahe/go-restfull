@@ -31,7 +31,7 @@ func NewOrganizationController(organizationService ports.OrganizationService) *O
 //	@Accept			json
 //	@Produce		json
 //	@Param			organization	body		requests.CreateOrganizationRequest	true	"Organization to create"
-//	@Success		201				{object}	responses.SuccessResponse
+//	@Success		201				{object}	responses.OrganizationResourceResponse
 //	@Failure		400				{object}	responses.ErrorResponse
 //	@Failure		500				{object}	responses.ErrorResponse
 //	@Router			/organizations [post]
@@ -69,10 +69,7 @@ func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   createdOrganization,
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewOrganizationResourceResponse(createdOrganization))
 }
 
 // GetOrganizationByID godoc
@@ -83,7 +80,7 @@ func (c *OrganizationController) CreateOrganization(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"Organization ID"
-//	@Success		200	{object}	responses.SuccessResponse
+//	@Success		200	{object}	responses.OrganizationResourceResponse
 //	@Failure		400	{object}	responses.ErrorResponse
 //	@Failure		404	{object}	responses.ErrorResponse
 //	@Router			/organizations/{id} [get]
@@ -105,10 +102,7 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organization,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationResourceResponse(organization))
 }
 
 // GetAllOrganizations godoc
@@ -120,7 +114,7 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			limit	query		int	false	"Limit"
 //	@Param			offset	query		int	false	"Offset"
-//	@Success		200		{object}	responses.SuccessResponse
+//	@Success		200		{object}	responses.OrganizationCollectionResponse
 //	@Failure		400		{object}	responses.ErrorResponse
 //	@Failure		500		{object}	responses.ErrorResponse
 //	@Router			/organizations [get]
@@ -152,10 +146,21 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	// Calculate pagination parameters
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(organizations))
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedOrganizationCollectionResponse(
+		organizations, page, limit, total, baseURL,
+	))
 }
 
 // UpdateOrganization godoc
@@ -167,7 +172,7 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id				path		string								true	"Organization ID"
 //	@Param			organization	body		requests.UpdateOrganizationRequest	true	"Organization update data"
-//	@Success		200				{object}	responses.SuccessResponse
+//	@Success		200				{object}	responses.OrganizationResourceResponse
 //	@Failure		400				{object}	responses.ErrorResponse
 //	@Failure		500				{object}	responses.ErrorResponse
 //	@Router			/organizations/{id} [put]
@@ -223,10 +228,7 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organization,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationResourceResponse(organization))
 }
 
 // DeleteOrganization godoc
@@ -284,10 +286,7 @@ func (c *OrganizationController) GetRootOrganizations(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationChildren godoc
@@ -320,10 +319,7 @@ func (c *OrganizationController) GetOrganizationChildren(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationDescendants godoc
@@ -356,10 +352,7 @@ func (c *OrganizationController) GetOrganizationDescendants(ctx *fiber.Ctx) erro
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationAncestors godoc
@@ -392,10 +385,7 @@ func (c *OrganizationController) GetOrganizationAncestors(ctx *fiber.Ctx) error 
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationSiblings godoc
@@ -428,10 +418,7 @@ func (c *OrganizationController) GetOrganizationSiblings(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationPath godoc
@@ -464,10 +451,7 @@ func (c *OrganizationController) GetOrganizationPath(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationTree godoc
@@ -489,10 +473,7 @@ func (c *OrganizationController) GetOrganizationTree(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // GetOrganizationSubtree godoc
@@ -525,10 +506,7 @@ func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewOrganizationCollectionResponse(organizations))
 }
 
 // AddOrganizationChild godoc
@@ -540,7 +518,7 @@ func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id				path		string								true	"Parent Organization ID"
 //	@Param			organization	body		requests.CreateOrganizationRequest	true	"Child organization to create"
-//	@Success		201				{object}	responses.SuccessResponse
+//	@Success		201				{object}	responses.OrganizationResourceResponse
 //	@Failure		400				{object}	responses.ErrorResponse
 //	@Failure		500				{object}	responses.ErrorResponse
 //	@Router			/organizations/{id}/children [post]
@@ -590,10 +568,7 @@ func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   createdChildOrg,
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewOrganizationResourceResponse(createdChildOrg))
 }
 
 // MoveOrganizationSubtree godoc
@@ -755,7 +730,7 @@ func (c *OrganizationController) SetOrganizationStatus(ctx *fiber.Ctx) error {
 //	@Param			query		query		string	false	"Search query"
 //	@Param			page		query		int		false	"Page number"
 //	@Param			per_page	query		int		false	"Results per page"
-//	@Success		200			{object}	responses.SuccessResponse
+//	@Success		200			{object}	responses.OrganizationCollectionResponse
 //	@Failure		400			{object}	responses.ErrorResponse
 //	@Failure		500			{object}	responses.ErrorResponse
 //	@Router			/organizations/search [get]
@@ -791,10 +766,15 @@ func (c *OrganizationController) SearchOrganizations(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   organizations,
-	})
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(organizations))
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedOrganizationCollectionResponse(
+		organizations, req.Page, req.PerPage, total, baseURL,
+	))
 }
 
 // GetOrganizationStats godoc

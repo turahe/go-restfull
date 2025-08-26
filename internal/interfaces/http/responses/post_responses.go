@@ -6,94 +6,159 @@ import (
 	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
-// PostResponse represents a post in API responses
-type PostResponse struct {
-	ID          string          `json:"id"`
-	Title       string          `json:"title"`
-	Slug        string          `json:"slug"`
-	Subtitle    string          `json:"subtitle"`
-	Description string          `json:"description"`
-	Type        string          `json:"type"`
-	Language    string          `json:"language"`
-	Layout      string          `json:"layout"`
-	Content     string          `json:"content"`
-	IsSticky    bool            `json:"is_sticky"`
-	PublishedAt *time.Time      `json:"published_at,omitempty"`
-	Images      []MediaResponse `json:"images,omitempty"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	DeletedAt   *time.Time      `json:"deleted_at,omitempty"`
+// PostResource represents a single post in API responses
+// Following Laravel API Resource pattern for consistent formatting
+type PostResource struct {
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	Slug        string     `json:"slug"`
+	Subtitle    string     `json:"subtitle"`
+	Description string     `json:"description"`
+	Type        string     `json:"type"`
+	IsSticky    bool       `json:"is_sticky"`
+	Language    string     `json:"language"`
+	Layout      string     `json:"layout"`
+	Content     string     `json:"content"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	IsPublished bool       `json:"is_published"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
 }
 
-// ContentResponse represents content in API responses
-type ContentResponse struct {
-	ID          string    `json:"id"`
-	PostID      string    `json:"post_id"`
-	Content     string    `json:"content"`
-	ContentType string    `json:"content_type"`
-	Order       int       `json:"order"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+// PostCollection represents a collection of posts
+// Following Laravel API Resource Collection pattern
+type PostCollection struct {
+	Data  []PostResource   `json:"data"`
+	Meta  *CollectionMeta  `json:"meta,omitempty"`
+	Links *CollectionLinks `json:"links,omitempty"`
 }
 
-// PostListResponse represents a list of posts with pagination
-type PostListResponse struct {
-	Posts []PostResponse `json:"posts"`
-	Total int64          `json:"total"`
-	Limit int            `json:"limit"`
-	Page  int            `json:"page"`
+// PostResourceResponse represents a single post response with Laravel-style formatting
+type PostResourceResponse struct {
+	Status string       `json:"status"`
+	Data   PostResource `json:"data"`
 }
 
-// NewPostResponse creates a new PostResponse from post entity
-func NewPostResponse(post *entities.Post) *PostResponse {
-	return &PostResponse{
+// PostCollectionResponse represents a collection response with Laravel-style formatting
+type PostCollectionResponse struct {
+	Status string         `json:"status"`
+	Data   PostCollection `json:"data"`
+}
+
+// NewPostResource creates a new PostResource from a Post entity
+// This transforms the domain entity into a consistent API response format
+func NewPostResource(post *entities.Post) *PostResource {
+	// Determine status based on published_at
+	status := "draft"
+	if post.PublishedAt != nil {
+		status = "published"
+	}
+
+	return &PostResource{
 		ID:          post.ID.String(),
 		Title:       post.Title,
 		Slug:        post.Slug,
 		Subtitle:    post.Subtitle,
 		Description: post.Description,
 		Type:        post.Type,
+		IsSticky:    post.IsSticky,
 		Language:    post.Language,
 		Layout:      post.Layout,
 		Content:     post.Content,
-		IsSticky:    post.IsSticky,
 		PublishedAt: post.PublishedAt,
-		Images:      []MediaResponse{}, // Will be populated by service methods
+		IsPublished: post.PublishedAt != nil,
+		Status:      status,
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,
 		DeletedAt:   post.DeletedAt,
 	}
 }
 
-// NewPostResponseWithImages creates a new PostResponse from post entity with images
-func NewPostResponseWithImages(post *entities.Post, images []*entities.Media) *PostResponse {
-	response := NewPostResponse(post)
-
-	if len(images) > 0 {
-		response.Images = make([]MediaResponse, len(images))
-		for i, media := range images {
-			// Use the existing NewMediaResponse from entity_responses.go
-			mediaResponse := NewMediaResponse(media)
-			// Set the URL field to the media's URL
-			mediaResponse.URL = media.GetURL()
-			response.Images[i] = *mediaResponse
-		}
+// NewPostCollection creates a new PostCollection from a slice of Post entities
+// This transforms multiple domain entities into a consistent API response format
+func NewPostCollection(posts []*entities.Post) *PostCollection {
+	postResources := make([]PostResource, len(posts))
+	for i, post := range posts {
+		postResources[i] = *NewPostResource(post)
 	}
 
-	return response
+	return &PostCollection{
+		Data: postResources,
+	}
 }
 
-// NewPostListResponse creates a new PostListResponse from post entities
-func NewPostListResponse(posts []*entities.Post, total int64, limit, page int) *PostListResponse {
-	postResponses := make([]PostResponse, len(posts))
-	for i, post := range posts {
-		postResponses[i] = *NewPostResponse(post)
+// NewPaginatedPostCollection creates a new PostCollection with pagination metadata
+// This follows Laravel's paginated resource collection pattern
+func NewPaginatedPostCollection(
+	posts []*entities.Post,
+	page, perPage int,
+	total int64,
+	baseURL string,
+) *PostCollection {
+	collection := NewPostCollection(posts)
+
+	totalPages := (int(total) + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
 	}
 
-	return &PostListResponse{
-		Posts: postResponses,
-		Total: total,
-		Limit: limit,
-		Page:  page,
+	from := (page-1)*perPage + 1
+	to := page * perPage
+	if to > int(total) {
+		to = int(total)
+	}
+
+	collection.Meta = &CollectionMeta{
+		CurrentPage:  page,
+		PerPage:      perPage,
+		TotalItems:   total,
+		TotalPages:   totalPages,
+		HasNextPage:  page < totalPages,
+		HasPrevPage:  page > 1,
+		NextPage:     page + 1,
+		PreviousPage: page - 1,
+		From:         from,
+		To:           to,
+	}
+
+	// Generate pagination links
+	collection.Links = &CollectionLinks{
+		First: generatePageURL(baseURL, 1),
+		Last:  generatePageURL(baseURL, totalPages),
+		Prev:  generatePageURL(baseURL, page-1),
+		Next:  generatePageURL(baseURL, page+1),
+	}
+
+	return collection
+}
+
+// NewPostResourceResponse creates a new single post response
+func NewPostResourceResponse(post *entities.Post) *PostResourceResponse {
+	return &PostResourceResponse{
+		Status: "success",
+		Data:   *NewPostResource(post),
+	}
+}
+
+// NewPostCollectionResponse creates a new post collection response
+func NewPostCollectionResponse(posts []*entities.Post) *PostCollectionResponse {
+	return &PostCollectionResponse{
+		Status: "success",
+		Data:   *NewPostCollection(posts),
+	}
+}
+
+// NewPaginatedPostCollectionResponse creates a new paginated post collection response
+func NewPaginatedPostCollectionResponse(
+	posts []*entities.Post,
+	page, perPage int,
+	total int64,
+	baseURL string,
+) *PostCollectionResponse {
+	return &PostCollectionResponse{
+		Status: "success",
+		Data:   *NewPaginatedPostCollection(posts, page, perPage, total, baseURL),
 	}
 }

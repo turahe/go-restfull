@@ -31,7 +31,7 @@ func NewTaxonomyController(taxonomyService ports.TaxonomyService) *TaxonomyContr
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		requests.CreateTaxonomyRequest						true	"Taxonomy creation request"
-//	@Success		201		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy created successfully"
+//	@Success		201		{object}	responses.TaxonomyResourceResponse	"Taxonomy created successfully"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies [post]
@@ -70,10 +70,7 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   createdTaxonomy,
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewTaxonomyResourceResponse(createdTaxonomy))
 }
 
 // GetTaxonomyByID godoc
@@ -84,7 +81,7 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string												true	"Taxonomy ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy found"
+//	@Success		200	{object}	responses.TaxonomyResourceResponse	"Taxonomy found"
 //	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid taxonomy ID format"
 //	@Failure		404	{object}	responses.ErrorResponse								"Taxonomy not found"
 //	@Router			/api/v1/taxonomies/{id} [get]
@@ -107,10 +104,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomy,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResourceResponse(taxonomy))
 }
 
 // GetTaxonomyBySlug godoc
@@ -121,7 +115,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			slug	path		string												true	"Taxonomy slug"
-//	@Success		200		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy found"
+//	@Success		200		{object}	responses.TaxonomyResourceResponse	"Taxonomy found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Slug is required"
 //	@Failure		404		{object}	responses.ErrorResponse								"Taxonomy not found"
 //	@Router			/api/v1/taxonomies/slug/{slug} [get]
@@ -136,10 +130,7 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomy,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResourceResponse(taxonomy))
 }
 
 // GetTaxonomies godoc
@@ -151,7 +142,7 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomies found"
+//	@Success		200		{object}	responses.TaxonomyCollectionResponse	"Taxonomies found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid pagination parameters"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies [get]
@@ -184,10 +175,21 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	// Calculate pagination parameters
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(taxonomies))
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollectionResponse(
+		taxonomies, page, limit, total, baseURL,
+	))
 }
 
 // GetRootTaxonomies godoc
@@ -197,7 +199,7 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 //	@Tags			taxonomies
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Root taxonomies found"
+//	@Success		200	{object}	responses.TaxonomyCollectionResponse	"Root taxonomies found"
 //	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies/root [get]
 //	@Security		BearerAuth
@@ -210,10 +212,7 @@ func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // GetTaxonomyHierarchy godoc
@@ -223,7 +222,7 @@ func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 //	@Tags			taxonomies
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomy hierarchy found"
+//	@Success		200	{object}	responses.TaxonomyCollectionResponse	"Taxonomy hierarchy found"
 //	@Failure		500	{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies/hierarchy [get]
 //	@Security		BearerAuth
@@ -236,10 +235,7 @@ func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // GetTaxonomyChildren godoc
@@ -273,10 +269,7 @@ func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // GetTaxonomyDescendants godoc
@@ -310,10 +303,7 @@ func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // GetTaxonomyAncestors godoc
@@ -347,10 +337,7 @@ func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // GetTaxonomySiblings godoc
@@ -384,10 +371,7 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
 }
 
 // SearchTaxonomies godoc
@@ -400,7 +384,7 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 //	@Param			q		query		string												true	"Search query"
 //	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Taxonomy}	"Taxonomies found"
+//	@Success		200		{object}	responses.TaxonomyCollectionResponse	"Taxonomies found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Search query is required"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies/search [get]
@@ -441,10 +425,21 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomies,
-	})
+	// Calculate pagination parameters
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+
+	// For now, use simple count. In real implementation, get total count
+	total := int64(len(taxonomies))
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollectionResponse(
+		taxonomies, page, limit, total, baseURL,
+	))
 }
 
 // SearchTaxonomiesWithPagination godoc

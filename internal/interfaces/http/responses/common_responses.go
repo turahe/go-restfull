@@ -1,5 +1,9 @@
 package responses
 
+import (
+	"strconv"
+)
+
 // Response codes
 const (
 	SYSTEM_OPERATION_SUCCESS = 200
@@ -88,4 +92,42 @@ func CreatePaginationResponse(page, perPage int, total int64) PaginationResponse
 		PreviousPage: prevPage,
 		Path:         "",
 	}
+}
+
+// CollectionMeta represents metadata for collections
+type CollectionMeta struct {
+	CurrentPage  int   `json:"current_page"`
+	PerPage      int   `json:"per_page"`
+	TotalItems   int64 `json:"total_items"`
+	TotalPages   int   `json:"total_pages"`
+	HasNextPage  bool  `json:"has_next_page"`
+	HasPrevPage  bool  `json:"has_prev_page"`
+	NextPage     int   `json:"next_page,omitempty"`
+	PreviousPage int   `json:"previous_page,omitempty"`
+	From         int   `json:"from"`
+	To           int   `json:"to"`
+}
+
+// CollectionLinks represents pagination links
+type CollectionLinks struct {
+	First string `json:"first,omitempty"`
+	Last  string `json:"last,omitempty"`
+	Prev  string `json:"prev,omitempty"`
+	Next  string `json:"next,omitempty"`
+}
+
+// buildPaginationLink builds a pagination link with query parameters
+func buildPaginationLink(baseURL string, page, perPage int) string {
+	if page <= 0 {
+		return ""
+	}
+	return baseURL + "?page=" + strconv.Itoa(page) + "&limit=" + strconv.Itoa(perPage)
+}
+
+// generatePageURL generates a pagination URL for a specific page
+func generatePageURL(baseURL string, page int) string {
+	if page <= 0 {
+		return ""
+	}
+	return baseURL + "?page=" + strconv.Itoa(page)
 }

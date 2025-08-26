@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
-	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/internal/router/middleware"
@@ -48,7 +47,7 @@ func NewPostController(postService ports.PostService) *PostController {
 //	@Accept			json
 //	@Produce		json
 //	@Param			post	body		requests.CreatePostRequest								true	"Post creation request"
-//	@Success		201		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post created successfully"
+//	@Success		201		{object}	responses.PostResourceResponse	"Post created successfully"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
 //	@Failure		409		{object}	responses.ErrorResponse									"Conflict - Post with same slug already exists"
 //	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
@@ -98,13 +97,7 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// For newly created posts, there won't be any images yet
-	images := []*entities.Media{}
-
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewPostResponseWithImages(createdPost, images),
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewPostResourceResponse(createdPost))
 }
 
 // GetPostByID handles GET /posts/:id
@@ -115,7 +108,7 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string													true	"Post ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post found"
+//	@Success		200	{object}	responses.PostResourceResponse	"Post found"
 //	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
 //	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
 //	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
@@ -138,17 +131,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Get images associated with this post
-	images, err := c.postService.GetPostMediaGallery(ctx.Context(), id, "gallery", 100, 0)
-	if err != nil {
-		// Log error but don't fail the request - images are optional
-		images = []*entities.Media{} // Empty slice if error occurs
-	}
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewPostResponseWithImages(post, images),
-	})
+	return ctx.JSON(responses.NewPostResourceResponse(post))
 }
 
 // GetPostBySlug handles GET /posts/slug/:slug
@@ -159,7 +142,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			slug	path		string													true	"Post slug"
-//	@Success		200		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post found"
+//	@Success		200		{object}	responses.PostResourceResponse	"Post found"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Slug is required"
 //	@Failure		404		{object}	responses.ErrorResponse									"Not found - Post does not exist"
 //	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
@@ -181,17 +164,7 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Get images associated with this post
-	images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 100, 0)
-	if err != nil {
-		// Log error but don't fail the request - images are optional
-		images = []*entities.Media{} // Empty slice if error occurs
-	}
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewPostResponseWithImages(post, images),
-	})
+	return ctx.JSON(responses.NewPostResourceResponse(post))
 }
 
 // GetPosts handles GET /posts
@@ -205,7 +178,7 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 //	@Param			offset	query		int															false	"Number of posts to skip (default: 0)"				default(0)	minimum(0)
 //	@Param			query	query		string														false	"Search query to filter posts by title or content"
 //	@Param			status	query		string														false	"Filter posts by status (published, draft, etc.)"	Enums(published, draft, archived)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]responses.PostResponse}	"List of posts"
+//	@Success		200		{object}	responses.PostCollectionResponse	"List of posts"
 //	@Failure		400		{object}	responses.ErrorResponse										"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.ErrorResponse										"Internal server error"
 //	@Router			/posts [get]
@@ -225,25 +198,12 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to response DTOs with images
-	postResponses := make([]responses.PostResponse, len(posts))
-	for i, post := range posts {
-		// Get images for each post
-		images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 10, 0) // Limit to 10 images per post
-		if err != nil {
-			// Log error but don't fail the request - images are optional
-			images = []*entities.Media{} // Empty slice if error occurs
-		}
-		postResponses[i] = *responses.NewPostResponseWithImages(post, images)
-	}
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
 
-	// Create paginated response using helper
-	paginatedResult := responses.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   paginatedResult,
-	})
+	return ctx.JSON(responses.NewPaginatedPostCollectionResponse(
+		posts, pagination.Page, pagination.PerPage, total, baseURL,
+	))
 }
 
 // GetPostsByAuthor handles GET /posts/author/:authorID
@@ -256,7 +216,7 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 //	@Param			authorID	path		string														true	"Author ID"											format(uuid)
 //	@Param			limit		query		int															false	"Number of posts to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
 //	@Param			offset		query		int															false	"Number of posts to skip (default: 0)"				default(0)	minimum(0)
-//	@Success		200			{object}	responses.SuccessResponse{data=[]responses.PostResponse}	"List of posts by author"
+//	@Success		200			{object}	responses.PostCollectionResponse	"List of posts by author"
 //	@Failure		400			{object}	responses.ErrorResponse										"Bad request - Invalid author ID"
 //	@Failure		404			{object}	responses.ErrorResponse										"Not found - Author does not exist"
 //	@Failure		500			{object}	responses.ErrorResponse										"Internal server error"
@@ -283,28 +243,15 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to response DTOs with images
-	postResponses := make([]responses.PostResponse, len(posts))
-	for i, post := range posts {
-		// Get images for each post
-		images, err := c.postService.GetPostMediaGallery(ctx.Context(), post.ID, "gallery", 10, 0) // Limit to 10 images per post
-		if err != nil {
-			// Log error but don't fail the request - images are optional
-			images = []*entities.Media{} // Empty slice if error occurs
-		}
-		postResponses[i] = *responses.NewPostResponseWithImages(post, images)
-	}
-
 	// For now, use simple count. In real implementation, get total count
 	total := int64(len(posts))
 
-	// Create paginated response using helper
-	paginatedResult := responses.CreatePaginatedResult(postResponses, pagination.Page, pagination.PerPage, total)
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
 
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   paginatedResult,
-	})
+	return ctx.JSON(responses.NewPaginatedPostCollectionResponse(
+		posts, pagination.Page, pagination.PerPage, total, baseURL,
+	))
 }
 
 // UpdatePost handles PUT /posts/:id
@@ -316,7 +263,7 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string													true	"Post ID"	format(uuid)
 //	@Param			post	body		requests.UpdatePostRequest								true	"Post update request"
-//	@Success		200		{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post updated successfully"
+//	@Success		200		{object}	responses.PostResourceResponse	"Post updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
 //	@Failure		404		{object}	responses.ErrorResponse									"Not found - Post does not exist"
 //	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
@@ -384,17 +331,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Get images associated with this post
-	images, err := c.postService.GetPostMediaGallery(ctx.Context(), id, "gallery", 100, 0)
-	if err != nil {
-		// Log error but don't fail the request - images are optional
-		images = []*entities.Media{} // Empty slice if error occurs
-	}
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewPostResponseWithImages(post, images),
-	})
+	return ctx.JSON(responses.NewPostResourceResponse(post))
 }
 
 // DeletePost handles DELETE /posts/:id
@@ -452,7 +389,7 @@ func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string													true	"Post ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post published successfully"
+//	@Success		200	{object}	responses.PostResourceResponse	"Post published successfully"
 //	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
 //	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
 //	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
@@ -499,7 +436,7 @@ func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string													true	"Post ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=responses.PostResponse}	"Post unpublished successfully"
+//	@Success		200	{object}	responses.PostResourceResponse	"Post unpublished successfully"
 //	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid post ID"
 //	@Failure		404	{object}	responses.ErrorResponse									"Not found - Post does not exist"
 //	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"

@@ -46,7 +46,7 @@ func NewTagController(tagService ports.TagService) *TagController {
 //	@Produce		json
 //	@Param			limit	query		int												false	"Number of tags to return (default: 10, max: 100)"
 //	@Param			offset	query		int												false	"Number of tags to skip (default: 0)"
-//	@Success		200		{object}	responses.SuccessResponse{data=[]interface{}}	"List of tags"
+//	@Success		200		{object}	responses.TagCollectionResponse					"List of tags"
 //	@Failure		400		{object}	responses.ErrorResponse							"Bad request"
 //	@Failure		500		{object}	responses.ErrorResponse							"Internal server error"
 //	@Security		BearerAuth
@@ -86,11 +86,28 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Tags retrieved successfully",
-		Data:    tags,
-	})
+	// Get total count for pagination
+	total, err := c.tagService.GetTagCount(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to retrieve tag count",
+		})
+	}
+
+	// Calculate page from offset
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Build base URL for pagination links
+	baseURL := ctx.BaseURL() + ctx.Path()
+
+	// Return paginated tag collection response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedTagCollectionResponse(
+		tags, page, limit, int(total), baseURL,
+	))
 }
 
 // GetTagByID handles GET /v1/tags/:id requests
@@ -101,7 +118,7 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string										true	"Tag ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=interface{}}	"Tag retrieved successfully"
+//	@Success		200	{object}	responses.TagResourceResponse					"Tag retrieved successfully"
 //	@Failure		400	{object}	responses.ErrorResponse						"Bad request - Invalid tag ID"
 //	@Failure		404	{object}	responses.ErrorResponse						"Not found - Tag does not exist"
 //	@Failure		500	{object}	responses.ErrorResponse						"Internal server error"
@@ -134,11 +151,8 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Tag retrieved successfully",
-		Data:    tag,
-	})
+	// Return tag resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResourceResponse(tag))
 }
 
 // CreateTag handles POST /v1/tags requests
@@ -149,7 +163,7 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			tag	body		requests.CreateTagRequest	true	"Tag object"
-//	@Success		201	{object}	responses.SuccessResponse	"Tag created successfully"
+//	@Success		201	{object}	responses.TagResourceResponse	"Tag created successfully"
 //	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid input data"
 //	@Failure		409	{object}	responses.ErrorResponse		"Conflict - Tag with same slug already exists"
 //	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
@@ -192,11 +206,11 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Tag created successfully",
-		Data:    createdTag,
-	})
+	// Return tag resource response
+	response := responses.NewTagResourceResponse(createdTag)
+	response.ResponseCode = fiber.StatusCreated
+	response.ResponseMessage = "Tag created successfully"
+	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
 
 // UpdateTag handles PUT /v1/tags/:id requests
@@ -208,7 +222,7 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string										true	"Tag ID"	format(uuid)
 //	@Param			tag		body		requests.UpdateTagRequest					true	"Tag object"
-//	@Success		200		{object}	responses.SuccessResponse{data=interface{}}	"Tag updated successfully"
+//	@Success		200		{object}	responses.TagResourceResponse				"Tag updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse						"Bad request - Invalid tag ID or input data"
 //	@Failure		404		{object}	responses.ErrorResponse						"Not found - Tag does not exist"
 //	@Failure		409		{object}	responses.ErrorResponse						"Conflict - Tag with same slug already exists"
@@ -283,11 +297,8 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Tag updated successfully",
-		Data:    tag,
-	})
+	// Return tag resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResourceResponse(tag))
 }
 
 // DeleteTag handles DELETE /v1/tags/:id requests
@@ -348,7 +359,7 @@ func (c *TagController) DeleteTag(ctx *fiber.Ctx) error {
 //	@Param			query	query		string											true	"Search query"
 //	@Param			limit	query		int												false	"Number of tags to return (default: 10, max: 100)"
 //	@Param			offset	query		int												false	"Number of tags to skip (default: 0)"
-//	@Success		200		{object}	responses.SuccessResponse{data=[]interface{}}	"Search results"
+//	@Success		200		{object}	responses.TagCollectionResponse				"Search results"
 //	@Failure		400		{object}	responses.ErrorResponse							"Bad request"
 //	@Failure		500		{object}	responses.ErrorResponse							"Internal server error"
 //	@Security		BearerAuth
@@ -396,9 +407,7 @@ func (c *TagController) SearchTags(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Tags search completed successfully",
-		Data:    tags,
-	})
+	// For search results, we'll return a simple collection response
+	// since we don't have a total count for search results
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagCollectionResponse(tags))
 }

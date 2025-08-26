@@ -38,7 +38,7 @@ func NewCommentController(commentService ports.CommentService) *CommentControlle
 //	@Param			status		query		string	false	"Filter by status (approved, pending, rejected)"
 //	@Param			limit		query		int		false	"Number of comments to return (default: 10, max: 100)"
 //	@Param			offset		query		int		false	"Number of comments to skip (default: 0)"
-//	@Success		200			{object}	responses.CommonResponse
+//	@Success		200			{object}	responses.CommentCollectionResponse
 //	@Failure		400			{object}	responses.CommonResponse
 //	@Failure		500			{object}	responses.CommonResponse
 //	@Router			/v1/comments [get]
@@ -89,17 +89,49 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to interface slice for response
-	var commentList []interface{}
-	for _, comment := range comments {
-		commentList = append(commentList, comment)
+	// Get total count for pagination
+	var total int64
+	switch {
+	case queryParams.PostID != nil:
+		total, err = c.commentService.GetCommentCountByPostID(ctx.Context(), *queryParams.PostID)
+	case queryParams.UserID != nil:
+		total, err = c.commentService.GetCommentCountByUserID(ctx.Context(), *queryParams.UserID)
+	case queryParams.ParentID != nil:
+		// For replies, we'll use the general comment count as approximation
+		total, err = c.commentService.GetCommentCount(ctx.Context())
+	default:
+		switch queryParams.Status {
+		case "approved":
+			// For approved comments, we'll use the general comment count as approximation
+			total, err = c.commentService.GetCommentCount(ctx.Context())
+		case "pending":
+			total, err = c.commentService.GetPendingCommentCount(ctx.Context())
+		default:
+			total, err = c.commentService.GetCommentCount(ctx.Context())
+		}
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Comments retrieved successfully",
-		Data:            commentList,
-	})
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve comment count",
+			Data:            nil,
+		})
+	}
+
+	// Calculate page from offset
+	page := (queryParams.Offset / queryParams.Limit) + 1
+	if queryParams.Offset == 0 {
+		page = 1
+	}
+
+	// Build base URL for pagination links
+	baseURL := ctx.BaseURL() + ctx.Path()
+
+	// Return paginated comment collection response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedCommentCollectionResponse(
+		comments, page, queryParams.Limit, int(total), baseURL, nil, nil,
+	))
 }
 
 // GetCommentByID godoc
@@ -110,7 +142,7 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"Comment ID"
-//	@Success		200	{object}	responses.CommonResponse
+//	@Success		200	{object}	responses.CommentResourceResponse
 //	@Failure		400	{object}	responses.CommonResponse
 //	@Failure		404	{object}	responses.CommonResponse
 //	@Failure		500	{object}	responses.CommonResponse
@@ -144,11 +176,8 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Comment retrieved successfully",
-		Data:            comment,
-	})
+	// Return comment resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
 }
 
 // CreateComment godoc
@@ -159,7 +188,7 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			comment	body		requests.CreateCommentRequest	true	"Comment info"
-//	@Success		201		{object}	responses.CommonResponse
+//	@Success		201		{object}	responses.CommentResourceResponse
 //	@Failure		400		{object}	responses.CommonResponse
 //	@Failure		401		{object}	responses.CommonResponse
 //	@Router			/v1/comments [post]
@@ -198,11 +227,11 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusCreated,
-		ResponseMessage: "Comment created successfully",
-		Data:            createdComment,
-	})
+	// Return comment resource response
+	response := responses.NewCommentResourceResponse(createdComment, nil, nil)
+	response.ResponseCode = fiber.StatusCreated
+	response.ResponseMessage = "Comment created successfully"
+	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
 
 // UpdateComment godoc
@@ -214,7 +243,7 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string							true	"Comment ID"
 //	@Param			comment	body		requests.UpdateCommentRequest	true	"Comment info"
-//	@Success		200		{object}	responses.CommonResponse
+//	@Success		200		{object}	responses.CommentResourceResponse
 //	@Failure		400		{object}	responses.CommonResponse
 //	@Failure		401		{object}	responses.CommonResponse
 //	@Failure		404		{object}	responses.CommonResponse
@@ -290,11 +319,8 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Comment updated successfully",
-		Data:            comment,
-	})
+	// Return comment resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
 }
 
 // DeleteComment godoc
@@ -365,7 +391,7 @@ func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"Comment ID"
-//	@Success		200	{object}	responses.CommonResponse
+//	@Success		200	{object}	responses.CommentResourceResponse
 //	@Failure		400	{object}	responses.CommonResponse
 //	@Failure		401	{object}	responses.CommonResponse
 //	@Failure		404	{object}	responses.CommonResponse
@@ -410,11 +436,18 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Comment approved successfully",
-		Data:            nil,
-	})
+	// Get the updated comment to return in response
+	comment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve updated comment",
+			Data:            nil,
+		})
+	}
+
+	// Return comment resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
 }
 
 // RejectComment godoc
@@ -425,7 +458,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"Comment ID"
-//	@Success		200	{object}	responses.CommonResponse
+//	@Success		200	{object}	responses.CommentResourceResponse
 //	@Failure		400	{object}	responses.CommonResponse
 //	@Failure		401	{object}	responses.CommonResponse
 //	@Failure		404	{object}	responses.CommonResponse
@@ -470,9 +503,16 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Comment rejected successfully",
-		Data:            nil,
-	})
+	// Get the updated comment to return in response
+	comment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve updated comment",
+			Data:            nil,
+		})
+	}
+
+	// Return comment resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
 }

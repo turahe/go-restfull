@@ -31,7 +31,7 @@ func NewAddressController(addressService ports.AddressService) *AddressControlle
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		requests.CreateAddressRequest						true	"Address creation request"
-//	@Success		201		{object}	responses.SuccessResponse{data=entities.Address}	"Address created successfully"
+//	@Success		201		{object}	responses.AddressResourceResponse	"Address created successfully"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses [post]
@@ -70,10 +70,7 @@ func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   createdAddress,
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewAddressResourceResponse(createdAddress))
 }
 
 // GetAddressByID godoc
@@ -84,7 +81,7 @@ func (c *AddressController) CreateAddress(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string												true	"Address ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=entities.Address}	"Address found"
+//	@Success		200	{object}	responses.AddressResourceResponse	"Address found"
 //	@Failure		400	{object}	responses.ErrorResponse								"Bad request - Invalid address ID format"
 //	@Failure		404	{object}	responses.ErrorResponse								"Address not found"
 //	@Router			/api/v1/addresses/{id} [get]
@@ -107,10 +104,7 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   address,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewAddressResourceResponse(address))
 }
 
 // UpdateAddress godoc
@@ -122,7 +116,7 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string								true	"Address ID"	format(uuid)
 //	@Param			request	body		requests.UpdateAddressRequest						true	"Address update request"
-//	@Success		200		{object}	responses.SuccessResponse{data=entities.Address}	"Address updated successfully"
+//	@Success		200		{object}	responses.AddressResourceResponse	"Address updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
 //	@Failure		404		{object}	responses.ErrorResponse								"Not found - Address does not exist"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
@@ -180,10 +174,7 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   address,
-	})
+	return ctx.JSON(responses.NewAddressResourceResponse(address))
 }
 
 // DeleteAddress godoc
@@ -232,7 +223,7 @@ func (c *AddressController) DeleteAddress(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
 //	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
-//	@Success		200					{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200					{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500					{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses [get]
@@ -265,10 +256,7 @@ func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewAddressCollectionResponse(addresses))
 }
 
 // GetPrimaryAddressByAddressable godoc
@@ -280,7 +268,7 @@ func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
 //	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
-//	@Success		200					{object}	responses.SuccessResponse{data=entities.Address}	"Primary address found"
+//	@Success		200					{object}	responses.AddressResourceResponse	"Primary address found"
 //	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		404					{object}	responses.ErrorResponse								"Primary address not found"
 //	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses/primary [get]
@@ -313,10 +301,7 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   address,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewAddressResourceResponse(address))
 }
 
 // GetAddressesByAddressableAndType godoc
@@ -329,7 +314,7 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 //	@Param			addressable_id		path		string												true	"Addressable entity ID"		format(uuid)
 //	@Param			addressable_type	path		string												true	"Addressable entity type"	Enums(user, organization)
 //	@Param			address_type		path		string												true	"Address type"				Enums(home, work, billing, shipping, other)
-//	@Success		200					{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200					{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400					{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500					{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addressables/{addressable_type}/{addressable_id}/addresses/type/{address_type} [get]
@@ -373,10 +358,7 @@ func (c *AddressController) GetAddressesByAddressableAndType(ctx *fiber.Ctx) err
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewAddressCollectionResponse(addresses))
 }
 
 // SetPrimaryAddress godoc
@@ -507,7 +489,7 @@ func (c *AddressController) SetAddressType(ctx *fiber.Ctx) error {
 //	@Param			city	query		string												true	"City name to search for"
 //	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200		{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses/search/city [get]
@@ -548,10 +530,24 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	// Convert offset to page for pagination
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+	// Remove existing pagination parameters
+	if idx := len(baseURL); idx > 0 {
+		if idx > 0 && baseURL[idx-1] == '&' {
+			baseURL = baseURL[:idx-1]
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
+		addresses, page, limit, int64(len(addresses)), baseURL,
+	))
 }
 
 // SearchAddressesByState godoc
@@ -564,7 +560,7 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 //	@Param			state	query		string												true	"State name to search for"
 //	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200		{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses/search/state [get]
@@ -605,10 +601,24 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	// Convert offset to page for pagination
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+	// Remove existing pagination parameters
+	if idx := len(baseURL); idx > 0 {
+		if idx > 0 && baseURL[idx-1] == '&' {
+			baseURL = baseURL[:idx-1]
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
+		addresses, page, limit, int64(len(addresses)), baseURL,
+	))
 }
 
 // SearchAddressesByCountry godoc
@@ -621,7 +631,7 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 //	@Param			country	query		string												true	"Country name to search for"
 //	@Param			limit	query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset	query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200		{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200		{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses/search/country [get]
@@ -662,10 +672,24 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	// Convert offset to page for pagination
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+	// Remove existing pagination parameters
+	if idx := len(baseURL); idx > 0 {
+		if idx > 0 && baseURL[idx-1] == '&' {
+			baseURL = baseURL[:idx-1]
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
+		addresses, page, limit, int64(len(addresses)), baseURL,
+	))
 }
 
 // SearchAddressesByPostalCode godoc
@@ -678,7 +702,7 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 //	@Param			postal_code	query		string												true	"Postal code to search for"
 //	@Param			limit		query		int													false	"Number of results to return (default: 10)"	default(10)
 //	@Param			offset		query		int													false	"Number of results to skip (default: 0)"	default(0)
-//	@Success		200			{object}	responses.SuccessResponse{data=[]entities.Address}	"Addresses found"
+//	@Success		200			{object}	responses.AddressCollectionResponse	"Addresses found"
 //	@Failure		400			{object}	responses.ErrorResponse								"Bad request - Invalid parameters"
 //	@Failure		500			{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/addresses/search/postal-code [get]
@@ -719,8 +743,22 @@ func (c *AddressController) SearchAddressesByPostalCode(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   addresses,
-	})
+	// Convert offset to page for pagination
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
+	// Remove existing pagination parameters
+	if idx := len(baseURL); idx > 0 {
+		if idx > 0 && baseURL[idx-1] == '&' {
+			baseURL = baseURL[:idx-1]
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
+		addresses, page, limit, int64(len(addresses)), baseURL,
+	))
 }

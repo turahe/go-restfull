@@ -50,7 +50,7 @@ func NewUserController(userService ports.UserService, paginationService domainse
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		requests.CreateUserRequest								true	"User creation request"
-//	@Success		201		{object}	responses.SuccessResponse{data=responses.UserResponse}	"User created successfully"
+//	@Success		201		{object}	responses.UserResourceResponse	"User created successfully"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
 //	@Failure		409		{object}	responses.ErrorResponse									"Conflict - User already exists"
 //	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
@@ -90,10 +90,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewUserResponse(createdUser),
-	})
+	return ctx.Status(http.StatusCreated).JSON(responses.NewUserResourceResponse(createdUser))
 }
 
 // GetUserByID handles GET /users/:id
@@ -104,7 +101,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string													true	"User ID"	format(uuid)
-//	@Success		200	{object}	responses.SuccessResponse{data=responses.UserResponse}	"User found"
+//	@Success		200	{object}	responses.UserResourceResponse	"User found"
 //	@Failure		400	{object}	responses.ErrorResponse									"Bad request - Invalid user ID"
 //	@Failure		404	{object}	responses.ErrorResponse									"Not found - User does not exist"
 //	@Failure		500	{object}	responses.ErrorResponse									"Internal server error"
@@ -127,10 +124,7 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 			Message: "User not found",
 		})
 	}
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewUserResponse(user),
-	})
+	return ctx.JSON(responses.NewUserResourceResponse(user))
 }
 
 // GetUsers handles GET /users
@@ -143,7 +137,7 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 //	@Param			limit	query		int															false	"Number of users to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
 //	@Param			offset	query		int															false	"Number of users to skip (default: 0)"				default(0)	minimum(0)
 //	@Param			query	query		string														false	"Search query to filter users by username, email, or phone"
-//	@Success		200		{object}	responses.SuccessResponse{data=[]responses.UserResponse}	"List of users"
+//	@Success		200		{object}	responses.UserCollectionResponse	"List of users"
 //	@Failure		400		{object}	responses.ErrorResponse										"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.ErrorResponse										"Internal server error"
 //	@Security		BearerAuth
@@ -161,19 +155,12 @@ func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to response DTOs
-	userResponses := make([]responses.UserResponse, len(users))
-	for i, user := range users {
-		userResponses[i] = *responses.NewUserResponse(user)
-	}
+	// Get base URL for pagination links
+	baseURL := ctx.OriginalURL()
 
-	// Create paginated response using pagination service
-	paginated := c.paginationService.CreatePaginatedResponse(ctx.Context(), nil, total, nil)
-	return ctx.JSON(responses.SuccessResponse{
-		Status:     "success",
-		Data:       userResponses,
-		Pagination: paginated.Pagination,
-	})
+	return ctx.JSON(responses.NewPaginatedUserCollectionResponse(
+		users, pagination.Page, pagination.PerPage, total, baseURL,
+	))
 }
 
 // UpdateUser handles PUT /users/:id
@@ -185,7 +172,7 @@ func (c *UserController) GetUsers(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string								true	"User ID"	format(uuid)
 //	@Param			user	body		requests.UpdateUserRequest								true	"User update request"
-//	@Success		200		{object}	responses.SuccessResponse{data=responses.UserResponse}	"User updated successfully"
+//	@Success		200		{object}	responses.UserResourceResponse	"User updated successfully"
 //	@Failure		400		{object}	responses.ErrorResponse									"Bad request - Invalid input data"
 //	@Failure		404		{object}	responses.ErrorResponse									"Not found - User does not exist"
 //	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
@@ -244,10 +231,7 @@ func (c *UserController) UpdateUser(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewUserResponse(user),
-	})
+	return ctx.JSON(responses.NewUserResourceResponse(user))
 }
 
 // DeleteUser handles DELETE /users/:id

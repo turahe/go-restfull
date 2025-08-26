@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"strconv"
+
 	"github.com/turahe/go-restfull/internal/application/ports"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/pkg/exception"
 
@@ -11,6 +13,7 @@ import (
 )
 
 // MediaController handles HTTP requests for media operations
+//
 //	@title						Media Management API
 //	@version					1.0
 //	@description				This is a media management API for uploading, managing, and serving media files
@@ -36,6 +39,7 @@ func NewMediaController(mediaService ports.MediaService) *MediaController {
 }
 
 // GetMedia handles GET /v1/media requests
+//
 //	@Summary		Get all media
 //	@Description	Retrieve a list of all media files with pagination
 //	@Tags			media
@@ -44,7 +48,7 @@ func NewMediaController(mediaService ports.MediaService) *MediaController {
 //	@Param			limit	query		int												false	"Number of media items to return (default: 10, max: 100)"	default(10)	minimum(1)	maximum(100)
 //	@Param			offset	query		int												false	"Number of media items to skip (default: 0)"				default(0)	minimum(0)
 //	@Param			query	query		string											false	"Search query to filter media by name or filename"
-//	@Success		200		{object}	responses.CommonResponse{data=[]interface{}}	"List of media files"
+//	@Success		200		{object}	responses.MediaCollectionResponse				"List of media files"
 //	@Failure		400		{object}	responses.CommonResponse						"Bad request - Invalid parameters"
 //	@Failure		500		{object}	responses.CommonResponse						"Internal server error"
 //	@Security		BearerAuth
@@ -63,6 +67,9 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	if limit > 100 {
 		limit = 100
 	}
+	if limit == 0 {
+		limit = 10
+	}
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil || offset < 0 {
@@ -70,9 +77,9 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	}
 
 	// Get media based on whether search query is provided
-	var mediaList []interface{}
+	var media []*entities.Media
 	if query != "" {
-		media, err := c.mediaService.SearchMedia(ctx.Context(), query, limit, offset)
+		media, err = c.mediaService.SearchMedia(ctx.Context(), query, limit, offset)
 		if err != nil {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 				ResponseCode:    fiber.StatusInternalServerError,
@@ -80,12 +87,8 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 				Data:            nil,
 			})
 		}
-		// Convert to interface slice
-		for _, m := range media {
-			mediaList = append(mediaList, m)
-		}
 	} else {
-		media, err := c.mediaService.GetAllMedia(ctx.Context(), limit, offset)
+		media, err = c.mediaService.GetAllMedia(ctx.Context(), limit, offset)
 		if err != nil {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 				ResponseCode:    fiber.StatusInternalServerError,
@@ -93,27 +96,42 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 				Data:            nil,
 			})
 		}
-		// Convert to interface slice
-		for _, m := range media {
-			mediaList = append(mediaList, m)
-		}
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Media retrieved successfully",
-		Data:            mediaList,
-	})
+	// Get total count for pagination
+	total, err := c.mediaService.GetMediaCount(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve media count",
+			Data:            nil,
+		})
+	}
+
+	// Calculate page from offset
+	page := (offset / limit) + 1
+	if offset == 0 {
+		page = 1
+	}
+
+	// Build base URL for pagination links
+	baseURL := ctx.BaseURL() + ctx.Path()
+
+	// Return paginated media collection response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedMediaCollectionResponse(
+		media, page, limit, int(total), baseURL,
+	))
 }
 
 // GetMediaByID handles GET /v1/media/:id requests
+//
 //	@Summary		Get media by ID
 //	@Description	Retrieve a specific media file by its unique identifier
 //	@Tags			media
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string													true	"Media ID"	format(uuid)
-//	@Success		200	{object}	responses.CommonResponse{data=map[string]interface{}}	"Media file details"
+//	@Success		200	{object}	responses.MediaResourceResponse						"Media file details"
 //	@Failure		400	{object}	responses.CommonResponse								"Bad request - Invalid media ID"
 //	@Failure		404	{object}	responses.CommonResponse								"Not found - Media does not exist"
 //	@Failure		500	{object}	responses.CommonResponse								"Internal server error"
@@ -147,14 +165,12 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Media retrieved successfully",
-		Data:            media,
-	})
+	// Return media resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResourceResponse(media))
 }
 
 // CreateMedia handles POST /v1/media requests
+//
 //	@Summary		Upload media
 //	@Description	Upload a new media file to the system
 //	@Tags			media
@@ -163,7 +179,7 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 //	@Param			file		formData	file													true	"Media file to upload"
 //	@Param			name		formData	string													false	"Custom name for the media file"
 //	@Param			description	formData	string													false	"Description of the media file"
-//	@Success		201			{object}	responses.CommonResponse{data=map[string]interface{}}	"Media uploaded successfully"
+//	@Success		201			{object}	responses.MediaResourceResponse					"Media uploaded successfully"
 //	@Failure		400			{object}	responses.CommonResponse								"Bad request - Invalid file or parameters"
 //	@Failure		413			{object}	responses.CommonResponse								"Payload too large - File size exceeds limit"
 //	@Failure		415			{object}	responses.CommonResponse								"Unsupported media type"
@@ -210,14 +226,15 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusCreated,
-		ResponseMessage: "Media uploaded successfully",
-		Data:            media,
-	})
+	// Return media resource response
+	response := responses.NewMediaResourceResponse(media)
+	response.ResponseCode = fiber.StatusCreated
+	response.ResponseMessage = "Media uploaded successfully"
+	return ctx.Status(fiber.StatusCreated).JSON(response)
 }
 
 // UpdateMedia handles PUT /v1/media/:id requests
+//
 //	@Summary		Update media
 //	@Description	Update media file metadata (name, description, etc.)
 //	@Tags			media
@@ -225,7 +242,7 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			id		path		string													true	"Media ID"	format(uuid)
 //	@Param			media	body		object													true	"Media update request"
-//	@Success		200		{object}	responses.CommonResponse{data=map[string]interface{}}	"Media updated successfully"
+//	@Success		200		{object}	responses.MediaResourceResponse					"Media updated successfully"
 //	@Failure		400		{object}	responses.CommonResponse								"Bad request - Invalid input data"
 //	@Failure		404		{object}	responses.CommonResponse								"Not found - Media does not exist"
 //	@Failure		500		{object}	responses.CommonResponse								"Internal server error"
@@ -278,14 +295,12 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.CommonResponse{
-		ResponseCode:    fiber.StatusOK,
-		ResponseMessage: "Media updated successfully",
-		Data:            media,
-	})
+	// Return media resource response
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResourceResponse(media))
 }
 
 // DeleteMedia handles DELETE /v1/media/:id requests
+//
 //	@Summary		Delete media
 //	@Description	Delete a media file from the system
 //	@Tags			media

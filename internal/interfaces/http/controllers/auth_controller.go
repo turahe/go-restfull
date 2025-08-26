@@ -25,19 +25,18 @@ func NewAuthController(authService ports.AuthService, userRepo repositories.User
 	}
 }
 
-// Register handles POST /v1/auth/register
-//
-//	@Summary		Register a new user
-//	@Description	Register a new user account with the provided information
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			user	body		requests.RegisterRequest								true	"User registration request"
-//	@Success		201		{object}	responses.SuccessResponse{data=responses.AuthResponse}	"User registered successfully"
-//	@Failure		400		{object}	responses.ValidationErrorResponse						"Bad request - Validation errors"
-//	@Failure		409		{object}	responses.ValidationErrorResponse						"Conflict - User already exists"
-//	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
-//	@Router			/auth/register [post]
+// Register godoc
+// @Summary Register a new user
+// @Description Register a new user account with the provided information
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body requests.RegisterRequest true "User registration request"
+// @Success 201 {object} responses.AuthResourceResponse "User registered successfully"
+// @Failure 400 {object} responses.ValidationErrorResponse "Bad request - Validation errors"
+// @Failure 409 {object} responses.ValidationErrorResponse "Conflict - User already exists"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Router /auth/register [post]
 func (c *AuthController) Register(ctx *fiber.Ctx) error {
 	var req requests.RegisterRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -103,28 +102,26 @@ func (c *AuthController) Register(ctx *fiber.Ctx) error {
 	}
 
 	// Create auth response
-	// authResponse := responses.NewAuthResponse(user, tokenPair)
-
-	return ctx.Status(http.StatusCreated).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "User registered successfully",
-		Data:    tokenPair,
-	})
+	// Note: We need to get the user entity to create a proper auth response
+	// For now, we'll return a token response since we don't have the user entity here
+	response := responses.NewTokenResourceResponse(tokenPair)
+	response.ResponseCode = http.StatusCreated
+	response.ResponseMessage = "User registered successfully"
+	return ctx.Status(http.StatusCreated).JSON(response)
 }
 
-// Login handles POST /v1/auth/login
-//
-//	@Summary		User login
-//	@Description	Authenticate a user with username and password
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			credentials	body		requests.LoginRequest									true	"Login credentials"
-//	@Success		200			{object}	responses.SuccessResponse{data=responses.AuthResponse}	"Login successful"
-//	@Failure		400			{object}	responses.ValidationErrorResponse						"Bad request - Validation errors"
-//	@Failure		401			{object}	responses.ErrorResponse									"Unauthorized - Invalid credentials"
-//	@Failure		500			{object}	responses.ErrorResponse									"Internal server error"
-//	@Router			/auth/login [post]
+// Login godoc
+// @Summary User login
+// @Description Authenticate a user with username and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param credentials body requests.LoginRequest true "Login credentials"
+// @Success 200 {object} responses.TokenResourceResponse "Login successful"
+// @Failure 400 {object} responses.ValidationErrorResponse "Bad request - Validation errors"
+// @Failure 401 {object} responses.ErrorResponse "Unauthorized - Invalid credentials"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Router /auth/login [post]
 func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	var req requests.LoginRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -155,27 +152,21 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	}
 
 	// Create auth response
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Login successful",
-		Data:    tokenPair,
-	})
+	return ctx.JSON(responses.NewTokenResourceResponse(tokenPair))
 }
 
-// Refresh handles POST /v1/auth/refresh
-//
-//	@Summary		Refresh access token
-//	@Description	Refresh an access token using a refresh token
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			token	body		requests.RefreshTokenRequest							true	"Refresh token request"
-//	@Success		200		{object}	responses.SuccessResponse{data=responses.TokenResponse}	"Token refreshed successfully"
-//	@Failure		400		{object}	responses.ValidationErrorResponse						"Bad request - Validation errors"
-//	@Failure		401		{object}	responses.ErrorResponse									"Unauthorized - Invalid refresh token"
-//	@Failure		500		{object}	responses.ErrorResponse									"Internal server error"
-//	@Router			/auth/refresh [post]
+// Refresh godoc
+// @Summary Refresh access token
+// @Description Refresh an access token using a refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param token body requests.RefreshTokenRequest true "Refresh token request"
+// @Success 200 {object} responses.TokenResourceResponse "Token refreshed successfully"
+// @Failure 400 {object} responses.ValidationErrorResponse "Bad request - Validation errors"
+// @Failure 401 {object} responses.ErrorResponse "Unauthorized - Invalid refresh token"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Router /auth/refresh [post]
 func (c *AuthController) Refresh(ctx *fiber.Ctx) error {
 	var req requests.RefreshTokenRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -206,27 +197,20 @@ func (c *AuthController) Refresh(ctx *fiber.Ctx) error {
 	}
 
 	// Create token response
-	tokenResponse := responses.NewTokenResponse(tokenPair)
-
-	return ctx.JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Token refreshed successfully",
-		Data:    tokenResponse,
-	})
+	return ctx.JSON(responses.NewTokenResourceResponse(tokenPair))
 }
 
-// Logout handles POST /v1/auth/logout
-//
-//	@Summary		User logout
-//	@Description	Logout user (client should discard tokens)
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	responses.SuccessResponse	"Logout successful"
-//	@Failure		401	{object}	responses.ErrorResponse		"Unauthorized"
-//	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
-//	@Security		BearerAuth
-//	@Router			/auth/logout [post]
+// Logout godoc
+// @Summary User logout
+// @Description Logout user (client should discard tokens)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} responses.ErrorResponse "Logout successful"
+// @Failure 401 {object} responses.ErrorResponse "Unauthorized"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /auth/logout [post]
 func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 	// Get user ID from context (set by JWT middleware)
 	userID := ctx.Locals("user_id").(string)
@@ -240,24 +224,23 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
+	return ctx.JSON(responses.ErrorResponse{
 		Status:  "success",
 		Message: "Logout successful",
 	})
 }
 
-// ForgetPassword handles POST /v1/auth/forget-password
-//
-//	@Summary		Request password reset
-//	@Description	Send a password reset email with OTP
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		requests.ForgetPasswordRequest	true	"Password reset request"
-//	@Success		200		{object}	responses.SuccessResponse		"Password reset email sent"
-//	@Failure		400		{object}	responses.ValidationErrorResponse	"Bad request - Validation errors"
-//	@Failure		500		{object}	responses.ErrorResponse			"Internal server error"
-//	@Router			/auth/forget-password [post]
+// ForgetPassword godoc
+// @Summary Request password reset
+// @Description Send a password reset email with OTP
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body requests.ForgetPasswordRequest true "Password reset request"
+// @Success 200 {object} responses.ErrorResponse "Password reset email sent"
+// @Failure 400 {object} responses.ValidationErrorResponse "Bad request - Validation errors"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Router /auth/forget-password [post]
 func (c *AuthController) ForgetPassword(ctx *fiber.Ctx) error {
 	var req requests.ForgetPasswordRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -288,25 +271,24 @@ func (c *AuthController) ForgetPassword(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
+	return ctx.JSON(responses.ErrorResponse{
 		Status:  "success",
 		Message: "Password reset email sent",
 	})
 }
 
-// ResetPassword handles POST /v1/auth/reset-password
-//
-//	@Summary		Reset password with OTP
-//	@Description	Reset password using email and OTP
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		requests.ResetPasswordRequest	true	"Password reset with OTP request"
-//	@Success		200		{object}	responses.SuccessResponse		"Password reset successful"
-//	@Failure		400		{object}	responses.ValidationErrorResponse	"Bad request - Validation errors"
-//	@Failure		401		{object}	responses.ErrorResponse			"Unauthorized - Invalid OTP"
-//	@Failure		500		{object}	responses.ErrorResponse			"Internal server error"
-//	@Router			/auth/reset-password [post]
+// ResetPassword godoc
+// @Summary Reset password with OTP
+// @Description Reset password using email and OTP
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body requests.ResetPasswordRequest true "Password reset with OTP request"
+// @Success 200 {object} responses.ErrorResponse "Password reset successful"
+// @Failure 400 {object} responses.ValidationErrorResponse "Bad request - Validation errors"
+// @Failure 401 {object} responses.ErrorResponse "Unauthorized - Invalid OTP"
+// @Failure 500 {object} responses.ErrorResponse "Internal server error"
+// @Router /auth/reset-password [post]
 func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 	var req requests.ResetPasswordRequest
 	if err := ctx.BodyParser(&req); err != nil {
@@ -336,7 +318,7 @@ func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
+	return ctx.JSON(responses.ErrorResponse{
 		Status:  "success",
 		Message: "Password reset successful",
 	})
