@@ -1,3 +1,6 @@
+// Package adapters provides infrastructure layer implementations that adapt external systems
+// and frameworks to the domain layer interfaces. This package contains repository implementations,
+// external service adapters, and infrastructure-specific services.
 package adapters
 
 import (
@@ -11,12 +14,30 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// PostgresCommentRepository implements the CommentRepository interface using PostgreSQL as the primary
+// data store and Redis for caching. This repository provides CRUD operations for comment entities
+// with support for hierarchical comment structures (nested comments), comment moderation, soft deletes,
+// and polymorphic relationships. It embeds the BaseTransactionalRepository to inherit transaction
+// management capabilities.
 type PostgresCommentRepository struct {
+	// BaseTransactionalRepository provides transaction management functionality
 	*BaseTransactionalRepository
-	db          *pgxpool.Pool
+	// db holds the PostgreSQL connection pool for database operations
+	db *pgxpool.Pool
+	// redisClient holds the Redis client for caching operations
 	redisClient redis.Cmdable
 }
 
+// NewPostgresCommentRepository creates a new PostgreSQL comment repository instance.
+// This factory function initializes the repository with database and Redis connections,
+// and sets up the base transactional repository for transaction management.
+//
+// Parameters:
+//   - db: The PostgreSQL connection pool for database operations
+//   - redisClient: The Redis client for caching operations
+//
+// Returns:
+//   - repositories.CommentRepository: A new comment repository instance
 func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.CommentRepository {
 	return &PostgresCommentRepository{
 		BaseTransactionalRepository: NewBaseTransactionalRepository(db),
@@ -25,6 +46,18 @@ func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) r
 	}
 }
 
+// Create persists a new comment entity to the database.
+// This method inserts a new comment record with all required fields including
+// hierarchical structure information (parent_id, nested set coordinates), audit
+// information (created_by, updated_by, timestamps), and polymorphic relationships.
+// The method handles optional parent_id conversion from UUID to string for storage.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - comment: The comment entity to create
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entities.Comment) error {
 	query := `
 		INSERT INTO comments (
@@ -47,6 +80,18 @@ func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entitie
 	return err
 }
 
+// GetByID retrieves a comment entity by its unique identifier.
+// This method performs a soft-delete aware query, excluding records that have been
+// marked as deleted. It returns the complete comment entity with all fields populated,
+// including hierarchical structure information and properly parsed parent_id.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - id: The unique identifier of the comment to retrieve
+//
+// Returns:
+//   - *entities.Comment: The found comment entity, or nil if not found
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -65,6 +110,7 @@ func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (
 	if err != nil {
 		return nil, err
 	}
+	// Parse parent_id string back to UUID if it exists
 	if parentIDStr != nil {
 		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 			comment.ParentID = &parentID
@@ -73,6 +119,20 @@ func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (
 	return &comment, nil
 }
 
+// GetByPostID retrieves all comments associated with a specific post.
+// This method returns comments ordered by their hierarchical position (record_left)
+// to maintain the proper comment tree structure. It supports pagination and
+// excludes soft-deleted records.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - postID: The unique identifier of the post to get comments for
+//   - limit: Maximum number of comments to return
+//   - offset: Number of comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of comment entities for the post
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -100,6 +160,7 @@ func (r *PostgresCommentRepository) GetByPostID(ctx context.Context, postID uuid
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
@@ -110,6 +171,20 @@ func (r *PostgresCommentRepository) GetByPostID(ctx context.Context, postID uuid
 	return comments, nil
 }
 
+// GetByUserID retrieves all comments created by a specific user.
+// This method returns comments ordered by their hierarchical position (record_left)
+// and supports pagination. It excludes soft-deleted records and is useful for
+// displaying a user's comment history.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - userID: The unique identifier of the user to get comments for
+//   - limit: Maximum number of comments to return
+//   - offset: Number of comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of comment entities created by the user
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -137,6 +212,7 @@ func (r *PostgresCommentRepository) GetByUserID(ctx context.Context, userID uuid
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
@@ -147,6 +223,19 @@ func (r *PostgresCommentRepository) GetByUserID(ctx context.Context, userID uuid
 	return comments, nil
 }
 
+// GetReplies retrieves all direct replies to a specific comment.
+// This method returns child comments ordered by their ordering and hierarchical position
+// to maintain proper reply sequence. It supports pagination and excludes soft-deleted records.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - parentID: The unique identifier of the parent comment
+//   - limit: Maximum number of replies to return
+//   - offset: Number of replies to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of reply comment entities
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -174,6 +263,7 @@ func (r *PostgresCommentRepository) GetReplies(ctx context.Context, parentID uui
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if p, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &p
@@ -184,6 +274,19 @@ func (r *PostgresCommentRepository) GetReplies(ctx context.Context, parentID uui
 	return comments, nil
 }
 
+// GetAll retrieves a paginated list of all active comments.
+// This method returns comments ordered by their hierarchical position (record_left)
+// to maintain the proper comment tree structure. It supports pagination and
+// excludes soft-deleted records.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - limit: Maximum number of comments to return
+//   - offset: Number of comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of comment entities
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -211,6 +314,7 @@ func (r *PostgresCommentRepository) GetAll(ctx context.Context, limit, offset in
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
@@ -221,6 +325,19 @@ func (r *PostgresCommentRepository) GetAll(ctx context.Context, limit, offset in
 	return comments, nil
 }
 
+// GetApproved retrieves a paginated list of all approved comments.
+// This method filters comments by their approved status and returns them ordered
+// by hierarchical position. It's useful for displaying only moderated content
+// and supports pagination.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - limit: Maximum number of approved comments to return
+//   - offset: Number of approved comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of approved comment entities
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetApproved(ctx context.Context, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -248,6 +365,7 @@ func (r *PostgresCommentRepository) GetApproved(ctx context.Context, limit, offs
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
@@ -258,6 +376,18 @@ func (r *PostgresCommentRepository) GetApproved(ctx context.Context, limit, offs
 	return comments, nil
 }
 
+// GetPending retrieves a paginated list of all pending comments awaiting moderation.
+// This method filters comments by their pending status and returns them ordered
+// by hierarchical position. It's useful for moderation workflows and supports pagination.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - limit: Maximum number of pending comments to return
+//   - offset: Number of pending comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of pending comment entities
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetPending(ctx context.Context, limit, offset int) ([]*entities.Comment, error) {
 	query := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -285,6 +415,7 @@ func (r *PostgresCommentRepository) GetPending(ctx context.Context, limit, offse
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
@@ -295,6 +426,17 @@ func (r *PostgresCommentRepository) GetPending(ctx context.Context, limit, offse
 	return comments, nil
 }
 
+// Update modifies an existing comment entity in the database.
+// This method updates the comment's status and audit fields while preserving
+// the original ID, creation information, and hierarchical structure. It only
+// updates non-deleted comments.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - comment: The comment entity with updated values
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Update(ctx context.Context, comment *entities.Comment) error {
 	query := `
 		UPDATE comments
@@ -306,6 +448,17 @@ func (r *PostgresCommentRepository) Update(ctx context.Context, comment *entitie
 	return err
 }
 
+// Delete performs a soft delete of a comment entity.
+// This method marks the comment as deleted by setting the deleted_at timestamp
+// and updates the updated_at timestamp. This preserves data integrity
+// and allows for potential recovery while maintaining audit trails.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - id: The unique identifier of the comment to delete
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE comments
@@ -315,6 +468,16 @@ func (r *PostgresCommentRepository) Delete(ctx context.Context, id uuid.UUID) er
 	return err
 }
 
+// Approve changes a comment's status to approved for public display.
+// This method is part of the comment moderation workflow and updates
+// the updated_at timestamp to track when the approval occurred.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - id: The unique identifier of the comment to approve
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Approve(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE comments
@@ -324,6 +487,16 @@ func (r *PostgresCommentRepository) Approve(ctx context.Context, id uuid.UUID) e
 	return err
 }
 
+// Reject changes a comment's status to rejected, preventing public display.
+// This method is part of the comment moderation workflow and updates
+// the updated_at timestamp to track when the rejection occurred.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - id: The unique identifier of the comment to reject
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Reject(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE comments
@@ -333,6 +506,16 @@ func (r *PostgresCommentRepository) Reject(ctx context.Context, id uuid.UUID) er
 	return err
 }
 
+// Count returns the total number of active comments in the system.
+// This method excludes soft-deleted records and is useful for pagination
+// calculations and system statistics.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//
+// Returns:
+//   - int64: The total count of active comments
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM comments WHERE deleted_at IS NULL`
 	var count int64
@@ -340,6 +523,17 @@ func (r *PostgresCommentRepository) Count(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+// CountByPostID returns the total number of active comments for a specific post.
+// This method is useful for understanding comment activity on posts and for
+// pagination calculations within post contexts.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - postID: The unique identifier of the post to count comments for
+//
+// Returns:
+//   - int64: The total count of active comments for the post
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) CountByPostID(ctx context.Context, postID uuid.UUID) (int64, error) {
 	query := `SELECT COUNT(*) FROM comments WHERE model_type = 'post' AND model_id = $1 AND deleted_at IS NULL`
 	var count int64
@@ -347,6 +541,16 @@ func (r *PostgresCommentRepository) CountByPostID(ctx context.Context, postID uu
 	return count, err
 }
 
+// CountByUserID returns the total number of active comments created by a specific user.
+// This method is useful for user activity tracking and moderation workflows.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - userID: The unique identifier of the user to count comments for
+//
+// Returns:
+//   - int64: The total count of active comments created by the user
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
 	query := `SELECT COUNT(*) FROM comments WHERE created_by = $1 AND deleted_at IS NULL`
 	var count int64
@@ -357,6 +561,15 @@ func (r *PostgresCommentRepository) CountByUserID(ctx context.Context, userID uu
 	return count, nil
 }
 
+// CountPending returns the total number of comments awaiting moderation.
+// This method is useful for moderation dashboard statistics and workflow management.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//
+// Returns:
+//   - int64: The total count of pending comments
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) CountPending(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM comments WHERE status = 'pending' AND deleted_at IS NULL`
 	var count int64
@@ -364,6 +577,20 @@ func (r *PostgresCommentRepository) CountPending(ctx context.Context) (int64, er
 	return count, err
 }
 
+// Search performs a case-insensitive search for comments by model type or status.
+// This method uses ILIKE for pattern matching and supports partial matches.
+// Results are ordered by hierarchical position (record_left) to maintain
+// comment tree structure and support pagination.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - query: The search term to match against model_type and status fields
+//   - limit: Maximum number of matching comments to return
+//   - offset: Number of matching comments to skip for pagination
+//
+// Returns:
+//   - []*entities.Comment: List of matching comment entities
+//   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Comment, error) {
 	q := `
 		SELECT id, model_type, model_id, status, parent_id, 
@@ -392,6 +619,7 @@ func (r *PostgresCommentRepository) Search(ctx context.Context, query string, li
 		if err != nil {
 			return nil, err
 		}
+		// Parse parent_id string back to UUID if it exists
 		if parentIDStr != nil {
 			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 				comment.ParentID = &parentID
