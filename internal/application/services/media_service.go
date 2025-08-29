@@ -259,12 +259,12 @@ func (s *mediaService) GetAvatarByUserID(ctx context.Context, userID uuid.UUID) 
 
 // GetMediaByGroup retrieves media by group for a specific entity.
 // This method is useful for getting different types of media (avatar, cover, gallery, etc.)
-// for any entity type (User, Post, Organization, etc.).
+// for any entity type (users, posts, organizations, etc.).
 //
 // Parameters:
 //   - ctx: Context for the operation
 //   - mediableID: UUID of the entity to get media for
-//   - mediableType: Type of the entity (e.g., "User", "Post", "Organization")
+//   - mediableType: Type of the entity (e.g., "users", "posts", "organizations")
 //   - group: Group/category of the media (e.g., "avatar", "cover", "gallery")
 //
 // Returns:
@@ -280,7 +280,7 @@ func (s *mediaService) GetMediaByGroup(ctx context.Context, mediableID uuid.UUID
 // Parameters:
 //   - ctx: Context for the operation
 //   - mediableID: UUID of the entity to get media for
-//   - mediableType: Type of the entity (e.g., "User", "Post", "Organization")
+//   - mediableType: Type of the entity (e.g., "users", "posts", "organizations")
 //   - group: Group/category of the media (e.g., "avatar", "cover", "gallery")
 //   - limit: Maximum number of media files to return
 //   - offset: Number of media files to skip for pagination

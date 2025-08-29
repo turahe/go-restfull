@@ -1,3 +1,5 @@
+// Package responses provides HTTP response structures and utilities for the Go RESTful API.
+// It follows Laravel API Resource patterns for consistent formatting across all endpoints.
 package responses
 
 import (
@@ -6,60 +8,103 @@ import (
 	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
-// OrganizationResource represents a single organization in API responses
-// Following Laravel API Resource pattern for consistent formatting
+// OrganizationResource represents a single organization in API responses.
+// This struct follows the Laravel API Resource pattern for consistent formatting
+// and provides a comprehensive view of organization data including hierarchical structure,
+// nested set model information, and computed properties.
 type OrganizationResource struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	Description    *string                `json:"description,omitempty"`
-	Code           *string                `json:"code,omitempty"`
-	Type           *string                `json:"type,omitempty"`
-	Status         string                 `json:"status"`
-	ParentID       *string                `json:"parent_id,omitempty"`
-	RecordLeft     *uint64                `json:"record_left,omitempty"`
-	RecordRight    *uint64                `json:"record_right,omitempty"`
-	RecordDepth    *uint64                `json:"record_depth,omitempty"`
-	RecordOrdering *uint64                `json:"record_ordering,omitempty"`
-	IsRoot         bool                   `json:"is_root"`
-	HasChildren    bool                   `json:"has_children"`
-	HasParent      bool                   `json:"has_parent"`
-	Level          int                    `json:"level"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
-	DeletedAt      *time.Time             `json:"deleted_at,omitempty"`
-	Parent         *OrganizationResource  `json:"parent,omitempty"`
-	Children       []OrganizationResource `json:"children,omitempty"`
+	// ID is the unique identifier for the organization
+	ID string `json:"id"`
+	// Name is the display name of the organization
+	Name string `json:"name"`
+	// Description is an optional description of the organization
+	Description *string `json:"description,omitempty"`
+	// Code is an optional code identifier for the organization
+	Code *string `json:"code,omitempty"`
+	// Type is an optional type classification for the organization
+	Type *string `json:"type,omitempty"`
+	// Status indicates the current status of the organization
+	Status string `json:"status"`
+	// ParentID is the optional ID of the parent organization for hierarchical structures
+	ParentID *string `json:"parent_id,omitempty"`
+	// RecordLeft is used for nested set model operations (tree structure)
+	RecordLeft *uint64 `json:"record_left,omitempty"`
+	// RecordRight is used for nested set model operations (tree structure)
+	RecordRight *uint64 `json:"record_right,omitempty"`
+	// RecordDepth indicates the nesting level of the organization in the tree
+	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	// RecordOrdering determines the display order of organizations
+	RecordOrdering *uint64 `json:"record_ordering,omitempty"`
+	// IsRoot indicates whether this organization is at the root level (no parent)
+	IsRoot bool `json:"is_root"`
+	// HasChildren indicates whether this organization has child organizations
+	HasChildren bool `json:"has_children"`
+	// HasParent indicates whether this organization has a parent organization
+	HasParent bool `json:"has_parent"`
+	// Level indicates the hierarchical level of the organization (0 for root)
+	Level int `json:"level"`
+	// CreatedAt is the timestamp when the organization was created
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt is the timestamp when the organization was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+	// DeletedAt is the optional timestamp when the organization was soft-deleted
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Parent contains the parent organization if this is a child organization
+	Parent *OrganizationResource `json:"parent,omitempty"`
+	// Children contains the nested child organizations
+	Children []OrganizationResource `json:"children,omitempty"`
 }
 
-// OrganizationCollection represents a collection of organizations
-// Following Laravel API Resource Collection pattern
+// OrganizationCollection represents a collection of organizations.
+// This follows the Laravel API Resource Collection pattern for consistent pagination
+// and metadata handling across all collection endpoints.
 type OrganizationCollection struct {
-	Data  []OrganizationResource `json:"data"`
-	Meta  *CollectionMeta        `json:"meta,omitempty"`
-	Links *CollectionLinks       `json:"links,omitempty"`
+	// Data contains the array of organization resources
+	Data []OrganizationResource `json:"data"`
+	// Meta contains optional collection metadata (pagination, counts, etc.)
+	Meta *CollectionMeta `json:"meta,omitempty"`
+	// Links contains optional navigation links (first, last, prev, next)
+	Links *CollectionLinks `json:"links,omitempty"`
 }
 
-// OrganizationResourceResponse represents a single organization response with Laravel-style formatting
+// OrganizationResourceResponse represents a single organization response with Laravel-style formatting.
+// This wrapper provides a consistent response structure with status information
+// and follows the standard API response format used throughout the application.
 type OrganizationResourceResponse struct {
-	Status string               `json:"status"`
-	Data   OrganizationResource `json:"data"`
+	// Status indicates the success status of the operation
+	Status string `json:"status"`
+	// Data contains the organization resource
+	Data OrganizationResource `json:"data"`
 }
 
-// OrganizationCollectionResponse represents a collection response with Laravel-style formatting
+// OrganizationCollectionResponse represents a collection response with Laravel-style formatting.
+// This wrapper provides a consistent response structure for collections with status information
+// and follows the standard API response format used throughout the application.
 type OrganizationCollectionResponse struct {
-	Status string                 `json:"status"`
-	Data   OrganizationCollection `json:"data"`
+	// Status indicates the success status of the operation
+	Status string `json:"status"`
+	// Data contains the organization collection
+	Data OrganizationCollection `json:"data"`
 }
 
-// NewOrganizationResource creates a new OrganizationResource from an Organization entity
-// This transforms the domain entity into a consistent API response format
+// NewOrganizationResource creates a new OrganizationResource from an Organization entity.
+// This function transforms the domain entity into a consistent API response format,
+// handling all optional fields, computed properties, and nested resources.
+//
+// Parameters:
+//   - org: The organization domain entity to convert
+//
+// Returns:
+//   - A pointer to the newly created OrganizationResource
 func NewOrganizationResource(org *entities.Organization) *OrganizationResource {
+	// Handle optional parent ID for hierarchical organizations
 	var parentID *string
 	if org.ParentID != nil {
 		parentIDStr := org.ParentID.String()
 		parentID = &parentIDStr
 	}
 
+	// Handle optional organization type
 	var orgType *string
 	if org.Type != nil {
 		typeStr := string(*org.Type)
@@ -81,7 +126,7 @@ func NewOrganizationResource(org *entities.Organization) *OrganizationResource {
 		}
 	}
 
-	// Calculate computed fields
+	// Calculate computed level field from nested set model data
 	level := 0
 	if org.RecordDepth != nil {
 		level = int(*org.RecordDepth)
@@ -111,8 +156,15 @@ func NewOrganizationResource(org *entities.Organization) *OrganizationResource {
 	}
 }
 
-// NewOrganizationCollection creates a new OrganizationCollection from a slice of Organization entities
-// This transforms multiple domain entities into a consistent API response format
+// NewOrganizationCollection creates a new OrganizationCollection from a slice of Organization entities.
+// This function transforms multiple domain entities into a consistent API response format,
+// creating a collection that can be easily serialized to JSON.
+//
+// Parameters:
+//   - organizations: Slice of organization domain entities to convert
+//
+// Returns:
+//   - A pointer to the newly created OrganizationCollection
 func NewOrganizationCollection(organizations []*entities.Organization) *OrganizationCollection {
 	orgResources := make([]OrganizationResource, len(organizations))
 	for i, org := range organizations {
@@ -124,8 +176,19 @@ func NewOrganizationCollection(organizations []*entities.Organization) *Organiza
 	}
 }
 
-// NewPaginatedOrganizationCollection creates a new OrganizationCollection with pagination metadata
-// This follows Laravel's paginated resource collection pattern
+// NewPaginatedOrganizationCollection creates a new OrganizationCollection with pagination metadata.
+// This function follows Laravel's paginated resource collection pattern and provides
+// comprehensive pagination information including current page, total pages, and navigation links.
+//
+// Parameters:
+//   - organizations: Slice of organization domain entities for the current page
+//   - page: Current page number (1-based)
+//   - perPage: Number of items per page
+//   - total: Total number of items across all pages
+//   - baseURL: Base URL for generating pagination links
+//
+// Returns:
+//   - A pointer to the newly created paginated OrganizationCollection
 func NewPaginatedOrganizationCollection(
 	organizations []*entities.Organization,
 	page, perPage int,
@@ -134,17 +197,20 @@ func NewPaginatedOrganizationCollection(
 ) *OrganizationCollection {
 	collection := NewOrganizationCollection(organizations)
 
+	// Calculate total pages with proper handling of edge cases
 	totalPages := (int(total) + perPage - 1) / perPage
 	if totalPages == 0 {
 		totalPages = 1
 	}
 
+	// Calculate the range of items on the current page
 	from := (page-1)*perPage + 1
 	to := page * perPage
 	if to > int(total) {
 		to = int(total)
 	}
 
+	// Set pagination metadata
 	collection.Meta = &CollectionMeta{
 		CurrentPage:  page,
 		PerPage:      perPage,
@@ -158,7 +224,7 @@ func NewPaginatedOrganizationCollection(
 		To:           to,
 	}
 
-	// Generate pagination links
+	// Generate pagination navigation links
 	collection.Links = &CollectionLinks{
 		First: generatePageURL(baseURL, 1),
 		Last:  generatePageURL(baseURL, totalPages),
@@ -169,7 +235,15 @@ func NewPaginatedOrganizationCollection(
 	return collection
 }
 
-// NewOrganizationResourceResponse creates a new single organization response
+// NewOrganizationResourceResponse creates a new single organization response.
+// This function wraps an OrganizationResource in a standard API response format
+// with a success status message.
+//
+// Parameters:
+//   - org: The organization domain entity to convert and wrap
+//
+// Returns:
+//   - A pointer to the newly created OrganizationResourceResponse
 func NewOrganizationResourceResponse(org *entities.Organization) *OrganizationResourceResponse {
 	return &OrganizationResourceResponse{
 		Status: "success",
@@ -177,7 +251,15 @@ func NewOrganizationResourceResponse(org *entities.Organization) *OrganizationRe
 	}
 }
 
-// NewOrganizationCollectionResponse creates a new organization collection response
+// NewOrganizationCollectionResponse creates a new organization collection response.
+// This function wraps an OrganizationCollection in a standard API response format
+// with a success status message.
+//
+// Parameters:
+//   - organizations: Slice of organization domain entities to convert and wrap
+//
+// Returns:
+//   - A pointer to the newly created OrganizationCollectionResponse
 func NewOrganizationCollectionResponse(organizations []*entities.Organization) *OrganizationCollectionResponse {
 	return &OrganizationCollectionResponse{
 		Status: "success",
@@ -185,7 +267,19 @@ func NewOrganizationCollectionResponse(organizations []*entities.Organization) *
 	}
 }
 
-// NewPaginatedOrganizationCollectionResponse creates a new paginated organization collection response
+// NewPaginatedOrganizationCollectionResponse creates a new paginated organization collection response.
+// This function wraps a paginated OrganizationCollection in a standard API response format
+// with a success status message and includes all pagination metadata.
+//
+// Parameters:
+//   - organizations: Slice of organization domain entities for the current page
+//   - page: Current page number (1-based)
+//   - perPage: Number of items per page
+//   - total: Total number of items across all pages
+//   - baseURL: Base URL for generating pagination links
+//
+// Returns:
+//   - A pointer to the newly created paginated OrganizationCollectionResponse
 func NewPaginatedOrganizationCollectionResponse(
 	organizations []*entities.Organization,
 	page, perPage int,

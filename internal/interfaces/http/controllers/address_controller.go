@@ -546,7 +546,7 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
-		addresses, page, limit, int64(len(addresses)), baseURL,
+		addresses, page, limit, int(len(addresses)), baseURL,
 	))
 }
 
@@ -617,7 +617,7 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
-		addresses, page, limit, int64(len(addresses)), baseURL,
+		addresses, page, limit, int(len(addresses)), baseURL,
 	))
 }
 
@@ -688,7 +688,7 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
-		addresses, page, limit, int64(len(addresses)), baseURL,
+		addresses, page, limit, int(len(addresses)), baseURL,
 	))
 }
 
@@ -759,6 +759,6 @@ func (c *AddressController) SearchAddressesByPostalCode(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedAddressCollectionResponse(
-		addresses, page, limit, int64(len(addresses)), baseURL,
+		addresses, page, limit, int(len(addresses)), baseURL,
 	))
 }
