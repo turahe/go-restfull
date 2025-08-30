@@ -75,13 +75,13 @@ func (s *mediaService) UploadMedia(ctx context.Context, file *multipart.FileHead
 
 	// Create media entity with file metadata and generated paths
 	media, err := entities.NewMedia(
-		fileName,
-		file.Filename,
-		file.Header.Get("Content-Type"),
-		fmt.Sprintf("/uploads/%s", fileName),
-		fmt.Sprintf("/api/v1/media/%s", fileName),
-		file.Size,
-		userID,
+		fileName,      // name
+		file.Filename, // fileName
+		fmt.Sprintf("hash_%s", uuid.New().String()), // hash (generate unique hash)
+		"local",                         // disk
+		file.Header.Get("Content-Type"), // mimeType
+		file.Size,                       // size
+		userID,                          // userID
 	)
 	if err != nil {
 		return nil, err
