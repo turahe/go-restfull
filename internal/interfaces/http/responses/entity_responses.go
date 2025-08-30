@@ -148,31 +148,6 @@ func NewCommentResponse(comment *entities.Comment) *CommentResponse {
 	return response
 }
 
-// NewCommentListResponse creates a new CommentListResponse from comment entities.
-// This function transforms multiple comment domain entities into a paginated response format.
-//
-// Parameters:
-//   - comments: Slice of comment domain entities to convert
-//   - total: Total number of comments across all pages
-//   - limit: Maximum number of comments per page
-//   - page: Current page number
-//
-// Returns:
-//   - A pointer to the newly created CommentListResponse
-func NewCommentListResponse(comments []*entities.Comment, total int64, limit, page int) *CommentListResponse {
-	commentResponses := make([]CommentResponse, len(comments))
-	for i, comment := range comments {
-		commentResponses[i] = *NewCommentResponse(comment)
-	}
-
-	return &CommentListResponse{
-		Comments: commentResponses,
-		Total:    total,
-		Limit:    limit,
-		Page:     page,
-	}
-}
-
 // MediaResponse represents a media file in API responses.
 // This struct provides information about uploaded media files including
 // file metadata, storage details, and timestamps.
@@ -234,31 +209,6 @@ func NewMediaResponse(media *entities.Media) *MediaResponse {
 		CreatedAt:    media.CreatedAt,
 		UpdatedAt:    media.UpdatedAt,
 		DeletedAt:    media.DeletedAt,
-	}
-}
-
-// NewMediaListResponse creates a new MediaListResponse from media entities.
-// This function transforms multiple media domain entities into a paginated response format.
-//
-// Parameters:
-//   - media: Slice of media domain entities to convert
-//   - total: Total number of media files across all pages
-//   - limit: Maximum number of media files per page
-//   - page: Current page number
-//
-// Returns:
-//   - A pointer to the newly created MediaListResponse
-func NewMediaListResponse(media []*entities.Media, total int64, limit, page int) *MediaListResponse {
-	mediaResponses := make([]MediaResponse, len(media))
-	for i, m := range media {
-		mediaResponses[i] = *NewMediaResponse(m)
-	}
-
-	return &MediaListResponse{
-		Media: mediaResponses,
-		Total: total,
-		Limit: limit,
-		Page:  page,
 	}
 }
 
