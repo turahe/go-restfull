@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -99,6 +100,20 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 	}
 	defer src.Close()
 
+	// Calculate file hash
+	hash := sha256.New()
+	if _, err := io.Copy(hash, src); err != nil {
+		return nil, fmt.Errorf("failed to calculate file hash: %w", err)
+	}
+	fileHash := fmt.Sprintf("%x", hash.Sum(nil))
+
+	// Reopen the file for upload since we consumed it for hash calculation
+	src, err = file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to reopen uploaded file: %w", err)
+	}
+	defer src.Close()
+
 	// Upload to storage
 	if _, err := s.storage.Put(storagePath, src); err != nil {
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
@@ -113,7 +128,7 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 	media, err := entities.NewMedia(
 		fileName,      // name
 		file.Filename, // fileName
-		fmt.Sprintf("hash_%s", uuid.New().String()), // hash
+		fileHash,      // hash (actual file hash)
 		string(s.config.Provider),                   // disk (storage provider)
 		file.Header.Get("Content-Type"),             // mimeType
 		file.Size,                                   // size

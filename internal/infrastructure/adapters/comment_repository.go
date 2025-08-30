@@ -14,6 +14,7 @@ import (
 	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -162,18 +163,28 @@ func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entitie
 //   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error) {
 	query := `
-		SELECT id, model_type, model_id, status, parent_id, 
-		       record_left, record_right, record_depth, record_ordering,
-		       created_by, updated_by, deleted_by, created_at, updated_at, deleted_at
-		FROM comments
-		WHERE id = $1 AND deleted_at IS NULL`
+		SELECT c.id, c.model_type, c.model_id, c.status, c.parent_id, 
+		       c.record_left, c.record_right, c.record_depth, c.record_ordering,
+		       c.created_by, c.updated_by, c.deleted_by, c.created_at, c.updated_at, c.deleted_at,
+		       cont.content_raw
+		FROM comments c
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'comment' AND model_id = c.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) cont ON true
+		WHERE c.id = $1 AND c.deleted_at IS NULL`
 	var comment entities.Comment
 	var parentIDStr *string
+	var contentRaw *string
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&comment.ID, &comment.ModelType, &comment.ModelID, &comment.Status,
 		&parentIDStr, &comment.RecordLeft, &comment.RecordRight, &comment.RecordDepth,
 		&comment.RecordOrdering, &comment.CreatedBy, &comment.UpdatedBy, &comment.DeletedBy,
 		&comment.CreatedAt, &comment.UpdatedAt, &comment.DeletedAt,
+		&contentRaw,
 	)
 	if err != nil {
 		return nil, err
@@ -183,6 +194,10 @@ func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (
 		if parentID, err := uuid.Parse(*parentIDStr); err == nil {
 			comment.ParentID = &parentID
 		}
+	}
+	// Set content from the joined content table
+	if contentRaw != nil {
+		comment.Content = *contentRaw
 	}
 	return &comment, nil
 }
@@ -203,40 +218,28 @@ func (r *PostgresCommentRepository) GetByID(ctx context.Context, id uuid.UUID) (
 //   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID, limit, offset int) ([]*entities.Comment, error) {
 	query := `
-		SELECT id, model_type, model_id, status, parent_id, 
-		       record_left, record_right, record_depth, record_ordering,
-		       created_by, updated_by, deleted_by, created_at, updated_at, deleted_at
-		FROM comments
-		WHERE model_type = 'post' AND model_id = $1 AND deleted_at IS NULL
-		ORDER BY record_left ASC
+		SELECT c.id, c.model_type, c.model_id, c.status, c.parent_id, 
+		       c.record_left, c.record_right, c.record_depth, c.record_ordering,
+		       c.created_by, c.updated_by, c.deleted_by, c.created_at, c.updated_at, c.deleted_at,
+		       cont.content_raw
+		FROM comments c
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'comment' AND model_id = c.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) cont ON true
+		WHERE c.model_type = 'post' AND c.model_id = $1 AND c.deleted_at IS NULL
+		ORDER BY c.record_left ASC
 		LIMIT $2 OFFSET $3`
 	rows, err := r.db.Query(ctx, query, postID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var comments []*entities.Comment
-	for rows.Next() {
-		var comment entities.Comment
-		var parentIDStr *string
-		err := rows.Scan(
-			&comment.ID, &comment.ModelType, &comment.ModelID, &comment.Status,
-			&parentIDStr, &comment.RecordLeft, &comment.RecordRight, &comment.RecordDepth,
-			&comment.RecordOrdering, &comment.CreatedBy, &comment.UpdatedBy, &comment.DeletedBy,
-			&comment.CreatedAt, &comment.UpdatedAt, &comment.DeletedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		// Parse parent_id string back to UUID if it exists
-		if parentIDStr != nil {
-			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
-				comment.ParentID = &parentID
-			}
-		}
-		comments = append(comments, &comment)
-	}
-	return comments, nil
+
+	return r.scanComments(rows)
 }
 
 // GetByUserID retrieves all comments created by a specific user.
@@ -695,5 +698,54 @@ func (r *PostgresCommentRepository) Search(ctx context.Context, query string, li
 		}
 		comments = append(comments, &comment)
 	}
+	return comments, nil
+}
+
+// scanComments is a helper method that scans database rows into comment entities with content
+// This method handles the repetitive task of scanning comment data from database rows including content.
+//
+// Parameters:
+//   - rows: database rows containing comment data with content
+//
+// Returns:
+//   - []*entities.Comment: slice of scanned comment entities with content populated
+//   - error: nil if successful, or database error if the operation fails
+func (r *PostgresCommentRepository) scanComments(rows pgx.Rows) ([]*entities.Comment, error) {
+	var comments []*entities.Comment
+
+	for rows.Next() {
+		var comment entities.Comment
+		var parentIDStr *string
+		var contentRaw *string
+		err := rows.Scan(
+			&comment.ID, &comment.ModelType, &comment.ModelID, &comment.Status,
+			&parentIDStr, &comment.RecordLeft, &comment.RecordRight, &comment.RecordDepth,
+			&comment.RecordOrdering, &comment.CreatedBy, &comment.UpdatedBy, &comment.DeletedBy,
+			&comment.CreatedAt, &comment.UpdatedAt, &comment.DeletedAt,
+			&contentRaw,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan comment: %w", err)
+		}
+
+		// Parse parent_id string back to UUID if it exists
+		if parentIDStr != nil {
+			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
+				comment.ParentID = &parentID
+			}
+		}
+
+		// Set content from the joined content table
+		if contentRaw != nil {
+			comment.Content = *contentRaw
+		}
+
+		comments = append(comments, &comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over comment rows: %w", err)
+	}
+
 	return comments, nil
 }

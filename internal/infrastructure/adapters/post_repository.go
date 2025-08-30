@@ -142,13 +142,22 @@ func (r *PostgresPostRepository) Create(ctx context.Context, post *entities.Post
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE id = $1 AND deleted_at IS NULL
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.id = $1 AND p.deleted_at IS NULL
 	`
 
 	var post entities.Post
+	var contentRaw *string
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&post.ID,
 		&post.Title,
@@ -163,6 +172,7 @@ func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 		&post.CreatedAt,
 		&post.UpdatedAt,
 		&post.DeletedAt,
+		&contentRaw,
 	)
 
 	if err != nil {
@@ -170,6 +180,11 @@ func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get post by ID: %w", err)
+	}
+
+	// Set content from the joined content table
+	if contentRaw != nil {
+		post.Content = *contentRaw
 	}
 
 	return &post, nil
@@ -187,13 +202,22 @@ func (r *PostgresPostRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE slug = $1 AND deleted_at IS NULL
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.slug = $1 AND p.deleted_at IS NULL
 	`
 
 	var post entities.Post
+	var contentRaw *string
 	err := r.db.QueryRow(ctx, query, slug).Scan(
 		&post.ID,
 		&post.Title,
@@ -208,6 +232,7 @@ func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 		&post.CreatedAt,
 		&post.UpdatedAt,
 		&post.DeletedAt,
+		&contentRaw,
 	)
 
 	if err != nil {
@@ -215,6 +240,11 @@ func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get post by slug: %w", err)
+	}
+
+	// Set content from the joined content table
+	if contentRaw != nil {
+		post.Content = *contentRaw
 	}
 
 	return &post, nil
@@ -234,11 +264,19 @@ func (r *PostgresPostRepository) GetBySlug(ctx context.Context, slug string) (*e
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE author_id = $1 AND deleted_at IS NULL
-		ORDER BY created_at DESC
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.author_id = $1 AND p.deleted_at IS NULL
+		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -264,11 +302,19 @@ func (r *PostgresPostRepository) GetByAuthor(ctx context.Context, authorID uuid.
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE deleted_at IS NULL
-		ORDER BY created_at DESC
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.deleted_at IS NULL
+		ORDER BY p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -294,11 +340,19 @@ func (r *PostgresPostRepository) GetAll(ctx context.Context, limit, offset int) 
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) GetPublished(ctx context.Context, limit, offset int) ([]*entities.Post, error) {
 	query := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE published_at IS NOT NULL AND deleted_at IS NULL
-		ORDER BY published_at DESC
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.published_at IS NOT NULL AND p.deleted_at IS NULL
+		ORDER BY p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -325,13 +379,21 @@ func (r *PostgresPostRepository) GetPublished(ctx context.Context, limit, offset
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE deleted_at IS NULL AND (
-			title ILIKE $1 OR subtitle ILIKE $1 OR description ILIKE $1
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.deleted_at IS NULL AND (
+			p.title ILIKE $1 OR p.subtitle ILIKE $1 OR p.description ILIKE $1
 		)
-		ORDER BY created_at DESC
+		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -595,13 +657,21 @@ func (r *PostgresPostRepository) CountBySearchPublished(ctx context.Context, que
 //   - error: nil if successful, or database error if the operation fails
 func (r *PostgresPostRepository) SearchPublished(ctx context.Context, query string, limit, offset int) ([]*entities.Post, error) {
 	searchQuery := `
-		SELECT id, title, slug, subtitle, description, type, language, layout,
-			   is_sticky, published_at, created_at, updated_at, deleted_at
-		FROM posts
-		WHERE published_at IS NOT NULL AND deleted_at IS NULL AND (
-			title ILIKE $1 OR subtitle ILIKE $1 OR description ILIKE $1
+		SELECT p.id, p.title, p.slug, p.subtitle, p.description, p.type, p.language, p.layout,
+			   p.is_sticky, p.published_at, p.created_at, p.updated_at, p.deleted_at,
+			   c.content_raw
+		FROM posts p
+		LEFT JOIN LATERAL (
+			SELECT content_raw 
+			FROM contents 
+			WHERE model_type = 'post' AND model_id = p.id 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		) c ON true
+		WHERE p.published_at IS NOT NULL AND p.deleted_at IS NULL AND (
+			p.title ILIKE $1 OR p.subtitle ILIKE $1 OR p.description ILIKE $1
 		)
-		ORDER BY published_at DESC
+		ORDER BY p.published_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -629,6 +699,7 @@ func (r *PostgresPostRepository) scanPosts(rows pgx.Rows) ([]*entities.Post, err
 
 	for rows.Next() {
 		var post entities.Post
+		var contentRaw *string
 		err := rows.Scan(
 			&post.ID,
 			&post.Title,
@@ -643,10 +714,17 @@ func (r *PostgresPostRepository) scanPosts(rows pgx.Rows) ([]*entities.Post, err
 			&post.CreatedAt,
 			&post.UpdatedAt,
 			&post.DeletedAt,
+			&contentRaw,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan post: %w", err)
 		}
+
+		// Set content from the joined content table
+		if contentRaw != nil {
+			post.Content = *contentRaw
+		}
+
 		posts = append(posts, &post)
 	}
 
