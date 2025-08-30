@@ -8,11 +8,11 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
-	"path/filepath"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/infrastructure/storage"
 
 	"github.com/google/uuid"
 )
@@ -22,6 +22,7 @@ import (
 // search capabilities, and file metadata management while ensuring secure file handling.
 type mediaService struct {
 	mediaRepository repositories.MediaRepository
+	storageService  *storage.StorageService
 }
 
 // NewMediaService creates a new media service instance with the provided repository.
@@ -30,12 +31,14 @@ type mediaService struct {
 //
 // Parameters:
 //   - mediaRepository: Repository interface for media data access operations
+//   - storageService: Storage service for file operations
 //
 // Returns:
 //   - ports.MediaService: The media service interface implementation
-func NewMediaService(mediaRepository repositories.MediaRepository) ports.MediaService {
+func NewMediaService(mediaRepository repositories.MediaRepository, storageService *storage.StorageService) ports.MediaService {
 	return &mediaService{
 		mediaRepository: mediaRepository,
+		storageService:  storageService,
 	}
 }
 
@@ -64,33 +67,16 @@ func NewMediaService(mediaRepository repositories.MediaRepository) ports.MediaSe
 //   - *entities.Media: The created media entity
 //   - error: Any error that occurred during the operation
 func (s *mediaService) UploadMedia(ctx context.Context, file *multipart.FileHeader, userID uuid.UUID) (*entities.Media, error) {
-	// Validate file to ensure it exists and is valid
-	if file == nil {
-		return nil, fmt.Errorf("file is required")
-	}
-
-	// Generate unique filename to prevent conflicts and security issues
-	ext := filepath.Ext(file.Filename)
-	fileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-
-	// Create media entity with file metadata and generated paths
-	media, err := entities.NewMedia(
-		fileName,      // name
-		file.Filename, // fileName
-		fmt.Sprintf("hash_%s", uuid.New().String()), // hash (generate unique hash)
-		"local",                         // disk
-		file.Header.Get("Content-Type"), // mimeType
-		file.Size,                       // size
-		userID,                          // userID
-	)
+	// Use storage service to upload file and create media entity
+	media, err := s.storageService.UploadFile(ctx, file, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}
 
 	// Persist the media entity to the repository
 	err = s.mediaRepository.Create(ctx, media)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to persist media entity: %w", err)
 	}
 
 	return media, nil

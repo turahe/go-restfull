@@ -11,6 +11,7 @@ import (
 	domainservices "github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
 	"github.com/turahe/go-restfull/internal/infrastructure/messaging"
+	"github.com/turahe/go-restfull/internal/infrastructure/storage"
 	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
 	"github.com/turahe/go-restfull/pkg/email"
 	"github.com/turahe/go-restfull/pkg/rabbitmq"
@@ -153,9 +154,20 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	// Initialize RabbitMQ service
 	container.RabbitMQService = rabbitmq.NewService()
 
+	// Initialize storage service
+	storageLoader, err := storage.NewStorageLoader("config/storage.yaml")
+	if err != nil {
+		panic(fmt.Errorf("failed to initialize storage service: %w", err))
+	}
+	
+	defaultStorage, err := storageLoader.LoadDefaultStorage()
+	if err != nil {
+		panic(fmt.Errorf("failed to load default storage: %w", err))
+	}
+
 	// Initialize application services
 	// Media service (needed by user service)
-	container.MediaService = appservices.NewMediaService(container.MediaRepository)
+	container.MediaService = appservices.NewMediaService(container.MediaRepository, defaultStorage)
 	// User service
 	container.UserService = appservices.NewUserService(container.UserRepository, container.PasswordService, container.EmailService, container.MediaService)
 	container.RoleService = appservices.NewRoleService(container.RoleRepository)

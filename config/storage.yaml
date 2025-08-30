@@ -1,0 +1,69 @@
+# Storage Configuration
+# Supports multiple storage providers: local, minio, s3, azure, gcs, alibaba, tencent, qiniu
+
+# Default storage provider
+default: local
+
+# Local filesystem storage
+local:
+  provider: local
+  local_path: "./uploads"
+
+# MinIO storage (S3-compatible)
+minio:
+  provider: minio
+  access_key: "your-minio-access-key"
+  secret_key: "your-minio-secret-key"
+  region: "us-east-1"
+  bucket: "your-bucket-name"
+  endpoint: "http://localhost:9000"
+
+# AWS S3 storage
+s3:
+  provider: s3
+  access_key: "your-aws-access-key"
+  secret_key: "your-aws-secret-key"
+  region: "us-east-1"
+  bucket: "your-s3-bucket"
+  endpoint: "https://s3.amazonaws.com"
+
+# Azure Blob Storage
+azure:
+  provider: azure
+  account_name: "your-azure-account"
+  account_key: "your-azure-key"
+  container: "your-container"
+  endpoint: "https://your-account.blob.core.windows.net"
+
+# Google Cloud Storage
+gcs:
+  provider: gcs
+  project_id: "your-gcp-project"
+  bucket: "your-gcs-bucket"
+  credentials_file: "path/to/service-account.json"
+
+# Alibaba Cloud OSS
+alibaba:
+  provider: alibaba
+  access_key: "your-alibaba-access-key"
+  secret_key: "your-alibaba-secret-key"
+  region: "oss-cn-hangzhou"
+  bucket: "your-oss-bucket"
+  endpoint: "https://oss-cn-hangzhou.aliyuncs.com"
+
+# Tencent Cloud COS
+tencent:
+  provider: tencent
+  secret_id: "your-tencent-secret-id"
+  secret_key: "your-tencent-secret-key"
+  region: "ap-beijing"
+  bucket: "your-cos-bucket"
+  endpoint: "https://cos.ap-beijing.myqcloud.com"
+
+# Qiniu Cloud Kodo
+qiniu:
+  provider: qiniu
+  access_key: "your-qiniu-access-key"
+  secret_key: "your-qiniu-secret-key"
+  bucket: "your-qiniu-bucket"
+  domain: "your-qiniu-domain.com"
