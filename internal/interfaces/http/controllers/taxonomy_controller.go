@@ -61,6 +61,15 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get user ID from context (set by JWT middleware)
+	userIDInterface := ctx.Locals("user_id")
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uuid.UUID); ok {
+			taxonomy.CreatedBy = userID
+			taxonomy.UpdatedBy = userID
+		}
+	}
+
 	// Create taxonomy using the entity
 	createdTaxonomy, err := c.taxonomyService.CreateTaxonomy(ctx.Context(), taxonomy)
 	if err != nil {
@@ -187,7 +196,7 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 	// For now, use simple count. In real implementation, get total count
 	total := int64(len(taxonomies))
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollectionResponse(
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollection(
 		taxonomies, page, limit, total, baseURL,
 	))
 }
@@ -212,7 +221,7 @@ func (c *TaxonomyController) GetRootTaxonomies(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // GetTaxonomyHierarchy godoc
@@ -235,7 +244,7 @@ func (c *TaxonomyController) GetTaxonomyHierarchy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // GetTaxonomyChildren godoc
@@ -269,7 +278,7 @@ func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // GetTaxonomyDescendants godoc
@@ -303,7 +312,7 @@ func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // GetTaxonomyAncestors godoc
@@ -337,7 +346,7 @@ func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // GetTaxonomySiblings godoc
@@ -371,7 +380,7 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollectionResponse(taxonomies))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyCollection(taxonomies))
 }
 
 // SearchTaxonomies godoc
@@ -437,7 +446,7 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 	// For now, use simple count. In real implementation, get total count
 	total := int64(len(taxonomies))
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollectionResponse(
+	return ctx.Status(http.StatusOK).JSON(responses.NewPaginatedTaxonomyCollection(
 		taxonomies, page, limit, total, baseURL,
 	))
 }
@@ -502,11 +511,7 @@ func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) erro
 		})
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Taxonomies retrieved successfully",
-		Data:    response,
-	})
+	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
 // UpdateTaxonomy godoc
@@ -566,6 +571,14 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get user ID from context (set by JWT middleware) for updated_by
+	userIDInterface := ctx.Locals("user_id")
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uuid.UUID); ok {
+			updatedTaxonomy.UpdatedBy = userID
+		}
+	}
+
 	// Update taxonomy using the entity
 	taxonomy, err := c.taxonomyService.UpdateTaxonomy(ctx.Context(), updatedTaxonomy)
 	if err != nil {
@@ -575,10 +588,7 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   taxonomy,
-	})
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResource(taxonomy))
 }
 
 // DeleteTaxonomy godoc
@@ -612,8 +622,8 @@ func (c *TaxonomyController) DeleteTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.SuccessResponse{
-		Status:  "success",
-		Message: "Taxonomy deleted successfully",
+	return ctx.Status(http.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Taxonomy deleted successfully",
 	})
 }

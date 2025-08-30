@@ -102,6 +102,8 @@ func (r *CreateTaxonomyRequest) ToEntity() (*entities.Taxonomy, error) {
 		Code:        r.Code,
 		Description: r.Description,
 		ParentID:    parentID,
+		CreatedBy:   uuid.Nil, // Will be set by service layer
+		UpdatedBy:   uuid.Nil, // Will be set by service layer
 	}
 
 	return taxonomy, nil

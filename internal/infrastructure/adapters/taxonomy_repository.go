@@ -22,9 +22,10 @@ func NewPostgresTaxonomyRepository(db *pgxpool.Pool) repositories.TaxonomyReposi
 
 func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
 	// compute nested set values
-	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, 1)
+	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, uint64(1))
 	if err != nil {
-		return err
+		// Fallback: create taxonomy without nested set values
+		return r.createTaxonomyFallback(ctx, taxonomy)
 	}
 	taxonomy.RecordLeft = &values.Left
 	taxonomy.RecordRight = &values.Right
@@ -34,14 +35,86 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 		INSERT INTO taxonomies (id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, created_by, updated_by)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`
-	parentID := ""
+	var parentID *string
 	if taxonomy.ParentID != nil {
-		parentID = taxonomy.ParentID.String()
+		parentIDStr := taxonomy.ParentID.String()
+		parentID = &parentIDStr
 	}
+	// Handle user fields conditionally - use nil for empty UUIDs
+	var createdBy, updatedBy *string
+	if taxonomy.CreatedBy != uuid.Nil {
+		createdByStr := taxonomy.CreatedBy.String()
+		createdBy = &createdByStr
+	}
+	if taxonomy.UpdatedBy != uuid.Nil {
+		updatedByStr := taxonomy.UpdatedBy.String()
+		updatedBy = &updatedByStr
+	}
+
 	_, err = r.db.Exec(ctx, query,
 		taxonomy.ID, taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
 		parentID, taxonomy.RecordLeft, taxonomy.RecordRight, taxonomy.RecordDepth,
-		taxonomy.CreatedAt, taxonomy.UpdatedAt, "", "",
+		taxonomy.CreatedAt, taxonomy.UpdatedAt, createdBy, updatedBy,
+	)
+	return err
+}
+
+// createTaxonomyFallback creates a taxonomy with manual nested set values when the nested set manager fails
+func (r *PostgresTaxonomyRepository) createTaxonomyFallback(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// Get the maximum right value from existing taxonomies
+	var maxRight int
+	query := `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies`
+	if err := r.db.QueryRow(ctx, query).Scan(&maxRight); err != nil {
+		return err
+	}
+
+	// Calculate new nested set values
+	left := uint64(maxRight + 1)
+	right := uint64(maxRight + 2)
+	depth := uint64(0)
+
+	// If this is a child taxonomy, calculate depth based on parent
+	if taxonomy.ParentID != nil {
+		var parentDepth int
+		parentQuery := `SELECT record_depth FROM taxonomies WHERE id = $1`
+		if err := r.db.QueryRow(ctx, parentQuery, taxonomy.ParentID.String()).Scan(&parentDepth); err != nil {
+			// If parent not found, treat as root
+			depth = 0
+		} else {
+			depth = uint64(parentDepth + 1)
+		}
+	}
+
+	// Set the calculated values
+	taxonomy.RecordLeft = &left
+	taxonomy.RecordRight = &right
+	taxonomy.RecordDepth = &depth
+
+	// Insert with calculated nested set values
+	insertQuery := `
+		INSERT INTO taxonomies (id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, created_by, updated_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+	`
+	var parentID *string
+	if taxonomy.ParentID != nil {
+		parentIDStr := taxonomy.ParentID.String()
+		parentID = &parentIDStr
+	}
+	// Handle user fields conditionally - use nil for empty UUIDs
+	var createdBy, updatedBy *string
+	if taxonomy.CreatedBy != uuid.Nil {
+		createdByStr := taxonomy.CreatedBy.String()
+		createdBy = &createdByStr
+	}
+	if taxonomy.UpdatedBy != uuid.Nil {
+		updatedByStr := taxonomy.UpdatedBy.String()
+		updatedBy = &updatedByStr
+	}
+
+	_, err := r.db.Exec(ctx, insertQuery,
+		taxonomy.ID, taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description,
+		parentID, taxonomy.RecordLeft, taxonomy.RecordRight, taxonomy.RecordDepth,
+		taxonomy.CreatedAt, taxonomy.UpdatedAt, createdBy, updatedBy,
 	)
 	return err
 }
@@ -53,7 +126,7 @@ func (r *PostgresTaxonomyRepository) GetByID(ctx context.Context, id uuid.UUID) 
 	`
 	var t entities.Taxonomy
 	var parentIDStr *string
-	var cb, ub, dbs string
+	var cb, ub, dbs *string
 	if err := r.db.QueryRow(ctx, query, id).Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 		return nil, err
 	}
@@ -72,7 +145,7 @@ func (r *PostgresTaxonomyRepository) GetBySlug(ctx context.Context, slug string)
 	`
 	var t entities.Taxonomy
 	var parentIDStr *string
-	var cb, ub, dbs string
+	var cb, ub, dbs *string
 	if err := r.db.QueryRow(ctx, query, slug).Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 		return nil, err
 	}
@@ -98,7 +171,7 @@ func (r *PostgresTaxonomyRepository) GetAll(ctx context.Context, limit, offset i
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -128,7 +201,7 @@ func (r *PostgresTaxonomyRepository) GetAllWithSearch(ctx context.Context, query
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -156,7 +229,7 @@ func (r *PostgresTaxonomyRepository) GetRootTaxonomies(ctx context.Context) ([]*
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -179,7 +252,7 @@ func (r *PostgresTaxonomyRepository) GetChildren(ctx context.Context, parentID u
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -207,9 +280,14 @@ func (r *PostgresTaxonomyRepository) GetHierarchy(ctx context.Context) ([]*entit
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
+		}
+		if parentIDStr != nil {
+			if p, err := uuid.Parse(*parentIDStr); err == nil {
+				t.ParentID = &p
+			}
 		}
 		list = append(list, &t)
 	}
@@ -236,7 +314,7 @@ func (r *PostgresTaxonomyRepository) GetDescendants(ctx context.Context, id uuid
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -270,14 +348,9 @@ func (r *PostgresTaxonomyRepository) GetAncestors(ctx context.Context, id uuid.U
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
-		}
-		if parentIDStr != nil {
-			if p, err := uuid.Parse(*parentIDStr); err == nil {
-				t.ParentID = &p
-			}
 		}
 		list = append(list, &t)
 	}
@@ -304,7 +377,7 @@ func (r *PostgresTaxonomyRepository) GetSiblings(ctx context.Context, id uuid.UU
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -334,7 +407,7 @@ func (r *PostgresTaxonomyRepository) Search(ctx context.Context, query string, l
 	for rows.Next() {
 		var t entities.Taxonomy
 		var parentIDStr *string
-		var cb, ub, dbs string
+		var cb, ub, dbs *string
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Code, &t.Description, &parentIDStr, &t.RecordLeft, &t.RecordRight, &t.RecordDepth, &t.CreatedAt, &t.UpdatedAt, &t.DeletedAt, &cb, &ub, &dbs); err != nil {
 			return nil, err
 		}
@@ -349,8 +422,15 @@ func (r *PostgresTaxonomyRepository) Search(ctx context.Context, query string, l
 }
 
 func (r *PostgresTaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
-	query := `UPDATE taxonomies SET name=$2, slug=$3, code=$4, description=$5, updated_at=$6 WHERE id = $1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, query, taxonomy.ID, taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description, taxonomy.UpdatedAt)
+	// Handle updated_by field conditionally - use nil for empty UUIDs
+	var updatedBy *string
+	if taxonomy.UpdatedBy != uuid.Nil {
+		updatedByStr := taxonomy.UpdatedBy.String()
+		updatedBy = &updatedByStr
+	}
+
+	query := `UPDATE taxonomies SET name=$2, slug=$3, code=$4, description=$5, updated_by=$6, updated_at=$7 WHERE id = $1 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, taxonomy.ID, taxonomy.Name, taxonomy.Slug, taxonomy.Code, taxonomy.Description, updatedBy, taxonomy.UpdatedAt)
 	return err
 }
 

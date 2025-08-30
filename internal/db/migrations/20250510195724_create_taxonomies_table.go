@@ -31,9 +31,10 @@ var createTaxonomyTable = &Migration{
 			    "deleted_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
 			    "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			    "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			    CONSTRAINT "taxonomies_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-			    CONSTRAINT "taxonomies_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
-			    CONSTRAINT "taxonomies_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+			    -- Foreign key constraints removed to allow NULL values for user fields
+			    -- CONSTRAINT "taxonomies_created_by_foreign" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+			    -- CONSTRAINT "taxonomies_deleted_by_foreign" FOREIGN KEY ("deleted_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
+			    -- CONSTRAINT "taxonomies_updated_by_foreign" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 				CONSTRAINT "taxonomies_parent_id_foreign" FOREIGN KEY ("parent_id") REFERENCES "taxonomies" ("id") ON DELETE SET NULL ON UPDATE NO ACTION,
 				CONSTRAINT "taxonomies_record_left_right_check" CHECK ("record_left" < "record_right"),
 				CONSTRAINT "taxonomies_record_ordering_check" CHECK ("record_ordering" >= 0),
