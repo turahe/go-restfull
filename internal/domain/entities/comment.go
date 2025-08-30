@@ -45,7 +45,8 @@ type Comment struct {
 	// Status indicates the current moderation state of the comment
 	Status CommentStatus `json:"status"`
 
-	Content string `json:content`
+	// Content is the raw text content of the comment (typically markdown)
+	Content string `json:"content"`
 
 	// RecordLeft is used for nested set model implementation (left boundary)
 	// This field enables efficient tree traversal and querying
@@ -85,8 +86,10 @@ type Comment struct {
 // Parameters:
 //   - modelType: The type of entity being commented on (e.g., "post", "article")
 //   - modelID: The ID of the entity being commented on
+//   - content: The text content of the comment
 //   - parentID: Optional parent comment ID for replies, nil for top-level comments
 //   - status: The initial status of the comment (defaults to "pending" if empty)
+//   - createdBy: The ID of the user creating the comment
 //
 // Returns:
 //   - A new Comment instance with generated ID and timestamps
@@ -94,17 +97,23 @@ type Comment struct {
 //
 // Example:
 //
-//	comment, err := NewComment("post", postID, nil, CommentStatusPending)
+//	comment, err := NewComment("post", postID, "Great post!", nil, CommentStatusPending, userID)
 //	if err != nil {
 //	    // handle error
 //	}
-func NewComment(modelType string, modelID uuid.UUID, parentID *uuid.UUID, status CommentStatus) (*Comment, error) {
+func NewComment(modelType string, modelID uuid.UUID, content string, parentID *uuid.UUID, status CommentStatus, createdBy uuid.UUID) (*Comment, error) {
 	// Validate required fields
 	if modelType == "" {
 		return nil, errors.New("model_type is required")
 	}
 	if modelID == uuid.Nil {
 		return nil, errors.New("model_id is required")
+	}
+	if content == "" {
+		return nil, errors.New("content is required")
+	}
+	if createdBy == uuid.Nil {
+		return nil, errors.New("created_by is required")
 	}
 
 	// Set default status if none provided
@@ -118,8 +127,11 @@ func NewComment(modelType string, modelID uuid.UUID, parentID *uuid.UUID, status
 		ID:        uuid.New(),
 		ModelID:   modelID,
 		ModelType: modelType,
+		Content:   content,
 		ParentID:  parentID,
 		Status:    status,
+		CreatedBy: createdBy,
+		UpdatedBy: createdBy,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}, nil

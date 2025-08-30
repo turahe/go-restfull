@@ -5,9 +5,13 @@ package adapters
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/gomarkdown/markdown"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,6 +30,8 @@ type PostgresCommentRepository struct {
 	db *pgxpool.Pool
 	// redisClient holds the Redis client for caching operations
 	redisClient redis.Cmdable
+	// nestedSetManager handles nested set operations for hierarchical comment structures
+	nestedSetManager *nestedset.NestedSetManager
 }
 
 // NewPostgresCommentRepository creates a new PostgreSQL comment repository instance.
@@ -43,6 +49,7 @@ func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) r
 		BaseTransactionalRepository: NewBaseTransactionalRepository(db),
 		db:                          db,
 		redisClient:                 redisClient,
+		nestedSetManager:            nestedset.NewNestedSetManager(db),
 	}
 }
 
@@ -59,7 +66,32 @@ func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) r
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entities.Comment) error {
-	query := `
+	// Calculate nested set values using the nested set manager
+	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "comments", comment.ParentID, 0)
+	if err != nil {
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
+	}
+
+	// Convert markdown to HTML
+	contentHTML := string(markdown.ToHTML([]byte(comment.Content), nil, nil))
+
+	// Use a transaction to ensure both comment and content are inserted atomically
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			// Rollback on error
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				// Log rollback error but return the original error
+				fmt.Printf("failed to rollback transaction: %v\n", rollbackErr)
+			}
+		}
+	}()
+
+	// Insert comment with nested set values
+	commentQuery := `
 		INSERT INTO comments (
 			id, model_type, model_id, status, parent_id, 
 			record_left, record_right, record_depth, record_ordering,
@@ -67,17 +99,53 @@ func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entitie
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 		)`
+
 	parentIDStr := ""
 	if comment.ParentID != nil {
 		parentIDStr = comment.ParentID.String()
 	}
-	_, err := r.db.Exec(ctx, query,
+
+	_, err = tx.Exec(ctx, commentQuery,
 		comment.ID, comment.ModelType, comment.ModelID, comment.Status,
-		parentIDStr, comment.RecordLeft, comment.RecordRight,
-		comment.RecordDepth, comment.RecordOrdering,
+		parentIDStr, nestedSetValues.Left, nestedSetValues.Right,
+		nestedSetValues.Depth, nestedSetValues.Ordering,
 		comment.CreatedBy, comment.UpdatedBy, comment.CreatedAt, comment.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to insert comment: %w", err)
+	}
+
+	// Insert content
+	contentQuery := `
+		INSERT INTO contents (id, model_type, model_id, content_raw, content_html, created_by, updated_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+
+	contentID := uuid.New()
+	now := time.Now()
+	_, err = tx.Exec(ctx, contentQuery,
+		contentID,
+		"comment",
+		comment.ID,
+		comment.Content,
+		contentHTML,
+		comment.CreatedBy,
+		comment.UpdatedBy,
+		now,
+		now,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert content: %w", err)
+	}
+
+	// Update the comment entity with the calculated nested set values
+	comment.RecordLeft = &nestedSetValues.Left
+	comment.RecordRight = &nestedSetValues.Right
+	comment.RecordDepth = &nestedSetValues.Depth
+	comment.RecordOrdering = &nestedSetValues.Ordering
+
+	// Commit the transaction
+	return tx.Commit(ctx)
 }
 
 // GetByID retrieves a comment entity by its unique identifier.
