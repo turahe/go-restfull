@@ -7,8 +7,6 @@ services:
     container_name: go-restfull-prod
     ports:
       - "8000:8000"
-    volumes:
-      - ./config/config.prod.yaml:/app/config/config.yaml
     environment:
       - ENV=production
       - TZ=Asia/Jakarta
@@ -78,7 +76,7 @@ services:
       - go-restfull-network
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -111,6 +109,11 @@ services:
     networks:
       - go-restfull-network
     restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   meilisearch:
     image: getmeili/meilisearch:latest
@@ -125,9 +128,9 @@ services:
       - go-restfull-network
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
 
   waha:
@@ -142,7 +145,7 @@ services:
       - go-restfull-network
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/sessions"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/sessions"]
       interval: 30s
       timeout: 10s
       retries: 3

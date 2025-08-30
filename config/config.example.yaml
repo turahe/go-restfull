@@ -22,7 +22,7 @@ log:
 
 # Legacy single database configuration (for backward compatibility)
 postgres:
-  host: "localhost" # use "host.docker.internal" if you run app inside docker container
+  host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
   port: 5432
   database: "my_db"
   schema: "public"
@@ -35,7 +35,7 @@ postgres:
 databases:
   # Primary database (default)
   - name: "primary"
-    host: "localhost"
+    host: "host.docker.internal"
     port: 5432
     database: "primary_db"
     schema: "public"
@@ -51,7 +51,7 @@ databases:
 
   # Secondary database (read replica)
   - name: "secondary"
-    host: "localhost"
+    host: "host.docker.internal"
     port: 5433
     database: "secondary_db"
     schema: "public"
@@ -83,7 +83,7 @@ databases:
 
   # Testing database
   - name: "testing"
-    host: "localhost"
+    host: "host.docker.internal"
     port: 5434
     database: "testing_db"
     schema: "test"
@@ -100,7 +100,7 @@ databases:
 # RabbitMQ configuration
 rabbitmq:
   enable: true
-  host: "localhost"
+  host: "host.docker.internal"
   port: 5672
   username: "guest"
   password: "guest"
@@ -181,7 +181,7 @@ rabbitmq:
 # Meilisearch configuration
 meilisearch:
   enable: true
-  host: "localhost"
+  host: "host.docker.internal"
   port: 7700
   masterKey: "change_me"
   apiKey: "your-api-key"
@@ -247,7 +247,7 @@ meilisearch:
           - "updated_at"
 
 Redis:
-  - host: "localhost"
+  - host: "host.docker.internal"
     port: 6379
     password: ""
     database: 0
@@ -268,7 +268,7 @@ scheduler:
 
 minio:
   enable: false
-  endpoint: "localhost:9000"
+  endpoint: "host.docker.internal:9000"
   accessKeyID: "minioadmin"
   accessKeySecret: "minioadmin"
   useSSL: false

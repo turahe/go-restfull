@@ -35,7 +35,7 @@ ENV GO111MODULE=on
 ENV TZ=Asia/Jakarta
 
 # Install runtime dependencies
-RUN apk add --no-cache git gcc g++ ca-certificates
+RUN apk add --no-cache git gcc g++ ca-certificates wget
 
 # Set working directory
 WORKDIR /app
@@ -51,11 +51,10 @@ RUN go install github.com/air-verse/air@latest
 COPY . .
 
 # Create configs directory for external configuration mounting
-RUN mkdir -p /configs
+RUN mkdir -p /configs /app/config
 
 # Copy default configuration
 COPY config/config.example.yaml config/config.yaml
-COPY config/config.example.yaml /configs/default.yaml
 COPY config/rbac_model.conf config/rbac_model.conf
 COPY config/rbac_policy.csv config/rbac_policy.csv
 
@@ -78,7 +77,7 @@ ENV TZ=Asia/Jakarta
 ENV ENV=staging
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
@@ -91,11 +90,10 @@ WORKDIR /app
 COPY --from=builder /app/webapi /app/webapi
 
 # Create configs directory for external configuration mounting
-RUN mkdir -p /configs
+RUN mkdir -p /configs /app/config
 
 # Copy default configuration for staging
 COPY config/config.example.yaml config/config.yaml
-COPY config/config.example.yaml /configs/default.yaml
 COPY config/rbac_model.conf config/rbac_model.conf
 COPY config/rbac_policy.csv config/rbac_policy.csv
 
@@ -124,7 +122,7 @@ ENV TZ=Asia/Jakarta
 ENV ENV=production
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
@@ -137,11 +135,10 @@ WORKDIR /app
 COPY --from=builder /app/webapi /app/webapi
 
 # Create configs directory for external configuration mounting
-RUN mkdir -p /configs
+RUN mkdir -p /configs /app/config
 
 # Copy default configuration for production
 COPY config/config.example.yaml config/config.yaml
-COPY config/config.example.yaml /configs/default.yaml
 COPY config/rbac_model.conf config/rbac_model.conf
 COPY config/rbac_policy.csv config/rbac_policy.csv
 
