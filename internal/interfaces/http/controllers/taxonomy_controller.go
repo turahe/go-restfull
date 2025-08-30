@@ -32,7 +32,7 @@ func NewTaxonomyController(taxonomyService ports.TaxonomyService) *TaxonomyContr
 //	@Produce		json
 //	@Param			request	body		requests.CreateTaxonomyRequest						true	"Taxonomy creation request"
 //	@Success		201		{object}	responses.TaxonomyResourceResponse	"Taxonomy created successfully"
-//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		422		{object}	responses.ErrorResponse								"Validation errors"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies [post]
 //	@Security		BearerAuth
@@ -46,7 +46,7 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 	}
 
 	if err := req.Validate(); err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+		return ctx.Status(http.StatusUnprocessableEntity).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: err.Error(),
 		})
@@ -70,7 +70,7 @@ func (c *TaxonomyController) CreateTaxonomy(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.NewTaxonomyResourceResponse(createdTaxonomy))
+	return ctx.Status(http.StatusCreated).JSON(responses.NewTaxonomyResource(createdTaxonomy))
 }
 
 // GetTaxonomyByID godoc
@@ -104,7 +104,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResourceResponse(taxonomy))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResource(taxonomy))
 }
 
 // GetTaxonomyBySlug godoc
@@ -130,7 +130,7 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResourceResponse(taxonomy))
+	return ctx.Status(http.StatusOK).JSON(responses.NewTaxonomyResource(taxonomy))
 }
 
 // GetTaxonomies godoc
@@ -519,7 +519,7 @@ func (c *TaxonomyController) SearchTaxonomiesWithPagination(ctx *fiber.Ctx) erro
 //	@Param			id		path		string								true	"Taxonomy ID"	format(uuid)
 //	@Param			request	body		requests.UpdateTaxonomyRequest						true	"Taxonomy update request"
 //	@Success		200		{object}	responses.SuccessResponse{data=entities.Taxonomy}	"Taxonomy updated successfully"
-//	@Failure		400		{object}	responses.ErrorResponse								"Bad request - Invalid input data"
+//	@Failure		422		{object}	responses.ErrorResponse								"Validation errors"
 //	@Failure		500		{object}	responses.ErrorResponse								"Internal server error"
 //	@Router			/api/v1/taxonomies/{id} [put]
 //	@Security		BearerAuth
@@ -542,7 +542,7 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 	}
 
 	if err := req.Validate(); err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
+		return ctx.Status(http.StatusUnprocessableEntity).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: err.Error(),
 		})

@@ -5,6 +5,9 @@
 package requests
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 
@@ -18,14 +21,42 @@ import (
 type CreateTaxonomyRequest struct {
 	// Name is the display name for the taxonomy (required, 1-255 characters)
 	Name string `json:"name" validate:"required,min=1,max=255"`
-	// Slug is the URL-friendly identifier for the taxonomy (required, 1-255 characters)
-	Slug string `json:"slug" validate:"required,min=1,max=255"`
+	// Slug is the URL-friendly identifier for the taxonomy (optional, 1-255 characters if provided, auto-generated from name if empty)
+	Slug string `json:"slug,omitempty" validate:"omitempty,min=1,max=255"`
 	// Code is a unique identifier for the taxonomy (optional, max 50 characters)
 	Code string `json:"code,omitempty" validate:"max=50"`
 	// Description provides additional details about the taxonomy (optional, max 1000 characters)
 	Description string `json:"description,omitempty" validate:"max=1000"`
 	// ParentID is the UUID of the parent taxonomy for hierarchical structures (optional, must be valid UUID if provided)
 	ParentID string `json:"parent_id,omitempty" validate:"omitempty,uuid4"`
+}
+
+// generateTaxonomySlug creates a URL-friendly slug from a given string.
+// This function converts the input to lowercase, replaces spaces and special characters with hyphens,
+// and removes any non-alphanumeric characters except hyphens.
+//
+// Parameters:
+//   - input: The string to convert to a slug
+//
+// Returns:
+//   - string: The generated slug
+func generateTaxonomySlug(input string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(input)
+
+	// Replace spaces and special characters with hyphens
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	slug = re.ReplaceAllString(slug, "-")
+
+	// Remove leading and trailing hyphens
+	slug = strings.Trim(slug, "-")
+
+	// If the result is empty, use a default slug
+	if slug == "" {
+		slug = "taxonomy"
+	}
+
+	return slug
 }
 
 // Validate performs validation on the CreateTaxonomyRequest using the validator package.
@@ -57,11 +88,17 @@ func (r *CreateTaxonomyRequest) ToEntity() (*entities.Taxonomy, error) {
 		parentID = &parsedID
 	}
 
+	// Generate slug from name if not provided
+	slug := r.Slug
+	if slug == "" {
+		slug = generateTaxonomySlug(r.Name)
+	}
+
 	// Create and populate the taxonomy entity
 	taxonomy := &entities.Taxonomy{
 		ID:          uuid.New(),
 		Name:        r.Name,
-		Slug:        r.Slug,
+		Slug:        slug,
 		Code:        r.Code,
 		Description: r.Description,
 		ParentID:    parentID,
@@ -112,6 +149,10 @@ func (r *UpdateTaxonomyRequest) ToEntity(existingTaxonomy *entities.Taxonomy) (*
 	// Update fields only if provided in the request
 	if r.Name != "" {
 		existingTaxonomy.Name = r.Name
+		// If name is updated but slug is not provided, regenerate slug from new name
+		if r.Slug == "" {
+			existingTaxonomy.Slug = generateTaxonomySlug(r.Name)
+		}
 	}
 	if r.Slug != "" {
 		existingTaxonomy.Slug = r.Slug

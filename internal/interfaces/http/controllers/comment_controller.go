@@ -177,7 +177,7 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(comment, nil, nil))
 }
 
 // CreateComment godoc
@@ -228,10 +228,7 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	response := responses.NewCommentResourceResponse(createdComment, nil, nil)
-	response.ResponseCode = fiber.StatusCreated
-	response.ResponseMessage = "Comment created successfully"
-	return ctx.Status(fiber.StatusCreated).JSON(response)
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewCommentResource(createdComment, nil, nil))
 }
 
 // UpdateComment godoc
@@ -320,7 +317,7 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(comment, nil, nil))
 }
 
 // DeleteComment godoc
@@ -447,7 +444,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(comment, nil, nil))
 }
 
 // RejectComment godoc
@@ -514,5 +511,5 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResourceResponse(comment, nil, nil))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(comment, nil, nil))
 }

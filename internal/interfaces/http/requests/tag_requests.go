@@ -7,6 +7,8 @@ package requests
 import (
 	"errors"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -20,8 +22,8 @@ import (
 type CreateTagRequest struct {
 	// Name is the display name for the tag (required)
 	Name string `json:"name"`
-	// Slug is the URL-friendly identifier for the tag (required, lowercase, alphanumeric + hyphens only)
-	Slug string `json:"slug"`
+	// Slug is the URL-friendly identifier for the tag (optional, auto-generated from name if not provided, lowercase, alphanumeric + hyphens only)
+	Slug string `json:"slug,omitempty"`
 	// Description provides additional details about the tag (optional)
 	Description string `json:"description"`
 	// Color is the hex color code for visual representation (optional, must be valid hex format if provided)
@@ -33,8 +35,9 @@ type CreateTagRequest struct {
 // slug and color fields using regex patterns.
 //
 // Validation Rules:
-// - Name and slug are required
-// - Slug must contain only lowercase letters, numbers, and hyphens
+// - Name is required
+// - Slug is optional (auto-generated from name if not provided)
+// - If slug is provided, it must contain only lowercase letters, numbers, and hyphens
 // - Color must be a valid 6-digit hex color code if provided
 //
 // Returns:
@@ -44,14 +47,14 @@ func (r *CreateTagRequest) Validate() error {
 	if r.Name == "" {
 		return errors.New("name is required")
 	}
-	if r.Slug == "" {
-		return errors.New("slug is required")
-	}
+	// Slug is optional - will be auto-generated from name if not provided
 
-	// Validate slug format (alphanumeric and hyphens only, lowercase)
-	slugRegex := regexp.MustCompile(`^[a-z0-9-]+$`)
-	if !slugRegex.MatchString(r.Slug) {
-		return errors.New("slug must contain only lowercase letters, numbers, and hyphens")
+	// Validate slug format if provided (alphanumeric and hyphens only, lowercase)
+	if r.Slug != "" {
+		slugRegex := regexp.MustCompile(`^[a-z0-9-]+$`)
+		if !slugRegex.MatchString(r.Slug) {
+			return errors.New("slug must contain only lowercase letters, numbers, and hyphens")
+		}
 	}
 
 	// Validate color format (hex color) if provided
@@ -65,6 +68,34 @@ func (r *CreateTagRequest) Validate() error {
 	return nil
 }
 
+// generateTagSlug creates a URL-friendly slug from a given string.
+// This function converts the input to lowercase, replaces spaces and special characters with hyphens,
+// and removes any non-alphanumeric characters except hyphens.
+//
+// Parameters:
+//   - input: The string to convert to a slug
+//
+// Returns:
+//   - string: The generated slug
+func generateTagSlug(input string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(input)
+
+	// Replace spaces and special characters with hyphens
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	slug = re.ReplaceAllString(slug, "-")
+
+	// Remove leading and trailing hyphens
+	slug = strings.Trim(slug, "-")
+
+	// If the result is empty, use a default slug
+	if slug == "" {
+		slug = "tag"
+	}
+
+	return slug
+}
+
 // ToEntity transforms the CreateTagRequest to a Tag domain entity.
 // This method creates a new tag with a generated UUID and populates
 // all the provided fields for persistence.
@@ -72,12 +103,23 @@ func (r *CreateTagRequest) Validate() error {
 // Returns:
 //   - *entities.Tag: The created tag entity
 func (r *CreateTagRequest) ToEntity() *entities.Tag {
+	// Generate slug from name if not provided
+	slug := r.Slug
+	if slug == "" {
+		slug = generateTagSlug(r.Name)
+	}
+
+	now := time.Now()
 	return &entities.Tag{
 		ID:          uuid.New(),
 		Name:        r.Name,
-		Slug:        r.Slug,
+		Slug:        slug,
 		Description: r.Description,
 		Color:       r.Color,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		CreatedBy:   uuid.Nil, // Will be set by service layer
+		UpdatedBy:   uuid.Nil, // Will be set by service layer
 	}
 }
 
@@ -100,26 +142,23 @@ type UpdateTagRequest struct {
 // only if they are provided in the update request.
 //
 // Validation Rules:
-// - Name and slug are required if provided
-// - Slug must contain only lowercase letters, numbers, and hyphens
+// - Name is optional (if provided, slug will be auto-generated if not provided)
+// - Slug is optional (auto-generated from name if name is provided but slug is not)
+// - If slug is provided, it must contain only lowercase letters, numbers, and hyphens
 // - Color must be a valid 6-digit hex color code if provided
 //
 // Returns:
 //   - error: Validation error if any provided field fails validation, nil if valid
 func (r *UpdateTagRequest) Validate() error {
-	// Validate name if provided
-	if r.Name == "" {
-		return errors.New("name is required")
-	}
-	// Validate slug if provided
-	if r.Slug == "" {
-		return errors.New("slug is required")
-	}
+	// Name is optional in updates
+	// Slug is optional - will be auto-generated from name if name is provided but slug is not
 
-	// Validate slug format (alphanumeric and hyphens only, lowercase)
-	slugRegex := regexp.MustCompile(`^[a-z0-9-]+$`)
-	if !slugRegex.MatchString(r.Slug) {
-		return errors.New("slug must contain only lowercase letters, numbers, and hyphens")
+	// Validate slug format if provided (alphanumeric and hyphens only, lowercase)
+	if r.Slug != "" {
+		slugRegex := regexp.MustCompile(`^[a-z0-9-]+$`)
+		if !slugRegex.MatchString(r.Slug) {
+			return errors.New("slug must contain only lowercase letters, numbers, and hyphens")
+		}
 	}
 
 	// Validate color format (hex color) if provided
@@ -146,6 +185,10 @@ func (r *UpdateTagRequest) ToEntity(existingTag *entities.Tag) *entities.Tag {
 	// Update fields only if provided in the request
 	if r.Name != "" {
 		existingTag.Name = r.Name
+		// If name is updated but slug is not provided, regenerate slug from new name
+		if r.Slug == "" {
+			existingTag.Slug = generateTagSlug(r.Name)
+		}
 	}
 	if r.Slug != "" {
 		existingTag.Slug = r.Slug
@@ -156,6 +199,9 @@ func (r *UpdateTagRequest) ToEntity(existingTag *entities.Tag) *entities.Tag {
 	if r.Color != "" {
 		existingTag.Color = r.Color
 	}
+
+	// Always update the updated_at timestamp
+	existingTag.UpdatedAt = time.Now()
 
 	return existingTag
 }

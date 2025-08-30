@@ -53,8 +53,20 @@ func NewPostgresTagRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repos
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) Create(ctx context.Context, tag *entities.Tag) error {
-	query := `INSERT INTO tags (id, name, slug, color, created_by, updated_by, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
-	_, err := r.db.Exec(ctx, query, tag.ID, tag.Name, tag.Slug, tag.Color, tag.CreatedBy, tag.UpdatedBy, tag.CreatedAt, tag.UpdatedAt)
+	var query string
+	var args []interface{}
+
+	if tag.CreatedBy != uuid.Nil && tag.UpdatedBy != uuid.Nil {
+		// Both user fields are provided
+		query = `INSERT INTO tags (id, name, slug, description, color, created_by, updated_by, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`
+		args = []interface{}{tag.ID, tag.Name, tag.Slug, tag.Description, tag.Color, tag.CreatedBy, tag.UpdatedBy, tag.CreatedAt, tag.UpdatedAt}
+	} else {
+		// User fields are not provided, insert without them
+		query = `INSERT INTO tags (id, name, slug, description, color, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`
+		args = []interface{}{tag.ID, tag.Name, tag.Slug, tag.Description, tag.Color, tag.CreatedAt, tag.UpdatedAt}
+	}
+
+	_, err := r.db.Exec(ctx, query, args...)
 	return err
 }
 
@@ -70,9 +82,9 @@ func (r *PostgresTagRepository) Create(ctx context.Context, tag *entities.Tag) e
 //   - *entities.Tag: The found tag entity, or nil if not found
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Tag, error) {
-	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE id = $1 AND deleted_at IS NULL`
+	query := `SELECT id, name, slug, description, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE id = $1 AND deleted_at IS NULL`
 	var tag entities.Tag
-	if err := r.db.QueryRow(ctx, query, id).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+	if err := r.db.QueryRow(ctx, query, id).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Description, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
 		return nil, err
 	}
 	return &tag, nil
@@ -90,9 +102,9 @@ func (r *PostgresTagRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 //   - *entities.Tag: The found tag entity, or nil if not found
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) GetBySlug(ctx context.Context, slug string) (*entities.Tag, error) {
-	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE slug = $1 AND deleted_at IS NULL`
+	query := `SELECT id, name, slug, description, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE slug = $1 AND deleted_at IS NULL`
 	var tag entities.Tag
-	if err := r.db.QueryRow(ctx, query, slug).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+	if err := r.db.QueryRow(ctx, query, slug).Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Description, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
 		return nil, err
 	}
 	return &tag, nil
@@ -111,7 +123,7 @@ func (r *PostgresTagRepository) GetBySlug(ctx context.Context, slug string) (*en
 //   - []*entities.Tag: List of tag entities
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Tag, error) {
-	query := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, name, slug, description, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
@@ -120,7 +132,7 @@ func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) (
 	var tags []*entities.Tag
 	for rows.Next() {
 		var tag entities.Tag
-		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Description, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
 			return nil, err
 		}
 		tags = append(tags, &tag)
@@ -143,7 +155,7 @@ func (r *PostgresTagRepository) GetAll(ctx context.Context, limit, offset int) (
 //   - []*entities.Tag: List of matching tag entities
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit, offset int) ([]*entities.Tag, error) {
-	q := `SELECT id, name, slug, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL AND (name ILIKE $1 OR slug ILIKE $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	q := `SELECT id, name, slug, description, color, created_by, updated_by, created_at, updated_at, deleted_at FROM tags WHERE deleted_at IS NULL AND (name ILIKE $1 OR slug ILIKE $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	pattern := "%" + strings.ToLower(query) + "%"
 	rows, err := r.db.Query(ctx, q, pattern, limit, offset)
 	if err != nil {
@@ -153,7 +165,7 @@ func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit,
 	var tags []*entities.Tag
 	for rows.Next() {
 		var tag entities.Tag
-		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Slug, &tag.Description, &tag.Color, &tag.CreatedBy, &tag.UpdatedBy, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt); err != nil {
 			return nil, err
 		}
 		tags = append(tags, &tag)
@@ -173,8 +185,20 @@ func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit,
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) Update(ctx context.Context, tag *entities.Tag) error {
-	query := `UPDATE tags SET name=$1, slug=$2, color=$3, updated_at=$4, updated_by=$5 WHERE id=$6 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, query, tag.Name, tag.Slug, tag.Color, tag.UpdatedAt, tag.UpdatedBy, tag.ID)
+	var query string
+	var args []interface{}
+
+	if tag.UpdatedBy != uuid.Nil {
+		// updated_by field is provided
+		query = `UPDATE tags SET name=$1, slug=$2, description=$3, color=$4, updated_by=$5, updated_at=$6 WHERE id=$7 AND deleted_at IS NULL`
+		args = []interface{}{tag.Name, tag.Slug, tag.Description, tag.Color, tag.UpdatedBy, tag.UpdatedAt, tag.ID}
+	} else {
+		// updated_by field is not provided
+		query = `UPDATE tags SET name=$1, slug=$2, description=$3, color=$4, updated_at=$5 WHERE id=$6 AND deleted_at IS NULL`
+		args = []interface{}{tag.Name, tag.Slug, tag.Description, tag.Color, tag.UpdatedAt, tag.ID}
+	}
+
+	_, err := r.db.Exec(ctx, query, args...)
 	return err
 }
 

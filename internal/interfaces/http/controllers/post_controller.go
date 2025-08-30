@@ -97,7 +97,7 @@ func (c *PostController) CreatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(responses.NewPostResourceResponse(createdPost))
+	return ctx.Status(http.StatusCreated).JSON(responses.NewPostResource(createdPost))
 }
 
 // GetPostByID handles GET /posts/:id
@@ -131,7 +131,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewPostResourceResponse(post))
+	return ctx.JSON(responses.NewPostResource(post))
 }
 
 // GetPostBySlug handles GET /posts/slug/:slug
@@ -164,7 +164,7 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewPostResourceResponse(post))
+	return ctx.JSON(responses.NewPostResource(post))
 }
 
 // GetPosts handles GET /posts
@@ -201,7 +201,7 @@ func (c *PostController) GetPosts(ctx *fiber.Ctx) error {
 	// Get base URL for pagination links
 	baseURL := ctx.OriginalURL()
 
-	return ctx.JSON(responses.NewPaginatedPostCollectionResponse(
+	return ctx.JSON(responses.NewPaginatedPostCollection(
 		posts, pagination.Page, pagination.PerPage, total, baseURL,
 	))
 }
@@ -249,7 +249,7 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 	// Get base URL for pagination links
 	baseURL := ctx.OriginalURL()
 
-	return ctx.JSON(responses.NewPaginatedPostCollectionResponse(
+	return ctx.JSON(responses.NewPaginatedPostCollection(
 		posts, pagination.Page, pagination.PerPage, total, baseURL,
 	))
 }
@@ -331,7 +331,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewPostResourceResponse(post))
+	return ctx.JSON(responses.NewPostResource(post))
 }
 
 // DeletePost handles DELETE /posts/:id

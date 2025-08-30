@@ -87,7 +87,7 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 	// Build base URL for pagination links
 	baseURL := fmt.Sprintf("%s/roles", c.baseURL)
 
-	return ctx.JSON(responses.NewPaginatedRoleCollectionResponse(roles, page, limit, int(total), baseURL))
+	return ctx.JSON(responses.NewPaginatedRoleCollection(roles, page, limit, int(total), baseURL))
 }
 
 // GetRoleByID godoc
@@ -119,7 +119,7 @@ func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleResourceResponse(role))
+	return ctx.JSON(responses.NewRoleResource(role))
 }
 
 // GetRoleBySlug godoc
@@ -151,7 +151,7 @@ func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleResourceResponse(role))
+	return ctx.JSON(responses.NewRoleResource(role))
 }
 
 // CreateRole godoc
@@ -188,10 +188,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	response := responses.NewRoleResourceResponse(role)
-	response.ResponseCode = fiber.StatusCreated
-	response.ResponseMessage = "Role created successfully"
-	return ctx.Status(fiber.StatusCreated).JSON(response)
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewRoleResource(role))
 }
 
 // UpdateRole godoc
@@ -237,7 +234,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleResourceResponse(role))
+	return ctx.JSON(responses.NewRoleResource(role))
 }
 
 // DeleteRole godoc
@@ -304,7 +301,7 @@ func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleResourceResponse(role))
+	return ctx.JSON(responses.NewRoleResource(role))
 }
 
 // DeactivateRole godoc
@@ -336,7 +333,7 @@ func (c *RoleController) DeactivateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleResourceResponse(role))
+	return ctx.JSON(responses.NewRoleResource(role))
 }
 
 // SearchRoles godoc
@@ -372,5 +369,5 @@ func (c *RoleController) SearchRoles(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.NewRoleCollectionResponse(roles))
+	return ctx.JSON(responses.NewRoleCollection(roles))
 }

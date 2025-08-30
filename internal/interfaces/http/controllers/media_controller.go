@@ -118,7 +118,7 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	baseURL := ctx.BaseURL() + ctx.Path()
 
 	// Return paginated media collection response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedMediaCollectionResponse(
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedMediaCollection(
 		media, page, limit, int(total), baseURL,
 	))
 }
@@ -166,7 +166,7 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 	}
 
 	// Return media resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResourceResponse(media))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResource(media))
 }
 
 // CreateMedia handles POST /v1/media requests
@@ -188,8 +188,8 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 //	@Router			/media [post]
 func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 	// Get user ID from context (assuming it's set by JWT middleware)
-	userIDStr := ctx.Locals("user_id")
-	if userIDStr == nil {
+	userIDInterface := ctx.Locals("user_id")
+	if userIDInterface == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "User not authenticated",
@@ -197,11 +197,12 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 		})
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
+	// Type assert directly to uuid.UUID
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
-			ResponseMessage: "Invalid user ID",
+			ResponseMessage: "Invalid user ID format",
 			Data:            nil,
 		})
 	}
@@ -227,10 +228,7 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 	}
 
 	// Return media resource response
-	response := responses.NewMediaResourceResponse(media)
-	response.ResponseCode = fiber.StatusCreated
-	response.ResponseMessage = "Media uploaded successfully"
-	return ctx.Status(fiber.StatusCreated).JSON(response)
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewMediaResource(media))
 }
 
 // UpdateMedia handles PUT /v1/media/:id requests
@@ -296,7 +294,7 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 	}
 
 	// Return media resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResourceResponse(media))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMediaResource(media))
 }
 
 // DeleteMedia handles DELETE /v1/media/:id requests

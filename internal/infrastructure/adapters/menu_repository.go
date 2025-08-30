@@ -188,12 +188,24 @@ func (r *PostgresMenuRepository) GetAll(ctx context.Context, limit, offset int) 
 	for rows.Next() {
 		var m entities.Menu
 		var parentIDStr *string
-		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &m.CreatedBy, &m.UpdatedBy, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
+		var createdByStr, updatedByStr string
+		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &createdByStr, &updatedByStr, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
 			return nil, err
 		}
 		if parentIDStr != nil {
 			if p, err := uuid.Parse(*parentIDStr); err == nil {
 				m.ParentID = &p
+			}
+		}
+		// Convert string fields to UUID
+		if createdByStr != "" {
+			if createdBy, err := uuid.Parse(createdByStr); err == nil {
+				m.CreatedBy = createdBy
+			}
+		}
+		if updatedByStr != "" {
+			if updatedBy, err := uuid.Parse(updatedByStr); err == nil {
+				m.UpdatedBy = updatedBy
 			}
 		}
 		menus = append(menus, &m)
@@ -216,12 +228,24 @@ func (r *PostgresMenuRepository) GetActive(ctx context.Context, limit, offset in
 	for rows.Next() {
 		var m entities.Menu
 		var parentIDStr *string
-		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &m.CreatedBy, &m.UpdatedBy, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
+		var createdByStr, updatedByStr string
+		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &createdByStr, &updatedByStr, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
 			return nil, err
 		}
 		if parentIDStr != nil {
 			if p, err := uuid.Parse(*parentIDStr); err == nil {
 				m.ParentID = &p
+			}
+		}
+		// Convert string fields to UUID
+		if createdByStr != "" {
+			if createdBy, err := uuid.Parse(createdByStr); err == nil {
+				m.CreatedBy = createdBy
+			}
+		}
+		if updatedByStr != "" {
+			if updatedBy, err := uuid.Parse(updatedByStr); err == nil {
+				m.UpdatedBy = updatedBy
 			}
 		}
 		menus = append(menus, &m)
@@ -244,12 +268,24 @@ func (r *PostgresMenuRepository) GetVisible(ctx context.Context, limit, offset i
 	for rows.Next() {
 		var m entities.Menu
 		var parentIDStr *string
-		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &m.CreatedBy, &m.UpdatedBy, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
+		var createdByStr, updatedByStr string
+		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &createdByStr, &updatedByStr, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
 			return nil, err
 		}
 		if parentIDStr != nil {
 			if p, err := uuid.Parse(*parentIDStr); err == nil {
 				m.ParentID = &p
+			}
+		}
+		// Convert string fields to UUID
+		if createdByStr != "" {
+			if createdBy, err := uuid.Parse(createdByStr); err == nil {
+				m.CreatedBy = createdBy
+			}
+		}
+		if updatedByStr != "" {
+			if updatedBy, err := uuid.Parse(updatedByStr); err == nil {
+				m.UpdatedBy = updatedBy
 			}
 		}
 		menus = append(menus, &m)
@@ -272,8 +308,20 @@ func (r *PostgresMenuRepository) GetRootMenus(ctx context.Context) ([]*entities.
 	for rows.Next() {
 		var m entities.Menu
 		var parentIDStr *string
-		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &m.CreatedBy, &m.UpdatedBy, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
+		var createdByStr, updatedByStr string
+		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &createdByStr, &updatedByStr, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
 			return nil, err
+		}
+		// Convert string fields to UUID
+		if createdByStr != "" {
+			if createdBy, err := uuid.Parse(createdByStr); err == nil {
+				m.CreatedBy = createdBy
+			}
+		}
+		if updatedByStr != "" {
+			if updatedBy, err := uuid.Parse(updatedByStr); err == nil {
+				m.UpdatedBy = updatedBy
+			}
 		}
 		menus = append(menus, &m)
 	}
@@ -295,12 +343,24 @@ func (r *PostgresMenuRepository) GetChildren(ctx context.Context, parentID uuid.
 	for rows.Next() {
 		var m entities.Menu
 		var parentIDStr *string
-		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &m.CreatedBy, &m.UpdatedBy, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
+		var createdByStr, updatedByStr string
+		if err := rows.Scan(&m.ID, &m.Name, &m.Slug, &m.Description, &m.URL, &m.Icon, &parentIDStr, &m.RecordLeft, &m.RecordRight, &m.RecordDepth, &m.RecordOrdering, &m.IsActive, &m.IsVisible, &m.Target, &createdByStr, &updatedByStr, &m.CreatedAt, &m.UpdatedAt, &m.DeletedAt); err != nil {
 			return nil, err
 		}
 		if parentIDStr != nil {
 			if p, err := uuid.Parse(*parentIDStr); err == nil {
 				m.ParentID = &p
+			}
+		}
+		// Convert string fields to UUID
+		if createdByStr != "" {
+			if createdBy, err := uuid.Parse(createdByStr); err == nil {
+				m.CreatedBy = createdBy
+			}
+		}
+		if updatedByStr != "" {
+			if updatedBy, err := uuid.Parse(updatedByStr); err == nil {
+				m.UpdatedBy = updatedBy
 			}
 		}
 		menus = append(menus, &m)

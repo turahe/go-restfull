@@ -39,22 +39,6 @@ type MenuItemResource struct {
 	IsVisible bool `json:"is_visible"`
 	// Target specifies the target attribute for the menu link (e.g., "_blank", "_self")
 	Target string `json:"target,omitempty"`
-	// CreatedBy is the ID of the user who created the menu item
-	CreatedBy string `json:"created_by"`
-	// UpdatedBy is the ID of the user who last updated the menu item
-	UpdatedBy string `json:"updated_by"`
-	// DeletedBy is the optional ID of the user who deleted the menu item
-	DeletedBy *string `json:"deleted_by,omitempty"`
-	// CreatedAt is the timestamp when the menu item was created
-	CreatedAt string `json:"created_at"`
-	// UpdatedAt is the timestamp when the menu item was last updated
-	UpdatedAt string `json:"updated_at"`
-	// DeletedAt is the optional timestamp when the menu item was soft-deleted
-	DeletedAt *string `json:"deleted_at,omitempty"`
-
-	// Computed fields for tree operations and status checking
-	// IsDeleted indicates whether the menu item has been soft-deleted
-	IsDeleted bool `json:"is_deleted"`
 	// IsRoot indicates whether this menu item is at the root level (no parent)
 	IsRoot bool `json:"is_root"`
 	// IsLeaf indicates whether this menu item has no children
@@ -129,16 +113,15 @@ func NewMenuResource(menu *entities.Menu) MenuItemResource {
 		IsActive:    menu.IsActive,
 		IsVisible:   menu.IsVisible,
 		Target:      menu.Target,
-		CreatedBy:   menu.CreatedBy.String(),
-		UpdatedBy:   menu.UpdatedBy.String(),
-		CreatedAt:   menu.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:   menu.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		// CreatedBy:   menu.CreatedBy.String(),
+		// UpdatedBy:   menu.UpdatedBy.String(),
+		// CreatedAt:   menu.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		// UpdatedAt:   menu.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 
 		// Set computed fields based on menu state
-		IsDeleted: menu.IsDeleted(),
-		IsRoot:    menu.IsRoot(),
-		IsLeaf:    menu.IsLeaf(),
-		Depth:     menu.GetDepth(),
+		IsRoot: menu.IsRoot(),
+		IsLeaf: menu.IsLeaf(),
+		Depth:  menu.GetDepth(),
 	}
 
 	// Handle optional parent ID for hierarchical menus
@@ -164,17 +147,6 @@ func NewMenuResource(menu *entities.Menu) MenuItemResource {
 		resource.RecordDepth = menu.RecordDepth
 	}
 
-	// Handle soft deletion information
-	if menu.DeletedBy != nil {
-		deletedBy := menu.DeletedBy.String()
-		resource.DeletedBy = &deletedBy
-	}
-
-	if menu.DeletedAt != nil {
-		deletedAt := menu.DeletedAt.Format("2006-01-02T15:04:05Z07:00")
-		resource.DeletedAt = &deletedAt
-	}
-
 	// Calculate width if record boundaries are available for tree operations
 	if menu.RecordLeft != nil && menu.RecordRight != nil {
 		resource.Width = menu.GetWidth()
@@ -184,24 +156,6 @@ func NewMenuResource(menu *entities.Menu) MenuItemResource {
 	if menu.Parent != nil {
 		parentResource := NewMenuResource(menu.Parent)
 		resource.Parent = &parentResource
-	}
-
-	// Set nested children resources if available
-	if len(menu.Children) > 0 {
-		childrenResources := make([]MenuItemResource, len(menu.Children))
-		for i, child := range menu.Children {
-			childrenResources[i] = NewMenuResource(child)
-		}
-		resource.Children = childrenResources
-	}
-
-	// Set associated role resources if available
-	if len(menu.Roles) > 0 {
-		roleResources := make([]RoleResource, len(menu.Roles))
-		for i, role := range menu.Roles {
-			roleResources[i] = NewRoleResource(role)
-		}
-		resource.Roles = roleResources
 	}
 
 	return resource

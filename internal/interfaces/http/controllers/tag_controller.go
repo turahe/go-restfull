@@ -104,8 +104,8 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 	// Build base URL for pagination links
 	baseURL := ctx.BaseURL() + ctx.Path()
 
-	// Return paginated tag collection response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedTagCollectionResponse(
+	// Return paginated tag collection response (Laravel style)
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedTagCollection(
 		tags, page, limit, int(total), baseURL,
 	))
 }
@@ -152,7 +152,7 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 	}
 
 	// Return tag resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResourceResponse(tag))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResource(tag))
 }
 
 // CreateTag handles POST /v1/tags requests
@@ -164,7 +164,7 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			tag	body		requests.CreateTagRequest	true	"Tag object"
 //	@Success		201	{object}	responses.TagResourceResponse	"Tag created successfully"
-//	@Failure		400	{object}	responses.ErrorResponse		"Bad request - Invalid input data"
+//	@Failure		422	{object}	responses.ValidationErrorResponse	"Validation errors"
 //	@Failure		409	{object}	responses.ErrorResponse		"Conflict - Tag with same slug already exists"
 //	@Failure		500	{object}	responses.ErrorResponse		"Internal server error"
 //	@Security		BearerAuth
@@ -181,7 +181,7 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Validation failed: " + err.Error(),
 		})
@@ -189,6 +189,15 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 
 	// Transform request to entity
 	tag := req.ToEntity()
+
+	// Get user ID from context (set by JWT middleware)
+	userIDInterface := ctx.Locals("user_id")
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uuid.UUID); ok {
+			tag.CreatedBy = userID
+			tag.UpdatedBy = userID
+		}
+	}
 
 	// Create tag using service
 	createdTag, err := c.tagService.CreateTag(ctx.Context(), tag)
@@ -207,10 +216,7 @@ func (c *TagController) CreateTag(ctx *fiber.Ctx) error {
 	}
 
 	// Return tag resource response
-	response := responses.NewTagResourceResponse(createdTag)
-	response.ResponseCode = fiber.StatusCreated
-	response.ResponseMessage = "Tag created successfully"
-	return ctx.Status(fiber.StatusCreated).JSON(response)
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewTagResource(createdTag))
 }
 
 // UpdateTag handles PUT /v1/tags/:id requests
@@ -251,7 +257,7 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Validation failed: " + err.Error(),
 		})
@@ -274,6 +280,14 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 
 	// Transform request to entity
 	updatedTag := req.ToEntity(existingTag)
+
+	// Get user ID from context (set by JWT middleware) for updated_by
+	userIDInterface := ctx.Locals("user_id")
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uuid.UUID); ok {
+			updatedTag.UpdatedBy = userID
+		}
+	}
 
 	// Update tag using service
 	tag, err := c.tagService.UpdateTag(ctx.Context(), updatedTag)
@@ -298,7 +312,7 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 	}
 
 	// Return tag resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResourceResponse(tag))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagResource(tag))
 }
 
 // DeleteTag handles DELETE /v1/tags/:id requests
@@ -407,7 +421,7 @@ func (c *TagController) SearchTags(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// For search results, we'll return a simple collection response
+	// For search results, we'll return a simple collection response (Laravel style)
 	// since we don't have a total count for search results
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagCollectionResponse(tags))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewTagCollection(tags))
 }

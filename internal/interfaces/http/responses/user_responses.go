@@ -164,9 +164,6 @@ func NewUserResource(user *entities.User) *UserResource {
 		HasAvatar:       user.Avatar != "",
 		Roles:           roles,
 		Menus:           menus,
-		CreatedAt:       user.CreatedAt,
-		UpdatedAt:       user.UpdatedAt,
-		DeletedAt:       user.DeletedAt,
 	}
 }
 

@@ -107,7 +107,7 @@ func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 	baseURL := ctx.BaseURL() + ctx.Path()
 
 	// Return paginated menu collection response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedMenuCollectionResponse(
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewPaginatedMenuCollection(
 		menus, page, limit, int(total), baseURL,
 	))
 }
@@ -146,7 +146,7 @@ func (c *MenuController) GetMenuByID(ctx *fiber.Ctx) error {
 	}
 
 	// Return menu resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewMenuResourceResponse(menu))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMenuResource(menu))
 }
 
 // GetMenuBySlug handles GET /v1/menus/slug/:slug requests
@@ -358,10 +358,7 @@ func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 	}
 
 	// Return menu resource response
-	response := responses.NewMenuResourceResponse(menu)
-	response.ResponseCode = fiber.StatusCreated
-	response.ResponseMessage = "Menu created successfully"
-	return ctx.Status(fiber.StatusCreated).JSON(response)
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewMenuResource(menu))
 }
 
 // UpdateMenu handles PUT /v1/menus/:id requests
@@ -418,7 +415,7 @@ func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 	}
 
 	// Return menu resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewMenuResourceResponse(menu))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewMenuResource(menu))
 }
 
 // DeleteMenu handles DELETE /v1/menus/:id requests
