@@ -45,6 +45,8 @@ type Comment struct {
 	// Status indicates the current moderation state of the comment
 	Status CommentStatus `json:"status"`
 
+	Content string `json:content`
+
 	// RecordLeft is used for nested set model implementation (left boundary)
 	// This field enables efficient tree traversal and querying
 	RecordLeft *uint64 `json:"record_left,omitempty"`

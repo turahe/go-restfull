@@ -29,9 +29,9 @@ func TestNewTaxonomy_Success(t *testing.T) {
 	assert.False(t, taxonomy.CreatedAt.IsZero())
 	assert.False(t, taxonomy.UpdatedAt.IsZero())
 	assert.Nil(t, taxonomy.DeletedAt)
-	assert.Equal(t, int64(0), taxonomy.RecordLeft)
-	assert.Equal(t, int64(0), taxonomy.RecordRight)
-	assert.Equal(t, int64(0), taxonomy.RecordDepth)
+	assert.Nil(t, taxonomy.RecordLeft)
+	assert.Nil(t, taxonomy.RecordRight)
+	assert.Nil(t, taxonomy.RecordDepth)
 	assert.Empty(t, taxonomy.Children)
 }
 
@@ -53,9 +53,9 @@ func TestNewTaxonomy_WithoutParentID(t *testing.T) {
 	assert.False(t, taxonomy.CreatedAt.IsZero())
 	assert.False(t, taxonomy.UpdatedAt.IsZero())
 	assert.Nil(t, taxonomy.DeletedAt)
-	assert.Equal(t, int64(0), taxonomy.RecordLeft)
-	assert.Equal(t, int64(0), taxonomy.RecordRight)
-	assert.Equal(t, int64(0), taxonomy.RecordDepth)
+	assert.Nil(t, taxonomy.RecordLeft)
+	assert.Nil(t, taxonomy.RecordRight)
+	assert.Nil(t, taxonomy.RecordDepth)
 	assert.Empty(t, taxonomy.Children)
 }
 
@@ -235,22 +235,28 @@ func TestTaxonomy_GetDepth(t *testing.T) {
 
 func TestTaxonomy_GetWidth(t *testing.T) {
 	taxonomy := entities.NewTaxonomy("Test", "test", "test", "Test description", nil)
-	taxonomy.RecordLeft = 1
-	taxonomy.RecordRight = 5
+	left := uint64(1)
+	right := uint64(5)
+	taxonomy.RecordLeft = &left
+	taxonomy.RecordRight = &right
 
 	width := taxonomy.GetWidth()
 
-	assert.Equal(t, int64(5), width) // 5 - 1 + 1 = 5
+	assert.Equal(t, uint64(5), width) // 5 - 1 + 1 = 5
 }
 
 func TestTaxonomy_IsDescendantOf(t *testing.T) {
 	ancestor := entities.NewTaxonomy("Ancestor", "ancestor", "ancestor", "Ancestor description", nil)
-	ancestor.RecordLeft = 1
-	ancestor.RecordRight = 10
+	left1 := uint64(1)
+	right1 := uint64(10)
+	ancestor.RecordLeft = &left1
+	ancestor.RecordRight = &right1
 
 	descendant := entities.NewTaxonomy("Descendant", "descendant", "descendant", "Descendant description", &ancestor.ID)
-	descendant.RecordLeft = 3
-	descendant.RecordRight = 7
+	left2 := uint64(3)
+	right2 := uint64(7)
+	descendant.RecordLeft = &left2
+	descendant.RecordRight = &right2
 
 	// Should be descendant
 	assert.True(t, descendant.IsDescendantOf(ancestor))
@@ -260,19 +266,25 @@ func TestTaxonomy_IsDescendantOf(t *testing.T) {
 
 	// Should not be descendant of unrelated taxonomy
 	unrelated := entities.NewTaxonomy("Unrelated", "unrelated", "unrelated", "Unrelated description", nil)
-	unrelated.RecordLeft = 20
-	unrelated.RecordRight = 25
+	left3 := uint64(20)
+	right3 := uint64(25)
+	unrelated.RecordLeft = &left3
+	unrelated.RecordRight = &right3
 	assert.False(t, descendant.IsDescendantOf(unrelated))
 }
 
 func TestTaxonomy_IsAncestorOf(t *testing.T) {
 	ancestor := entities.NewTaxonomy("Ancestor", "ancestor", "ancestor", "Ancestor description", nil)
-	ancestor.RecordLeft = 1
-	ancestor.RecordRight = 10
+	left1 := uint64(1)
+	right1 := uint64(10)
+	ancestor.RecordLeft = &left1
+	ancestor.RecordRight = &right1
 
 	descendant := entities.NewTaxonomy("Descendant", "descendant", "descendant", "Descendant description", &ancestor.ID)
-	descendant.RecordLeft = 3
-	descendant.RecordRight = 7
+	left2 := uint64(3)
+	right2 := uint64(7)
+	descendant.RecordLeft = &left2
+	descendant.RecordRight = &right2
 
 	// Should be ancestor
 	assert.True(t, ancestor.IsAncestorOf(descendant))
@@ -282,8 +294,10 @@ func TestTaxonomy_IsAncestorOf(t *testing.T) {
 
 	// Should not be ancestor of unrelated taxonomy
 	unrelated := entities.NewTaxonomy("Unrelated", "unrelated", "unrelated", "Unrelated description", nil)
-	unrelated.RecordLeft = 20
-	unrelated.RecordRight = 25
+	left3 := uint64(20)
+	right3 := uint64(25)
+	unrelated.RecordLeft = &left3
+	unrelated.RecordRight = &right3
 	assert.False(t, ancestor.IsAncestorOf(unrelated))
 }
 

@@ -168,3 +168,18 @@ func (u *User) SoftDelete() {
 	u.DeletedAt = &now // Set deletion timestamp
 	u.UpdatedAt = now  // Update modification timestamp
 }
+
+// IsDeleted checks if the user account is soft deleted
+func (u *User) IsDeleted() bool {
+	return u.DeletedAt != nil
+}
+
+// IsEmailVerified checks if the user's email is verified
+func (u *User) IsEmailVerified() bool {
+	return u.EmailVerifiedAt != nil
+}
+
+// IsPhoneVerified checks if the user's phone is verified
+func (u *User) IsPhoneVerified() bool {
+	return u.PhoneVerifiedAt != nil
+}

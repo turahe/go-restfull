@@ -55,8 +55,8 @@ func TestNewComment_DefaultStatus(t *testing.T) {
 	assert.Equal(t, entities.CommentStatusPending, comment.Status)
 }
 
-func TestNewComment_EmptyContent(t *testing.T) {
-	modelType := "post"
+func TestNewComment_EmptyModelType(t *testing.T) {
+	modelType := ""
 	modelID := uuid.New()
 
 	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
@@ -66,9 +66,9 @@ func TestNewComment_EmptyContent(t *testing.T) {
 	assert.Equal(t, "model_type is required", err.Error())
 }
 
-func TestNewComment_EmptyPostID(t *testing.T) {
+func TestNewComment_EmptyModelID(t *testing.T) {
 	modelType := "post"
-	modelID := uuid.New()
+	modelID := uuid.Nil
 
 	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
 
@@ -83,9 +83,11 @@ func TestNewComment_EmptyUserID(t *testing.T) {
 
 	comment, err := entities.NewComment(modelType, modelID, nil, entities.CommentStatusPending)
 
-	assert.Error(t, err)
-	assert.Nil(t, comment)
-	assert.Equal(t, "model_id is required", err.Error())
+	// This test should pass since all parameters are valid
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+	assert.Equal(t, "post", comment.ModelType)
+	assert.Equal(t, modelID, comment.ModelID)
 }
 
 func TestComment_UpdateComment(t *testing.T) {
@@ -130,7 +132,8 @@ func TestComment_UpdateComment_OnlyContent(t *testing.T) {
 	err := comment.UpdateComment(entities.CommentStatusApproved)
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalStatus, comment.Status) // Should remain unchanged
+	assert.NotEqual(t, originalStatus, comment.Status) // Status should change
+	assert.Equal(t, entities.CommentStatusApproved, comment.Status)
 }
 
 func TestComment_SoftDelete(t *testing.T) {
@@ -256,12 +259,12 @@ func TestComment_IsReply(t *testing.T) {
 
 	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 
-	// Initially not a reply
-	assert.False(t, comment.IsReply())
-
-	// After setting parent ID
-	comment.ParentID = &parentID
+	// Should be a reply since parent ID is set
 	assert.True(t, comment.IsReply())
+
+	// Remove parent ID to make it not a reply
+	comment.ParentID = nil
+	assert.False(t, comment.IsReply())
 }
 
 func TestComment_IsReply_WithParentID(t *testing.T) {
@@ -305,10 +308,10 @@ func TestComment_UpdateComment_EmptyStrings(t *testing.T) {
 	comment, _ := entities.NewComment(modelType, modelID, &parentID, entities.CommentStatusPending)
 	originalStatus := comment.Status
 
-	err := comment.UpdateComment(entities.CommentStatusApproved)
+	err := comment.UpdateComment("")
 
 	assert.NoError(t, err)
-	assert.Equal(t, originalStatus, comment.Status)
+	assert.Equal(t, originalStatus, comment.Status) // Status should remain unchanged when empty string is passed
 }
 
 func TestComment_SoftDelete_MultipleCalls(t *testing.T) {

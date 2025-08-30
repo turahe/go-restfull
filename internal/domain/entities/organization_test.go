@@ -77,7 +77,7 @@ func TestNewOrganization_EmptyName(t *testing.T) {
 func TestNewOrganization_EmptyOptionalFields(t *testing.T) {
 	name := "Test Organization"
 
-	org, err := entities.NewOrganization(name, "", "", entities.OrganizationTypeCompany, nil)
+	org, err := entities.NewOrganization(name, "", "", "", nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, org)
