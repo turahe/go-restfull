@@ -2,9 +2,11 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
+	"github.com/turahe/go-restfull/internal/helper/nestedset"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,15 +15,34 @@ import (
 
 type PostgresMediaRepository struct {
 	*BaseTransactionalRepository
-	db          *pgxpool.Pool
-	redisClient redis.Cmdable
+	db              *pgxpool.Pool
+	redisClient     redis.Cmdable
+	nestedSetManager *nestedset.NestedSetManager
 }
 
 func NewPostgresMediaRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repositories.MediaRepository {
-	return &PostgresMediaRepository{BaseTransactionalRepository: NewBaseTransactionalRepository(db), db: db, redisClient: redisClient}
+	return &PostgresMediaRepository{
+		BaseTransactionalRepository: NewBaseTransactionalRepository(db),
+		db:                          db,
+		redisClient:                 redisClient,
+		nestedSetManager:            nestedset.NewNestedSetManager(db),
+	}
 }
 
 func (r *PostgresMediaRepository) Create(ctx context.Context, media *entities.Media) error {
+	// Calculate nested set values using the nested set manager
+	// Media doesn't have parent_id, so we treat it as a root node
+	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "media", nil, 0)
+	if err != nil {
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
+	}
+
+	// Update the media entity with the calculated nested set values
+	media.RecordLeft = &nestedSetValues.Left
+	media.RecordRight = &nestedSetValues.Right
+	media.RecordDepth = &nestedSetValues.Depth
+	media.RecordOrdering = &nestedSetValues.Ordering
+
 	query := `
 		INSERT INTO media (
 			id, name, file_name, hash, disk, mime_type, size,
@@ -31,7 +52,7 @@ func (r *PostgresMediaRepository) Create(ctx context.Context, media *entities.Me
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 		)
 	`
-	_, err := r.db.Exec(ctx, query,
+	_, err = r.db.Exec(ctx, query,
 		media.ID, media.Name, media.FileName, media.Hash, media.Disk, media.MimeType, media.Size,
 		media.RecordLeft, media.RecordRight, media.RecordDepth, media.RecordOrdering,
 		media.CreatedBy, media.UpdatedBy, media.CreatedAt, media.UpdatedAt)
@@ -213,6 +234,152 @@ func (r *PostgresMediaRepository) GetAllByGroup(ctx context.Context, mediableID 
 	LIMIT $4 OFFSET $5`
 
 	rows, err := r.db.Query(ctx, query, mediableID, mediableType, group, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mediaList []*entities.Media
+	for rows.Next() {
+		var media entities.Media
+		if err := rows.Scan(
+			&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+			&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+			&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		mediaList = append(mediaList, &media)
+	}
+
+	return mediaList, nil
+}
+
+// GetChildren retrieves all direct children of a media item.
+// This method returns media items that are one level below the specified parent.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - parentID: The unique identifier of the parent media
+//   - limit: Maximum number of children to return
+//   - offset: Number of children to skip for pagination
+//
+// Returns:
+//   - []*entities.Media: List of child media entities
+//   - error: Any error that occurred during the database operation
+func (r *PostgresMediaRepository) GetChildren(ctx context.Context, parentID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media 
+		WHERE record_left > (
+			SELECT record_left FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND record_right < (
+			SELECT record_right FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND record_depth = (
+			SELECT record_depth + 1 FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND deleted_at IS NULL
+		ORDER BY record_ordering ASC, record_left ASC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, parentID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mediaList []*entities.Media
+	for rows.Next() {
+		var media entities.Media
+		if err := rows.Scan(
+			&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+			&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+			&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		mediaList = append(mediaList, &media)
+	}
+
+	return mediaList, nil
+}
+
+// GetDescendants retrieves all descendants of a media item at any depth level.
+// This method returns media items that are below the specified parent in the hierarchy.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - parentID: The unique identifier of the parent media
+//   - limit: Maximum number of descendants to return
+//   - offset: Number of descendants to skip for pagination
+//
+// Returns:
+//   - []*entities.Media: List of descendant media entities
+//   - error: Any error that occurred during the database operation
+func (r *PostgresMediaRepository) GetDescendants(ctx context.Context, parentID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media 
+		WHERE record_left > (
+			SELECT record_left FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND record_right < (
+			SELECT record_right FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND deleted_at IS NULL
+		ORDER BY record_left ASC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, parentID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mediaList []*entities.Media
+	for rows.Next() {
+		var media entities.Media
+		if err := rows.Scan(
+			&media.ID, &media.Name, &media.FileName, &media.Hash, &media.Disk, &media.MimeType, &media.Size,
+			&media.RecordLeft, &media.RecordRight, &media.RecordDepth, &media.RecordOrdering,
+			&media.CreatedBy, &media.UpdatedBy, &media.CreatedAt, &media.UpdatedAt, &media.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		mediaList = append(mediaList, &media)
+	}
+
+	return mediaList, nil
+}
+
+// GetAncestors retrieves all ancestors of a media item.
+// This method returns media items that are above the specified media in the hierarchy.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - mediaID: The unique identifier of the media to get ancestors for
+//   - limit: Maximum number of ancestors to return
+//   - offset: Number of ancestors to skip for pagination
+//
+// Returns:
+//   - []*entities.Media: List of ancestor media entities
+//   - error: Any error that occurred during the database operation
+func (r *PostgresMediaRepository) GetAncestors(ctx context.Context, mediaID uuid.UUID, limit, offset int) ([]*entities.Media, error) {
+	query := `
+		SELECT id, name, file_name, hash, disk, mime_type, size,
+		       record_left, record_right, record_depth, record_ordering,
+		       created_by, updated_by, created_at, updated_at, deleted_at
+		FROM media 
+		WHERE record_left < (
+			SELECT record_left FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND record_right > (
+			SELECT record_right FROM media WHERE id = $1 AND deleted_at IS NULL
+		) AND deleted_at IS NULL
+		ORDER BY record_left ASC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, mediaID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

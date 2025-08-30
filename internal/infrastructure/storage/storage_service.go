@@ -126,13 +126,13 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 
 	// Create media entity
 	media, err := entities.NewMedia(
-		fileName,      // name
-		file.Filename, // fileName
-		fileHash,      // hash (actual file hash)
-		string(s.config.Provider),                   // disk (storage provider)
-		file.Header.Get("Content-Type"),             // mimeType
-		file.Size,                                   // size
-		userID,                                      // userID
+		fileName,                        // name
+		file.Filename,                   // fileName
+		fileHash,                        // hash (actual file hash)
+		string(s.config.Provider),       // disk (storage provider)
+		file.Header.Get("Content-Type"), // mimeType
+		file.Size,                       // size
+		userID,                          // userID
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create media entity: %w", err)
