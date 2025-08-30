@@ -135,10 +135,18 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	// Validate request
 	validationErrors, err := req.Validate()
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(responses.ValidationErrorResponse{
+		// If validation failed, return the validation errors
+		if validationErrors != nil && validationErrors.HasErrors() {
+			return ctx.Status(http.StatusBadRequest).JSON(responses.ValidationErrorResponse{
+				Status:  "error",
+				Message: "The given data was invalid.",
+				Errors:  validationErrors.GetErrors(),
+			})
+		}
+		// If no validation errors but general error, return generic error
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: "The given data was invalid.",
-			Errors:  validationErrors.GetErrors(),
+			Message: "Invalid request body",
 		})
 	}
 
@@ -152,7 +160,7 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	}
 
 	// Create auth response
-	return ctx.JSON(responses.NewTokenResourceResponse(tokenPair))
+	return ctx.JSON(responses.NewTokenResource(tokenPair))
 }
 
 // Refresh godoc
@@ -180,10 +188,18 @@ func (c *AuthController) Refresh(ctx *fiber.Ctx) error {
 	// Validate request
 	validationErrors, err := req.Validate()
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(responses.ValidationErrorResponse{
+		// If validation failed, return the validation errors
+		if validationErrors != nil && validationErrors.HasErrors() {
+			return ctx.Status(http.StatusBadRequest).JSON(responses.ValidationErrorResponse{
+				Status:  "error",
+				Message: "The given data was invalid.",
+				Errors:  validationErrors.GetErrors(),
+			})
+		}
+		// If no validation errors but general error, return generic error
+		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
-			Message: "The given data was invalid.",
-			Errors:  validationErrors.GetErrors(),
+			Message: "Invalid request body",
 		})
 	}
 

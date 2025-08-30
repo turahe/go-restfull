@@ -16,6 +16,9 @@ type UserService interface {
 	// GetUserByID retrieves a user by ID
 	GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
 
+	// GetUserProfileWithRelations retrieves a user by ID with roles and menus populated
+	GetUserProfileWithRelations(ctx context.Context, id uuid.UUID) (*entities.User, error)
+
 	// GetUserByEmail retrieves a user by email
 	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
 

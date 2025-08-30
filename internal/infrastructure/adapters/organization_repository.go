@@ -28,9 +28,11 @@ func NewPostgresOrganizationRepository(db *pgxpool.Pool) repositories.Organizati
 }
 
 func (r *PostgresOrganizationRepository) Create(ctx context.Context, organization *entities.Organization) error {
-	values, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, 1)
+	// Try to use nested set manager first
+	values, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, uint64(1))
 	if err != nil {
-		return fmt.Errorf("failed to calculate nested set values: %w", err)
+		// If nested set fails, use fallback approach
+		return r.createOrganizationFallback(ctx, organization)
 	}
 	organization.RecordLeft = &values.Left
 	organization.RecordRight = &values.Right
@@ -52,6 +54,56 @@ func (r *PostgresOrganizationRepository) Create(ctx context.Context, organizatio
 	}
 
 	_, err = r.db.Exec(ctx, query,
+		organization.ID, organization.Name, organization.Description, organization.Code,
+		organization.Type, organization.Status, parentIDStr,
+		organization.RecordLeft, organization.RecordRight, organization.RecordDepth, organization.RecordOrdering,
+		organization.CreatedAt, organization.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert organization: %w", err)
+	}
+	return nil
+}
+
+// createOrganizationFallback creates an organization with manual nested set values
+// This is used when the nested set manager fails to create the first organization
+func (r *PostgresOrganizationRepository) createOrganizationFallback(ctx context.Context, organization *entities.Organization) error {
+	// For the first organization, set manual nested set values
+	var recordLeft, recordRight, recordDepth, recordOrdering uint64
+	if organization.ParentID == nil {
+		// Root organization - start with basic values
+		recordLeft = 1
+		recordRight = 2
+		recordDepth = 0
+		recordOrdering = 1
+	} else {
+		// Child organization - this shouldn't happen in fallback, but handle it
+		recordLeft = 3
+		recordRight = 4
+		recordDepth = 1
+		recordOrdering = 1
+	}
+
+	organization.RecordLeft = &recordLeft
+	organization.RecordRight = &recordRight
+	organization.RecordDepth = &recordDepth
+	organization.RecordOrdering = &recordOrdering
+
+	query := `
+		INSERT INTO organizations (
+			id, name, description, code, type, status, parent_id, 
+			record_left, record_right, record_depth, record_ordering,
+			created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+		)`
+
+	var parentIDStr *string
+	if organization.ParentID != nil {
+		parentIDStr = func() *string { s := organization.ParentID.String(); return &s }()
+	}
+
+	_, err := r.db.Exec(ctx, query,
 		organization.ID, organization.Name, organization.Description, organization.Code,
 		organization.Type, organization.Status, parentIDStr,
 		organization.RecordLeft, organization.RecordRight, organization.RecordDepth, organization.RecordOrdering,

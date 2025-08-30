@@ -46,8 +46,7 @@ var createMenusTable20250708232039 = &Migration{
 				CONSTRAINT "menus_is_visible_check" CHECK ("is_visible" IN (TRUE, FALSE)),
 				CONSTRAINT "menus_target_check" CHECK ("target" IN ('_self', '_blank', '_parent', '_top')),
 				CONSTRAINT "menus_created_by_check" CHECK ("created_by" IS NOT NULL),
-				CONSTRAINT "menus_updated_by_check" CHECK ("updated_by" IS NOT NULL),
-				CONSTRAINT "menus_deleted_by_check" CHECK ("deleted_by" IS NOT NULL)
+				CONSTRAINT "menus_updated_by_check" CHECK ("updated_by" IS NOT NULL)
 			)
 		`)
 		if err != nil {

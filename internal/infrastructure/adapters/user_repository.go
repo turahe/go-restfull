@@ -7,6 +7,7 @@ import (
 	"github.com/turahe/go-restfull/internal/application/handlers"
 	"github.com/turahe/go-restfull/internal/application/queries"
 	"github.com/turahe/go-restfull/internal/domain/aggregates"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
 	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 
@@ -522,6 +523,85 @@ func (r *PostgresUserRepository) CountByRole(ctx context.Context, roleID uuid.UU
 	}
 
 	return count, nil
+}
+
+// GetUserRoles retrieves all roles assigned to a specific user
+func (r *PostgresUserRepository) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*entities.Role, error) {
+	query := `
+		SELECT r.id, r.name, r.slug, r.description, r.is_active, r.created_at, r.updated_at
+		FROM roles r
+		JOIN user_roles ur ON r.id = ur.role_id
+		WHERE ur.user_id = $1 AND r.deleted_at IS NULL AND ur.deleted_at IS NULL
+		ORDER BY r.name ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user roles: %w", err)
+	}
+	defer rows.Close()
+
+	var roles []*entities.Role
+	for rows.Next() {
+		var role entities.Role
+		err := rows.Scan(
+			&role.ID, &role.Name, &role.Slug, &role.Description, &role.IsActive,
+			&role.CreatedAt, &role.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan role: %w", err)
+		}
+		roles = append(roles, &role)
+	}
+
+	return roles, nil
+}
+
+// GetUserMenus retrieves all menus accessible to a specific user based on their roles
+func (r *PostgresUserRepository) GetUserMenus(ctx context.Context, userID uuid.UUID) ([]*entities.Menu, error) {
+	query := `
+		SELECT DISTINCT m.id, m.name, m.slug, m.description, m.url, m.icon, m.parent_id,
+		       m.record_left, m.record_right, m.record_depth, m.record_ordering,
+		       m.is_active, m.is_visible, m.target, m.created_by, m.updated_by,
+		       m.created_at, m.updated_at, m.deleted_at
+		FROM menus m
+		JOIN menu_roles mr ON m.id = mr.menu_id
+		JOIN user_roles ur ON mr.role_id = ur.role_id
+		WHERE ur.user_id = $1 AND m.deleted_at IS NULL AND mr.deleted_at IS NULL AND ur.deleted_at IS NULL
+		ORDER BY m.record_left ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user menus: %w", err)
+	}
+	defer rows.Close()
+
+	var menus []*entities.Menu
+	for rows.Next() {
+		var menu entities.Menu
+		var parentIDStr *string
+		err := rows.Scan(
+			&menu.ID, &menu.Name, &menu.Slug, &menu.Description, &menu.URL, &menu.Icon, &parentIDStr,
+			&menu.RecordLeft, &menu.RecordRight, &menu.RecordDepth, &menu.RecordOrdering,
+			&menu.IsActive, &menu.IsVisible, &menu.Target, &menu.CreatedBy, &menu.UpdatedBy,
+			&menu.CreatedAt, &menu.UpdatedAt, &menu.DeletedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan menu: %w", err)
+		}
+
+		// Parse parent_id if it exists
+		if parentIDStr != nil {
+			if parentID, err := uuid.Parse(*parentIDStr); err == nil {
+				menu.ParentID = &parentID
+			}
+		}
+
+		menus = append(menus, &menu)
+	}
+
+	return menus, nil
 }
 
 // createUser is a helper method that creates a new user in the database

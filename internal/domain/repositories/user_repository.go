@@ -7,6 +7,7 @@ import (
 	"github.com/turahe/go-restfull/internal/application/handlers"
 	"github.com/turahe/go-restfull/internal/application/queries"
 	"github.com/turahe/go-restfull/internal/domain/aggregates"
+	"github.com/turahe/go-restfull/internal/domain/entities"
 )
 
 // UserRepository defines the contract for user aggregate persistence
@@ -35,4 +36,8 @@ type UserRepository interface {
 	// Count operations
 	Count(ctx context.Context) (int64, error)
 	CountByRole(ctx context.Context, roleID uuid.UUID) (int64, error)
+
+	// Relationship operations
+	GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*entities.Role, error)
+	GetUserMenus(ctx context.Context, userID uuid.UUID) ([]*entities.Menu, error)
 }

@@ -39,6 +39,10 @@ type AuthUserResource struct {
 	Phone string `json:"phone"`
 	// Avatar is an optional URL to the user's profile picture
 	Avatar *string `json:"avatar,omitempty"`
+	// Roles contains the user's roles in a simplified format
+	Roles []UserRoleResponse `json:"roles,omitempty"`
+	// Menus contains the user's menus in a simplified format
+	Menus []UserMenuResponse `json:"menus,omitempty"`
 }
 
 // TokenResource represents a token resource in API responses.
@@ -79,6 +83,40 @@ type TokenResourceResponse struct {
 	Data TokenResource `json:"data"`
 }
 
+// UserRoleResponse represents a simplified role in user API responses.
+// This struct contains only the essential role information needed for user responses.
+type UserRoleResponse struct {
+	// ID is the unique identifier for the role
+	ID string `json:"id"`
+	// Name is the display name of the role
+	Name string `json:"name"`
+	// Slug is the URL-friendly version of the role name
+	Slug string `json:"slug"`
+	// Description is an optional description of the role's purpose
+	Description string `json:"description,omitempty"`
+	// IsActive indicates whether the role is currently active and usable
+	IsActive bool `json:"is_active"`
+}
+
+// UserMenuResponse represents a simplified menu item in user API responses.
+// This struct contains only the essential menu information needed for user responses.
+type UserMenuResponse struct {
+	// ID is the unique identifier for the menu item
+	ID string `json:"id"`
+	// Name is the display name of the menu item
+	Name string `json:"name"`
+	// Slug is the URL-friendly version of the menu item name
+	Slug string `json:"slug"`
+	// URL is the optional destination URL for the menu item
+	URL string `json:"url,omitempty"`
+	// Icon is the optional icon identifier for the menu item
+	Icon string `json:"icon,omitempty"`
+	// IsActive indicates whether the menu item is currently active/enabled
+	IsActive bool `json:"is_active"`
+	// IsVisible indicates whether the menu item should be displayed to users
+	IsVisible bool `json:"is_visible"`
+}
+
 // NewAuthResource creates a new AuthResource from user and token pair.
 // This function transforms domain entities into a consistent API response format,
 // ensuring all authentication data is properly structured and formatted.
@@ -90,12 +128,46 @@ type TokenResourceResponse struct {
 // Returns:
 //   - A new AuthResource with the provided user and token information
 func NewAuthResource(user *entities.User, tokenPair *utils.TokenPair) AuthResource {
+	// Convert roles to simplified response format
+	var roles []UserRoleResponse
+	if user.Roles != nil {
+		roles = make([]UserRoleResponse, len(user.Roles))
+		for i, role := range user.Roles {
+			roles[i] = UserRoleResponse{
+				ID:          role.ID.String(),
+				Name:        role.Name,
+				Slug:        role.Slug,
+				Description: role.Description,
+				IsActive:    role.IsActive,
+			}
+		}
+	}
+
+	// Convert menus to simplified response format
+	var menus []UserMenuResponse
+	if user.Menus != nil {
+		menus = make([]UserMenuResponse, len(user.Menus))
+		for i, menu := range user.Menus {
+			menus[i] = UserMenuResponse{
+				ID:        menu.ID.String(),
+				Name:      menu.Name,
+				Slug:      menu.Slug,
+				URL:       menu.URL,
+				Icon:      menu.Icon,
+				IsActive:  menu.IsActive,
+				IsVisible: menu.IsVisible,
+			}
+		}
+	}
+
 	return AuthResource{
 		User: &AuthUserResource{
 			ID:       user.ID.String(),
 			Username: user.UserName,
 			Email:    user.Email,
 			Phone:    user.Phone,
+			Roles:    roles,
+			Menus:    menus,
 		},
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -196,6 +268,10 @@ type UserResponse struct {
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	// PhoneVerifiedAt indicates when the user's phone was verified
 	PhoneVerifiedAt *time.Time `json:"phone_verified_at,omitempty"`
+	// Roles contains the user's roles in a simplified format
+	Roles []UserRoleResponse `json:"roles,omitempty"`
+	// Menus contains the user's menus in a simplified format
+	Menus []UserMenuResponse `json:"menus,omitempty"`
 }
 
 // TokenResponse represents a token response (legacy).
@@ -265,12 +341,46 @@ func NewUserResponse(user *entities.User) *UserResponse {
 		avatar = &user.Avatar
 	}
 
+	// Convert roles to simplified response format
+	var roles []UserRoleResponse
+	if user.Roles != nil {
+		roles = make([]UserRoleResponse, len(user.Roles))
+		for i, role := range user.Roles {
+			roles[i] = UserRoleResponse{
+				ID:          role.ID.String(),
+				Name:        role.Name,
+				Slug:        role.Slug,
+				Description: role.Description,
+				IsActive:    role.IsActive,
+			}
+		}
+	}
+
+	// Convert menus to simplified response format
+	var menus []UserMenuResponse
+	if user.Menus != nil {
+		menus = make([]UserMenuResponse, len(user.Menus))
+		for i, menu := range user.Menus {
+			menus[i] = UserMenuResponse{
+				ID:        menu.ID.String(),
+				Name:      menu.Name,
+				Slug:      menu.Slug,
+				URL:       menu.URL,
+				Icon:      menu.Icon,
+				IsActive:  menu.IsActive,
+				IsVisible: menu.IsVisible,
+			}
+		}
+	}
+
 	return &UserResponse{
 		ID:       user.ID.String(),
 		Username: user.UserName,
 		Email:    user.Email,
 		Phone:    user.Phone,
 		Avatar:   avatar,
+		Roles:    roles,
+		Menus:    menus,
 	}
 }
 

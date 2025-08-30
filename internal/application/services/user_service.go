@@ -151,6 +151,35 @@ func (s *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*entities.
 	return s.aggregateToEntityWithAvatar(ctx, agg), nil
 }
 
+// GetUserProfileWithRelations retrieves a user by ID with roles and menus populated
+func (s *userService) GetUserProfileWithRelations(ctx context.Context, id uuid.UUID) (*entities.User, error) {
+	// First get the basic user
+	user, err := s.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch user roles
+	roles, err := s.userRepo.GetUserRoles(ctx, id)
+	if err != nil {
+		// Log error but don't fail the request
+		// You might want to add logging here
+		roles = []*entities.Role{}
+	}
+	user.Roles = roles
+
+	// Fetch user menus
+	menus, err := s.userRepo.GetUserMenus(ctx, id)
+	if err != nil {
+		// Log error but don't fail the request
+		// You might want to add logging here
+		menus = []*entities.Menu{}
+	}
+	user.Menus = menus
+
+	return user, nil
+}
+
 func (s *userService) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	agg, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {

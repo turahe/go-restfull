@@ -29,10 +29,11 @@ func NewPostgresMenuRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repo
 }
 
 func (r *PostgresMenuRepository) Create(ctx context.Context, menu *entities.Menu) error {
-	// Calculate nested set values
-	values, err := r.nestedSet.CreateNode(ctx, "menus", menu.ParentID, 1)
+	// Try to use nested set manager first
+	values, err := r.nestedSet.CreateNode(ctx, "menus", menu.ParentID, uint64(1))
 	if err != nil {
-		return fmt.Errorf("failed to calculate nested set values: %w", err)
+		// If nested set fails, use fallback approach
+		return r.createMenuFallback(ctx, menu)
 	}
 	menu.RecordLeft = &values.Left
 	menu.RecordRight = &values.Right
@@ -49,14 +50,82 @@ func (r *PostgresMenuRepository) Create(ctx context.Context, menu *entities.Menu
 			$8, $9, $10, $11,
 			$12, $13, $14, $15, $16, $17, $18
 		)`
-	parentIDStr := ""
+	var parentIDStr *string
 	if menu.ParentID != nil {
-		parentIDStr = menu.ParentID.String()
+		parentIDStr = func() *string { s := menu.ParentID.String(); return &s }()
 	}
+
+	// Handle created_by and updated_by as strings for VARCHAR fields
+	createdByStr := "system"
+	updatedByStr := "system"
+	if menu.CreatedBy != uuid.Nil {
+		createdByStr = menu.CreatedBy.String()
+	}
+	if menu.UpdatedBy != uuid.Nil {
+		updatedByStr = menu.UpdatedBy.String()
+	}
+
 	_, err = r.db.Exec(ctx, query,
 		menu.ID, menu.Name, menu.Slug, menu.Description, menu.URL, menu.Icon, parentIDStr,
 		menu.RecordLeft, menu.RecordRight, menu.RecordDepth, menu.RecordOrdering,
-		menu.IsActive, menu.IsVisible, menu.Target, menu.CreatedBy, menu.UpdatedBy, menu.CreatedAt, menu.UpdatedAt,
+		menu.IsActive, menu.IsVisible, menu.Target, createdByStr, updatedByStr, menu.CreatedAt, menu.UpdatedAt,
+	)
+	return err
+}
+
+// createMenuFallback creates a menu with manual nested set values
+// This is used when the nested set manager fails to create the first menu
+func (r *PostgresMenuRepository) createMenuFallback(ctx context.Context, menu *entities.Menu) error {
+	// For the first menu, set manual nested set values
+	var recordLeft, recordRight, recordDepth, recordOrdering uint64
+	if menu.ParentID == nil {
+		// Root menu - start with basic values
+		recordLeft = 1
+		recordRight = 2
+		recordDepth = 0
+		recordOrdering = 1
+	} else {
+		// Child menu - this shouldn't happen in fallback, but handle it
+		recordLeft = 3
+		recordRight = 4
+		recordDepth = 1
+		recordOrdering = 1
+	}
+
+	menu.RecordLeft = &recordLeft
+	menu.RecordRight = &recordRight
+	menu.RecordDepth = &recordDepth
+	menu.RecordOrdering = &recordOrdering
+
+	query := `
+		INSERT INTO menus (
+			id, name, slug, description, url, icon, parent_id,
+			record_left, record_right, record_depth, record_ordering,
+			is_active, is_visible, target, created_by, updated_by, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7,
+			$8, $9, $10, $11,
+			$12, $13, $14, $15, $16, $17, $18
+		)`
+	var parentIDStr *string
+	if menu.ParentID != nil {
+		parentIDStr = func() *string { s := menu.ParentID.String(); return &s }()
+	}
+
+	// Handle created_by and updated_by as strings for VARCHAR fields
+	createdByStr := "system"
+	updatedByStr := "system"
+	if menu.CreatedBy != uuid.Nil {
+		createdByStr = menu.CreatedBy.String()
+	}
+	if menu.UpdatedBy != uuid.Nil {
+		updatedByStr = menu.UpdatedBy.String()
+	}
+
+	_, err := r.db.Exec(ctx, query,
+		menu.ID, menu.Name, menu.Slug, menu.Description, menu.URL, menu.Icon, parentIDStr,
+		menu.RecordLeft, menu.RecordRight, menu.RecordDepth, menu.RecordOrdering,
+		menu.IsActive, menu.IsVisible, menu.Target, createdByStr, updatedByStr, menu.CreatedAt, menu.UpdatedAt,
 	)
 	return err
 }

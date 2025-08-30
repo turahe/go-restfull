@@ -361,8 +361,8 @@ func (c *UserController) GetProfile(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Get user profile
-	user, err := c.userService.GetUserByID(ctx.Context(), id)
+	// Get user profile with roles and menus
+	user, err := c.userService.GetUserProfileWithRelations(ctx.Context(), id)
 	if err != nil {
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -370,10 +370,7 @@ func (c *UserController) GetProfile(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewUserResponse(user),
-	})
+	return ctx.JSON(responses.NewUserResponse(user))
 }
 
 // UpdateProfile handles PUT /profile
@@ -453,8 +450,5 @@ func (c *UserController) UpdateProfile(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(responses.SuccessResponse{
-		Status: "success",
-		Data:   responses.NewUserResponse(user),
-	})
+	return ctx.JSON(responses.NewUserResponse(user))
 }
