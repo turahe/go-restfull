@@ -159,7 +159,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	if err != nil {
 		panic(fmt.Errorf("failed to initialize storage service: %w", err))
 	}
-	
+
 	defaultStorage, err := storageLoader.LoadDefaultStorage()
 	if err != nil {
 		panic(fmt.Errorf("failed to load default storage: %w", err))
