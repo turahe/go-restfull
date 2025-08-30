@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/turahe/go-restfull/internal/db/pgx"
+	"github.com/turahe/go-restfull/internal/domain/aggregates"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/valueobjects"
 	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
 )
 
@@ -31,7 +33,7 @@ func SeedAdminUser() error {
 		return err
 	}
 
-	// Create admin user
+	// Create admin user using repository
 	adminUser, err := createAdminUser(ctx, pool)
 	if err != nil {
 		log.Printf("Error creating admin user: %v", err)
@@ -43,6 +45,10 @@ func SeedAdminUser() error {
 		log.Printf("Error assigning admin role to user: %v", err)
 		return err
 	}
+	if err := assignSettingToAdmin(ctx, pool, adminUser.ID); err != nil {
+		log.Printf("Error assigning setting to admin user: %v", err)
+		return err
+	}
 
 	// Assign all menus to admin role
 	if err := assignAllMenusToAdminRole(ctx, pool); err != nil {
@@ -50,56 +56,46 @@ func SeedAdminUser() error {
 		return err
 	}
 
-	log.Printf("Successfully seeded admin user: %s (%s)", adminUser.UserName, adminUser.Email)
+	log.Printf("Successfully seeded admin user: %s (%s)", adminUser.UserName, adminUser.Email.String())
 	return nil
 }
 
-// createAdminUser creates the admin user in the database
-func createAdminUser(ctx context.Context, pool *pgxpool.Pool) (*entities.User, error) {
+// createAdminUser creates the admin user using the PostgresUserRepository
+func createAdminUser(ctx context.Context, pool *pgxpool.Pool) (*aggregates.UserAggregate, error) {
+	// Create repository instance
+	userRepo := adapters.NewPostgresUserRepository(pool)
+	hasPasswordService := adapters.NewBcryptPasswordService()
+
 	// Check if admin user already exists
-	var existingUser entities.User
-	query := `SELECT id, username, email FROM users WHERE email = $1 AND deleted_at IS NULL`
-	err := pool.QueryRow(ctx, query, "admin@example.com").Scan(&existingUser.ID, &existingUser.UserName, &existingUser.Email)
-	if err == nil {
-		log.Printf("Admin user already exists: %s", existingUser.Email)
-		return &existingUser, nil
+	existingUser, err := userRepo.FindByEmail(ctx, "admin@example.com")
+	if err != nil {
+		return nil, err
+	}
+	if existingUser != nil {
+		log.Printf("Admin user already exists: %s", existingUser.Email.String())
+		return existingUser, nil
 	}
 
 	// Generate a secure random password
-	password := generateSecurePassword()
-	hashedPassword, err := hashPassword(password)
+	password := "secret"
+	hashedPassword, err := hasPasswordService.HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create admin user
-	adminUser := &entities.User{
+	// Create admin user aggregate
+	adminUser := &aggregates.UserAggregate{
 		ID:        uuid.New(),
 		UserName:  "admin",
-		Email:     "admin@example.com",
-		Phone:     "+1234567890",
-		Password:  hashedPassword,
-		Avatar:    "",
+		Email:     mustCreateEmail("admin@example.com"),
+		Phone:     mustCreatePhone("+1234567890"),
+		Password:  mustCreateHashedPassword(hashedPassword),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	// Insert user into database
-	insertQuery := `
-		INSERT INTO users (id, username, email, phone, password, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-
-	_, err = pool.Exec(ctx, insertQuery,
-		adminUser.ID,
-		adminUser.UserName,
-		adminUser.Email,
-		adminUser.Phone,
-		adminUser.Password,
-		adminUser.CreatedAt,
-		adminUser.UpdatedAt,
-	)
-
+	// Save user using repository
+	err = userRepo.Save(ctx, adminUser)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +148,39 @@ func assignAdminRoleToUser(ctx context.Context, pool *pgxpool.Pool, userID uuid.
 	}
 
 	log.Printf("Assigned admin role to user")
+	return nil
+}
+
+func assignSettingToAdmin(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID) error {
+	// Get admin role ID
+	settings := []entities.Setting{
+		{
+			ID:        uuid.New(),
+			ModelType: "user",
+			ModelID:   &userID,
+			Key:       "language",
+			Value:     "en",
+			CreatedBy: userID,
+			UpdatedBy: userID,
+		},
+		{
+			ID:        uuid.New(),
+			ModelType: "user",
+			ModelID:   &userID,
+			Key:       "timezone",
+			Value:     "UTC",
+			CreatedBy: userID,
+			UpdatedBy: userID,
+		},
+	}
+
+	settingRepo := adapters.NewPostgresSettingRepository(pool, nil)
+	for _, setting := range settings {
+		err := settingRepo.Create(ctx, &setting)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -225,14 +254,27 @@ func assignAllMenusToAdminRole(ctx context.Context, pool *pgxpool.Pool) error {
 	return nil
 }
 
-// hashPassword hashes the password using the proper password service
-func hashPassword(password string) (string, error) {
-	passwordService := adapters.NewBcryptPasswordService()
-	return passwordService.HashPassword(password)
+// Helper functions to create value objects (these would typically be in the domain layer)
+func mustCreateEmail(email string) valueobjects.Email {
+	emailVO, err := valueobjects.NewEmail(email)
+	if err != nil {
+		panic(err) // This should not happen with hardcoded values
+	}
+	return emailVO
 }
 
-// generateSecurePassword generates a secure random password
-func generateSecurePassword() string {
-	// Return default password "secret" for development/testing
-	return "secret"
+func mustCreatePhone(phone string) valueobjects.Phone {
+	phoneVO, err := valueobjects.NewPhone(phone)
+	if err != nil {
+		panic(err) // This should not happen with hardcoded values
+	}
+	return phoneVO
+}
+
+func mustCreateHashedPassword(hash string) valueobjects.HashedPassword {
+	hashedPassword, err := valueobjects.NewHashedPasswordFromHash(hash)
+	if err != nil {
+		panic(err) // This should not happen with valid hash
+	}
+	return hashedPassword
 }
