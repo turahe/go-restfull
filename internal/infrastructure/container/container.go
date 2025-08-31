@@ -61,6 +61,12 @@ type Container struct {
 	PaginationService domainservices.PaginationService
 	RabbitMQService   *rabbitmq.Service
 
+	// Notification Services
+	NotificationService           domainservices.NotificationService
+	NotificationTemplateService   domainservices.NotificationTemplateService
+	NotificationPreferenceService domainservices.NotificationPreferenceService
+	NotificationDeliveryService   domainservices.NotificationDeliveryService
+
 	// Search Service
 	SearchService       ports.SearchService
 	HybridSearchService *appservices.HybridSearchService
@@ -81,6 +87,7 @@ type Container struct {
 	RBACController         *controllers.RBACController
 	AddressController      *controllers.AddressController
 	OrganizationController *controllers.OrganizationController
+	NotificationController *controllers.NotificationController
 }
 
 func NewContainer(db *pgxpool.Pool) *Container {

@@ -6,6 +6,7 @@ package adapters
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
@@ -53,6 +54,15 @@ func NewPostgresTagRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repos
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) Create(ctx context.Context, tag *entities.Tag) error {
+	// Set current timestamps if not already set
+	now := time.Now()
+	if tag.CreatedAt.IsZero() {
+		tag.CreatedAt = now
+	}
+	if tag.UpdatedAt.IsZero() {
+		tag.UpdatedAt = now
+	}
+
 	var query string
 	var args []interface{}
 
@@ -185,6 +195,9 @@ func (r *PostgresTagRepository) Search(ctx context.Context, query string, limit,
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresTagRepository) Update(ctx context.Context, tag *entities.Tag) error {
+	// Set current timestamp for updated_at
+	tag.UpdatedAt = time.Now()
+
 	var query string
 	var args []interface{}
 

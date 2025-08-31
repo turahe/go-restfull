@@ -7,7 +7,7 @@ default: local
 # Local filesystem storage
 local:
   provider: local
-  local_path: "./uploads"
+  local_path: "/app/uploads"
 
 # MinIO storage (S3-compatible)
 minio:
@@ -16,7 +16,7 @@ minio:
   secret_key: "your-minio-secret-key"
   region: "us-east-1"
   bucket: "your-bucket-name"
-  endpoint: "http://localhost:9000"
+  endpoint: "http://minio:9000"
 
 # AWS S3 storage
 s3:

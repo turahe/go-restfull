@@ -13,6 +13,12 @@ func RegisterV1Routes(v1Group fiber.Router, container *container.Container) {
 	RegisterAuthRoutes(v1Group, nil, container)
 	RegisterOrganizationRoutes(v1Group, nil, container)
 
+	// Add public health endpoint for API monitoring
+	RegisterHealthRoutes(v1Group, container)
+
+	// Register notification routes
+	RegisterNotificationRoutes(v1Group, container)
+
 	// Protected routes (require JWT + RBAC)
 	protected := v1Group.Group("/", middleware.JWTAuth(), middleware.RBACMiddleware(container.RBACService))
 	RegisterUserRoutes(protected, container)

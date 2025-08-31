@@ -28,15 +28,12 @@ import (
 
 	"github.com/turahe/go-restfull/pkg/logger"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/turahe/go-restfull/cmd"
 	_ "github.com/turahe/go-restfull/docs/api" // Import for Swagger documentation
 	"github.com/turahe/go-restfull/internal/db/pgx"
 	"github.com/turahe/go-restfull/internal/db/seeds"
 	"github.com/turahe/go-restfull/internal/infrastructure/container"
-	"github.com/turahe/go-restfull/internal/interfaces/http/routes"
+	"github.com/turahe/go-restfull/internal/router"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 
@@ -98,19 +95,8 @@ func main() {
 		log.Fatalf("Failed to start messaging consumers: %v", err)
 	}
 
-	// Setup Fiber app with enhanced configuration
-	app := fiber.New(fiber.Config{
-		ErrorHandler:          customErrorHandler,
-		DisableStartupMessage: true,
-		EnablePrintRoutes:     false,
-	})
-
-	// Middleware
-	app.Use(cors.New())
-	app.Use(fiberlogger.New())
-
-	// Setup routes using Hexagonal Architecture
-	routes.RegisterRoutes(app, container)
+	// Use the proper router setup from the router package
+	app := router.NewFiberRouter()
 
 	// Start the server
 	log.Fatal(app.Listen(":8000"))
@@ -119,18 +105,4 @@ func main() {
 // ensureDefaultRoles ensures that default roles exist in the database
 func ensureDefaultRoles() error {
 	return seeds.EnsureDefaultUserRole()
-}
-
-// customErrorHandler handles application errors
-func customErrorHandler(c *fiber.Ctx, err error) error {
-	code := fiber.StatusInternalServerError
-
-	if e, ok := err.(*fiber.Error); ok {
-		code = e.Code
-	}
-
-	return c.Status(code).JSON(fiber.Map{
-		"status":  "error",
-		"message": err.Error(),
-	})
 }

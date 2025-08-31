@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
@@ -28,6 +29,15 @@ func NewPostgresOrganizationRepository(db *pgxpool.Pool) repositories.Organizati
 }
 
 func (r *PostgresOrganizationRepository) Create(ctx context.Context, organization *entities.Organization) error {
+	// Set current timestamps if not already set
+	now := time.Now()
+	if organization.CreatedAt.IsZero() {
+		organization.CreatedAt = now
+	}
+	if organization.UpdatedAt.IsZero() {
+		organization.UpdatedAt = now
+	}
+
 	// Try to use nested set manager first
 	values, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, uint64(1))
 	if err != nil {
@@ -68,6 +78,15 @@ func (r *PostgresOrganizationRepository) Create(ctx context.Context, organizatio
 // createOrganizationFallback creates an organization with manual nested set values
 // This is used when the nested set manager fails to create the first organization
 func (r *PostgresOrganizationRepository) createOrganizationFallback(ctx context.Context, organization *entities.Organization) error {
+	// Set current timestamps if not already set
+	now := time.Now()
+	if organization.CreatedAt.IsZero() {
+		organization.CreatedAt = now
+	}
+	if organization.UpdatedAt.IsZero() {
+		organization.UpdatedAt = now
+	}
+
 	// For the first organization, set manual nested set values
 	var recordLeft, recordRight, recordDepth, recordOrdering uint64
 	if organization.ParentID == nil {
@@ -190,6 +209,9 @@ func (r *PostgresOrganizationRepository) GetAll(ctx context.Context, limit, offs
 }
 
 func (r *PostgresOrganizationRepository) Update(ctx context.Context, organization *entities.Organization) error {
+	// Set current timestamp for updated_at
+	organization.UpdatedAt = time.Now()
+
 	query := `
 		UPDATE organizations 
 		SET name = $2, description = $3, code = $4, type = $5, status = $6, updated_at = $7

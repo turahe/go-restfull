@@ -78,8 +78,21 @@ vet:
 	go vet $(SRC)
 
 lint:
-	go get golang.org/x/lint/golint
-	$(GOPATH)/bin/golint ./...
+	@echo "Running golangci-lint..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not found. Installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		golangci-lint run ./...; \
+	fi
+
+simple-lint:
+	@echo "Running basic Go linting..."
+	go fmt ./...
+	go vet ./...
+	go mod tidy
+	go mod verify
 
 # Docker commands
 docker-build: docker-build-dev docker-build-staging docker-build-prod

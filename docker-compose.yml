@@ -7,6 +7,9 @@ services:
     container_name: go-restfull-prod
     ports:
       - "8000:8000"
+    volumes:
+      - ./config:/app/config:ro  # Mount config directory as read-only
+      - /data/app/uploads:/app/uploads   # Named volume for user uploads
     environment:
       - ENV=production
       - TZ=Asia/Jakarta
@@ -31,9 +34,9 @@ services:
     image: postgres:17
     container_name: go-restfull-postgres-prod
     environment:
-      POSTGRES_DB: my_db
-      POSTGRES_USER: my_user
-      POSTGRES_PASSWORD: secret
+      - POSTGRES_DB=my_db
+      - POSTGRES_USER=my_user
+      - POSTGRES_PASSWORD=secret
     ports:
       - "5432:5432"
     volumes:
@@ -67,8 +70,8 @@ services:
       - "9000:9000"
       - "8900:8900"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":8900"
     volumes:
       - ./data/minio:/data
@@ -84,9 +87,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_DEFAULT_VHOST: /
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_VHOST=/
     ports:
       - "5672:5672"   # AMQP port
       - "15672:15672" # Management UI port
@@ -120,8 +123,8 @@ services:
     ports:
       - "7700:7700"
     environment:
-      MEILI_ENV: production
-      MEILI_MASTER_KEY: your-super-secret-master-key-32-chars-long
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=your-super-secret-master-key-32-chars-long
     volumes:
       - ./data/meilisearch:/meili_data
     networks:
@@ -152,4 +155,7 @@ services:
 
 networks:
   go-restfull-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  uploads_data:  # Named volume for user uploads 

@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
@@ -21,6 +22,15 @@ func NewPostgresTaxonomyRepository(db *pgxpool.Pool) repositories.TaxonomyReposi
 }
 
 func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// Set current timestamps if not already set
+	now := time.Now()
+	if taxonomy.CreatedAt.IsZero() {
+		taxonomy.CreatedAt = now
+	}
+	if taxonomy.UpdatedAt.IsZero() {
+		taxonomy.UpdatedAt = now
+	}
+
 	// compute nested set values
 	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, uint64(1))
 	if err != nil {
@@ -61,6 +71,15 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 
 // createTaxonomyFallback creates a taxonomy with manual nested set values when the nested set manager fails
 func (r *PostgresTaxonomyRepository) createTaxonomyFallback(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// Set current timestamps if not already set
+	now := time.Now()
+	if taxonomy.CreatedAt.IsZero() {
+		taxonomy.CreatedAt = now
+	}
+	if taxonomy.UpdatedAt.IsZero() {
+		taxonomy.UpdatedAt = now
+	}
+
 	// Get the maximum right value from existing taxonomies
 	var maxRight int
 	query := `SELECT COALESCE(MAX(record_right), 0) FROM taxonomies`
@@ -422,6 +441,9 @@ func (r *PostgresTaxonomyRepository) Search(ctx context.Context, query string, l
 }
 
 func (r *PostgresTaxonomyRepository) Update(ctx context.Context, taxonomy *entities.Taxonomy) error {
+	// Set current timestamp for updated_at
+	taxonomy.UpdatedAt = time.Now()
+
 	// Handle updated_by field conditionally - use nil for empty UUIDs
 	var updatedBy *string
 	if taxonomy.UpdatedBy != uuid.Nil {

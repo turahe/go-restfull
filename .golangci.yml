@@ -1,0 +1,109 @@
+run:
+  timeout: 5m
+  go: "1.21"
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - gosec
+    - gocyclo
+    - misspell
+    - unparam
+    - goconst
+    - gocritic
+    - godot
+    - mnd
+    - gomodguard
+    - goprintffuncname
+    - lll
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - stylecheck
+    - unconvert
+    - whitespace
+
+linters-settings:
+  gocyclo:
+    min-complexity: 20
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  lll:
+    line-length: 140
+  mnd:
+    ignore-numbers: "0,1,2,3,4,5,8,10,30,60,90,100,200,300,1000,10000"
+    ignore-functions: "time.Sleep,time.Duration"
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gomnd
+        - goconst
+        - gocyclo
+        - dupl
+        - gosec
+        - gocritic
+        - goprintffuncname
+        - lll
+        - nakedret
+        - noctx
+        - rowserrcheck
+        - stylecheck
+        - unconvert
+        - whitespace
+    - path: internal/db/migrations/
+      linters:
+        - lll
+        - gocritic
+    - path: pkg/testutils/
+      linters:
+        - gosec
+        - gomnd
+    - path: internal/domain/entities/
+      linters:
+        - lll
+        - gomnd
+    - path: internal/application/services/
+      linters:
+        - gocyclo
+        - gomnd
+    - path: internal/interfaces/http/controllers/
+      linters:
+        - gocyclo
+        - gomnd
+    - path: internal/interfaces/http/responses/
+      linters:
+        - gomnd
+    - path: internal/helper/
+      linters:
+        - gomnd
+    - path: pkg/
+      linters:
+        - gomnd
+    - path: cmd/
+      linters:
+        - gomnd
+    - path: config/
+      linters:
+        - gomnd
+    - path: build/
+      linters:
+        - gomnd
+    - path: pkg/logger/
+      linters:
+        - gomnd
