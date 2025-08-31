@@ -8,7 +8,8 @@ import (
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/helper/pagination"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // NotificationController handles HTTP requests for notifications
 type NotificationController struct {
@@ -136,6 +137,7 @@ func (c *NotificationController) GetNotificationByID(ctx *fiber.Ctx) error {
 
 	notificationID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid notification ID",
@@ -144,6 +146,7 @@ func (c *NotificationController) GetNotificationByID(ctx *fiber.Ctx) error {
 
 	notification, err := c.notificationService.GetNotificationByID(ctx.Context(), notificationID, userID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Notification not found",
@@ -168,6 +171,7 @@ func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 
 	notificationID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid notification ID",
@@ -201,6 +205,7 @@ func (c *NotificationController) MarkAsUnread(ctx *fiber.Ctx) error {
 
 	notificationID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid notification ID",
@@ -234,6 +239,7 @@ func (c *NotificationController) ArchiveNotification(ctx *fiber.Ctx) error {
 
 	notificationID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid notification ID",
@@ -267,6 +273,7 @@ func (c *NotificationController) DeleteNotification(ctx *fiber.Ctx) error {
 
 	notificationID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid notification ID",
@@ -359,11 +366,12 @@ func (c *NotificationController) BulkMarkAsRead(ctx *fiber.Ctx) error {
 	for _, idStr := range request.IDs {
 		id, err := uuid.Parse(idStr)
 		if err != nil {
-			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Invalid notification ID format",
 			})
-		}
+	}
 		ids = append(ids, id)
 	}
 

@@ -9,8 +9,6 @@ import (
 
 	"github.com/turahe/go-restfull/pkg/logger"
 
-	internal_minio "github.com/turahe/go-restfull/pkg/minio"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,7 +44,6 @@ func SetupAll() {
 	setUpPostgres()
 	setUpRedis()
 	setUpSentry()
-	setUpMinio()
 
 }
 
@@ -168,18 +165,4 @@ func setUpSentry() {
 	sentry.CaptureMessage("Sentry initialized")
 
 	defer sentry.Flush(2 * time.Second)
-}
-
-func setUpMinio() {
-	// Don't initialize minio if it is not enabled
-	if !config.GetConfig().Minio.Enable {
-		return
-	}
-
-	logger.Log.Info("Initializing Minio")
-	err := internal_minio.Setup()
-	if err != nil {
-		logger.Log.Fatal("internal_minio.Setup()", zap.Error(err))
-	}
-	logger.Log.Info("Minio initialized")
 }

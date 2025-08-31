@@ -27,13 +27,13 @@ type CommentResource struct {
 	// Author contains information about the user who wrote the comment
 	Author *UserResource `json:"author,omitempty"`
 	// RecordLeft is used for nested set model operations (tree structure)
-	RecordLeft *uint64 `json:"record_left,omitempty"`
+	RecordLeft *int64 `json:"record_left,omitempty"`
 	// RecordRight is used for nested set model operations (tree structure)
-	RecordRight *uint64 `json:"record_right,omitempty"`
+	RecordRight *int64 `json:"record_right,omitempty"`
 	// RecordOrdering determines the display order of comments
-	RecordOrdering *uint64 `json:"record_ordering,omitempty"`
+	RecordOrdering *int64 `json:"record_ordering,omitempty"`
 	// RecordDepth indicates the nesting level of the comment in the tree
-	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	RecordDepth *int64 `json:"record_depth,omitempty"`
 	// CreatedBy is the ID of the user who created the comment
 	CreatedBy string `json:"created_by"`
 	// UpdatedBy is the ID of the user who last updated the comment

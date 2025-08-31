@@ -8,7 +8,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type UserRoleController struct {
 	userRoleService ports.UserRoleService
@@ -35,6 +36,7 @@ func NewUserRoleController(userRoleService ports.UserRoleService) *UserRoleContr
 func (c *UserRoleController) AssignRoleToUser(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid user ID",
@@ -43,6 +45,7 @@ func (c *UserRoleController) AssignRoleToUser(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -75,6 +78,7 @@ func (c *UserRoleController) AssignRoleToUser(ctx *fiber.Ctx) error {
 func (c *UserRoleController) RemoveRoleFromUser(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid user ID",
@@ -83,6 +87,7 @@ func (c *UserRoleController) RemoveRoleFromUser(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -115,6 +120,7 @@ func (c *UserRoleController) RemoveRoleFromUser(ctx *fiber.Ctx) error {
 func (c *UserRoleController) GetUserRoles(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid user ID",
@@ -123,6 +129,7 @@ func (c *UserRoleController) GetUserRoles(ctx *fiber.Ctx) error {
 
 	roles, err := c.userRoleService.GetUserRoles(ctx.Context(), userID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to retrieve user roles",
@@ -155,6 +162,7 @@ func (c *UserRoleController) GetUserRoles(ctx *fiber.Ctx) error {
 func (c *UserRoleController) GetRoleUsers(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -166,6 +174,7 @@ func (c *UserRoleController) GetRoleUsers(ctx *fiber.Ctx) error {
 
 	users, err := c.userRoleService.GetRoleUsers(ctx.Context(), roleID, limit, offset)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to retrieve role users",
@@ -197,6 +206,7 @@ func (c *UserRoleController) GetRoleUsers(ctx *fiber.Ctx) error {
 func (c *UserRoleController) HasRole(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid user ID",
@@ -205,6 +215,7 @@ func (c *UserRoleController) HasRole(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -213,6 +224,7 @@ func (c *UserRoleController) HasRole(ctx *fiber.Ctx) error {
 
 	hasRole, err := c.userRoleService.HasRole(ctx.Context(), userID, roleID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to check user role",
@@ -241,6 +253,7 @@ func (c *UserRoleController) HasRole(ctx *fiber.Ctx) error {
 func (c *UserRoleController) GetUserRoleCount(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -249,6 +262,7 @@ func (c *UserRoleController) GetUserRoleCount(ctx *fiber.Ctx) error {
 
 	count, err := c.userRoleService.GetUserRoleCount(ctx.Context(), roleID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get user count for role",

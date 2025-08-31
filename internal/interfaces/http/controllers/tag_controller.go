@@ -9,7 +9,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // TagController handles HTTP requests for tag operations
 //
@@ -89,6 +90,7 @@ func (c *TagController) GetTags(ctx *fiber.Ctx) error {
 	// Get total count for pagination
 	total, err := c.tagService.GetTagCount(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to retrieve tag count",
@@ -129,6 +131,7 @@ func (c *TagController) GetTagByID(ctx *fiber.Ctx) error {
 	tagIDStr := ctx.Params("id")
 	tagID, err := uuid.Parse(tagIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid tag ID format",
@@ -240,6 +243,7 @@ func (c *TagController) UpdateTag(ctx *fiber.Ctx) error {
 	tagIDStr := ctx.Params("id")
 	tagID, err := uuid.Parse(tagIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid tag ID format",
@@ -334,6 +338,7 @@ func (c *TagController) DeleteTag(ctx *fiber.Ctx) error {
 	tagIDStr := ctx.Params("id")
 	tagID, err := uuid.Parse(tagIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid tag ID format",

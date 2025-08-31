@@ -13,7 +13,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // CommentController handles comment-related endpoints
 type CommentController struct {
@@ -87,6 +88,7 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve comments",
@@ -117,6 +119,7 @@ func (c *CommentController) GetComments(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve comment count",
@@ -157,6 +160,7 @@ func (c *CommentController) GetCommentByID(ctx *fiber.Ctx) error {
 	commentIDStr := ctx.Params("id")
 	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid comment ID format",
@@ -202,6 +206,7 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "Authentication required",
@@ -225,6 +230,7 @@ func (c *CommentController) CreateComment(ctx *fiber.Ctx) error {
 	// Create comment using the entity
 	createdComment, err := c.commentService.CreateComment(ctx.Context(), comment)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to create comment",
@@ -256,6 +262,7 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "Authentication required",
@@ -267,6 +274,7 @@ func (c *CommentController) UpdateComment(ctx *fiber.Ctx) error {
 	commentIDStr := ctx.Params("id")
 	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid comment ID format",
@@ -343,6 +351,7 @@ func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "Authentication required",
@@ -354,6 +363,7 @@ func (c *CommentController) DeleteComment(ctx *fiber.Ctx) error {
 	commentIDStr := ctx.Params("id")
 	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid comment ID format",
@@ -403,6 +413,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "Authentication required",
@@ -414,6 +425,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 	commentIDStr := ctx.Params("id")
 	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid comment ID format",
@@ -441,6 +453,7 @@ func (c *CommentController) ApproveComment(ctx *fiber.Ctx) error {
 	// Get the updated comment to return in response
 	comment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve updated comment",
@@ -470,6 +483,7 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	// Get authenticated user ID
 	_, err := utils.GetUserID(ctx)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusUnauthorized).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusUnauthorized,
 			ResponseMessage: "Authentication required",
@@ -481,6 +495,7 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	commentIDStr := ctx.Params("id")
 	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid comment ID format",
@@ -549,6 +564,7 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	// Get the updated comment to return in response
 	updatedComment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve updated comment",

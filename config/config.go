@@ -16,7 +16,6 @@ type Config struct {
 	Schedules   []Schedule       `yaml:"schedules"`
 	Postgres    Postgres         `yaml:"postgres"`  // Legacy single database config
 	Databases   []DatabaseConfig `yaml:"databases"` // New multi-database config
-	Minio       Minio            `yaml:"minio"`
 	Redis       []Redis          `yaml:"redis"`
 	RabbitMQ    RabbitMQ         `yaml:"rabbitmq"`
 	Meilisearch Meilisearch      `yaml:"meilisearch"`
@@ -142,16 +141,6 @@ type Schedule struct {
 	Job       string `yaml:"job"`
 	Cron      string `yaml:"cron"`
 	IsEnabled bool   `yaml:"isEnabled"`
-}
-
-type Minio struct {
-	Enable          bool   `yaml:"enable"`
-	Endpoint        string `yaml:"endpoint"`
-	AccessKeyID     string `yaml:"accessKeyID"`
-	AccessKeySecret string `yaml:"accessKeySecret"`
-	UseSSL          bool   `yaml:"useSSL"`
-	BucketName      string `yaml:"bucket"`
-	Region          string `yaml:"region"`
 }
 
 type Redis struct {

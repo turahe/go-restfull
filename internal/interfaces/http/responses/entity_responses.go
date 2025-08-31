@@ -229,11 +229,11 @@ type TaxonomyResponse struct {
 	// ParentID is the optional ID of the parent taxonomy
 	ParentID *string `json:"parent_id,omitempty"`
 	// RecordLeft is used for nested set model operations (tree structure)
-	RecordLeft *uint64 `json:"record_left"`
+	RecordLeft *int64 `json:"record_left"`
 	// RecordRight is used for nested set model operations (tree structure)
-	RecordRight *uint64 `json:"record_right"`
+	RecordRight *int64 `json:"record_right"`
 	// RecordDepth indicates the nesting level of the taxonomy in the tree
-	RecordDepth *uint64 `json:"record_depth"`
+	RecordDepth *int64 `json:"record_depth"`
 	// CreatedAt is the timestamp when the taxonomy was created
 	CreatedAt time.Time `json:"created_at"`
 	// UpdatedAt is the timestamp when the taxonomy was last updated

@@ -22,21 +22,22 @@ import (
 // - Audit trail with creation, update, and deletion tracking
 // - Soft delete functionality for taxonomy preservation
 type Taxonomy struct {
-	ID          uuid.UUID  `json:"id"`                     // Unique identifier for the taxonomy
-	Name        string     `json:"name"`                   // Display name of the taxonomy
-	Slug        string     `json:"slug"`                   // URL-friendly identifier for the taxonomy
-	Code        string     `json:"code,omitempty"`         // Optional taxonomy code/identifier
-	Description string     `json:"description,omitempty"`  // Optional description of the taxonomy
-	ParentID    *uuid.UUID `json:"parent_id,omitempty"`    // ID of parent taxonomy (nil for root items)
-	RecordLeft  *uint64    `json:"record_left,omitempty"`  // Left boundary for nested set model
-	RecordRight *uint64    `json:"record_right,omitempty"` // Right boundary for nested set model
-	RecordDepth *uint64    `json:"record_depth,omitempty"` // Depth level in the hierarchy
-	CreatedBy   uuid.UUID  `json:"created_by"`             // ID of user who created this taxonomy
-	UpdatedBy   uuid.UUID  `json:"updated_by"`             // ID of user who last updated this taxonomy
-	DeletedBy   *uuid.UUID `json:"deleted_by,omitempty"`   // ID of user who deleted this taxonomy (soft delete)
-	CreatedAt   time.Time  `json:"created_at"`             // Timestamp when taxonomy was created
-	UpdatedAt   time.Time  `json:"updated_at"`             // Timestamp when taxonomy was last updated
-	DeletedAt   *time.Time `json:"deleted_at,omitempty"`   // Timestamp when taxonomy was soft deleted
+	ID             uuid.UUID  `json:"id"`                    // Unique identifier for the taxonomy
+	Name           string     `json:"name"`                  // Display name of the taxonomy
+	Slug           string     `json:"slug"`                  // URL-friendly identifier for the taxonomy
+	Code           string     `json:"code,omitempty"`        // Optional taxonomy code/identifier
+	Description    string     `json:"description,omitempty"` // Optional description of the taxonomy
+	ParentID       *uuid.UUID `json:"parent_id,omitempty"`   // ID of parent taxonomy (nil for root items)
+	RecordLeft     *int64     `json:"record_left" db:"record_left"`
+	RecordRight    *int64     `json:"record_right" db:"record_right"`
+	RecordDepth    *int64     `json:"record_depth" db:"record_depth"`
+	RecordOrdering *int64     `json:"record_ordering" db:"record_ordering"`
+	CreatedBy      uuid.UUID  `json:"created_by"`           // ID of user who created this taxonomy
+	UpdatedBy      uuid.UUID  `json:"updated_by"`           // ID of user who last updated this taxonomy
+	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"` // ID of user who deleted this taxonomy (soft delete)
+	CreatedAt      time.Time  `json:"created_at"`           // Timestamp when taxonomy was created
+	UpdatedAt      time.Time  `json:"updated_at"`           // Timestamp when taxonomy was last updated
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"` // Timestamp when taxonomy was soft deleted
 
 	// Relationships
 	Parent   *Taxonomy   `json:"parent,omitempty"`   // Reference to parent taxonomy
@@ -193,7 +194,7 @@ func (t *Taxonomy) GetDepth() int {
 }
 
 // GetWidth returns the width of the node in the nested set
-func (t *Taxonomy) GetWidth() uint64 {
+func (t *Taxonomy) GetWidth() int64 {
 	return *t.RecordRight - *t.RecordLeft + 1
 }
 

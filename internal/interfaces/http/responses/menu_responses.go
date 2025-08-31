@@ -26,13 +26,13 @@ type MenuItemResource struct {
 	// ParentID is the optional ID of the parent menu item for hierarchical menus
 	ParentID *string `json:"parent_id,omitempty"`
 	// RecordLeft is used for nested set model operations (tree structure)
-	RecordLeft *uint64 `json:"record_left,omitempty"`
+	RecordLeft *int64 `json:"record_left,omitempty"`
 	// RecordRight is used for nested set model operations (tree structure)
-	RecordRight *uint64 `json:"record_right,omitempty"`
+	RecordRight *int64 `json:"record_right,omitempty"`
 	// RecordOrdering determines the display order of menu items
-	RecordOrdering *uint64 `json:"record_ordering,omitempty"`
+	RecordOrdering *int64 `json:"record_ordering,omitempty"`
 	// RecordDepth indicates the nesting level of the menu item in the tree
-	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	RecordDepth *int64 `json:"record_depth,omitempty"`
 	// IsActive indicates whether the menu item is currently active/enabled
 	IsActive bool `json:"is_active"`
 	// IsVisible indicates whether the menu item should be displayed to users

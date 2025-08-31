@@ -50,17 +50,17 @@ type Comment struct {
 
 	// RecordLeft is used for nested set model implementation (left boundary)
 	// This field enables efficient tree traversal and querying
-	RecordLeft *uint64 `json:"record_left,omitempty"`
+	RecordLeft *int64 `json:"record_left" db:"record_left"`
 
 	// RecordRight is used for nested set model implementation (right boundary)
 	// This field enables efficient tree traversal and querying
-	RecordRight *uint64 `json:"record_right,omitempty"`
+	RecordRight *int64 `json:"record_right" db:"record_right"`
 
 	// RecordOrdering determines the display order of comments at the same level
-	RecordOrdering *uint64 `json:"record_ordering,omitempty"`
+	RecordOrdering *int64 `json:"record_ordering" db:"record_ordering"`
 
 	// RecordDepth indicates how deeply nested this comment is in the thread
-	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	RecordDepth *int64 `json:"record_depth" db:"record_depth"`
 
 	// CreatedBy is the ID of the user who created the comment
 	CreatedBy uuid.UUID `json:"created_by"`

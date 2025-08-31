@@ -26,11 +26,11 @@ type TaxonomyResource struct {
 	// ParentID is the optional ID of the parent taxonomy for hierarchical structures
 	ParentID *string `json:"parent_id,omitempty"`
 	// RecordLeft is used for nested set model operations (tree structure)
-	RecordLeft *uint64 `json:"record_left,omitempty"`
+	RecordLeft *int64 `json:"record_left,omitempty"`
 	// RecordRight is used for nested set model operations (tree structure)
-	RecordRight *uint64 `json:"record_right,omitempty"`
+	RecordRight *int64 `json:"record_right,omitempty"`
 	// RecordDepth indicates the nesting level of the taxonomy in the tree
-	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	RecordDepth *int64 `json:"record_depth,omitempty"`
 	// IsRoot indicates whether this taxonomy is at the root level (no parent)
 	IsRoot bool `json:"is_root"`
 	// HasChildren indicates whether this taxonomy has child taxonomies

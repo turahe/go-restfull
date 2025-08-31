@@ -2,18 +2,21 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/turahe/go-restfull/config"
 	"github.com/turahe/go-restfull/internal/db/pgx"
 	"github.com/turahe/go-restfull/internal/db/rdb"
-	internal_minio "github.com/turahe/go-restfull/pkg/minio"
+	"github.com/turahe/go-restfull/pkg/storage"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-type HealthzHTTPHandler struct{}
+type HealthzHTTPHandler struct {
+	storageService *storage.StorageService
+}
 
 // HealthCheck represents the health status of a service
 type HealthCheck struct {
@@ -32,8 +35,10 @@ type HealthResponse struct {
 	Services    []HealthCheck `json:"services"`
 }
 
-func NewHealthzHTTPHandler() *HealthzHTTPHandler {
-	return &HealthzHTTPHandler{}
+func NewHealthzHTTPHandler(storageService *storage.StorageService) *HealthzHTTPHandler {
+	return &HealthzHTTPHandler{
+		storageService: storageService,
+	}
 }
 
 // Healthz godoc
@@ -68,15 +73,6 @@ func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 	healthChecks = append(healthChecks, redisHealth)
 	if redisHealth.Status != "healthy" {
 		overallStatus = "unhealthy"
-	}
-
-	// Check MinIO (if enabled)
-	if config.GetConfig().Minio.Enable {
-		minioHealth := h.checkMinIO(ctx)
-		healthChecks = append(healthChecks, minioHealth)
-		if minioHealth.Status != "healthy" {
-			overallStatus = "unhealthy"
-		}
 	}
 
 	// Check MeiliSearch (if enabled)
@@ -114,6 +110,13 @@ func (h *HealthzHTTPHandler) Healthz(c *fiber.Ctx) error {
 	if config.GetConfig().Sentry.Dsn != "" {
 		sentryHealth := h.checkSentry(ctx)
 		healthChecks = append(healthChecks, sentryHealth)
+	}
+
+	// Check Storage Service
+	storageHealth := h.checkStorageService(ctx)
+	healthChecks = append(healthChecks, storageHealth)
+	if storageHealth.Status != "healthy" {
+		overallStatus = "unhealthy"
 	}
 
 	response := HealthResponse{
@@ -186,36 +189,6 @@ func (h *HealthzHTTPHandler) checkRedis(ctx context.Context) HealthCheck {
 		Service:   "redis",
 		Status:    "healthy",
 		Message:   "Redis connection successful",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-}
-
-func (h *HealthzHTTPHandler) checkMinIO(ctx context.Context) HealthCheck {
-	// Use the existing MinIO client from the package
-	minioClient := internal_minio.GetMinio()
-	if minioClient == nil {
-		return HealthCheck{
-			Service:   "minio",
-			Status:    "unhealthy",
-			Message:   "MinIO client not initialized",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-	}
-
-	// Check if MinIO is alive
-	if !internal_minio.IsAlive() {
-		return HealthCheck{
-			Service:   "minio",
-			Status:    "unhealthy",
-			Message:   "MinIO connection failed",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-	}
-
-	return HealthCheck{
-		Service:   "minio",
-		Status:    "healthy",
-		Message:   "MinIO connection successful",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }
@@ -313,6 +286,34 @@ func (h *HealthzHTTPHandler) checkMeiliSearch(ctx context.Context) HealthCheck {
 		Service:   "meilisearch",
 		Status:    "healthy",
 		Message:   "MeiliSearch is available",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+}
+
+func (h *HealthzHTTPHandler) checkStorageService(ctx context.Context) HealthCheck {
+	if h.storageService == nil {
+		return HealthCheck{
+			Service:   "storage",
+			Status:    "unhealthy",
+			Message:   "Storage service not initialized",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+	}
+
+	// Test the storage connection
+	if err := h.storageService.TestConnection(); err != nil {
+		return HealthCheck{
+			Service:   "storage",
+			Status:    "unhealthy",
+			Message:   fmt.Sprintf("Storage connection failed: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+	}
+
+	return HealthCheck{
+		Service:   "storage",
+		Status:    "healthy",
+		Message:   "Storage service is available and responsive",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }

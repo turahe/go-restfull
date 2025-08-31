@@ -8,13 +8,16 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/domain/repositories"
-	"github.com/turahe/go-restfull/internal/infrastructure/storage"
+	"github.com/turahe/go-restfull/pkg/logger"
+	"github.com/turahe/go-restfull/pkg/storage"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // mediaService implements the MediaService interface and provides comprehensive
@@ -67,17 +70,59 @@ func NewMediaService(mediaRepository repositories.MediaRepository, storageServic
 //   - *entities.Media: The created media entity
 //   - error: Any error that occurred during the operation
 func (s *mediaService) UploadMedia(ctx context.Context, file *multipart.FileHeader, userID uuid.UUID) (*entities.Media, error) {
+	logger.Log.Info("UploadMedia: Starting media upload",
+		zap.String("user_id", userID.String()),
+		zap.String("filename", file.Filename),
+		zap.Int64("file_size", file.Size),
+		zap.String("content_type", file.Header.Get("Content-Type")),
+	)
+
 	// Use storage service to upload file and create media entity
 	media, err := s.storageService.UploadFile(ctx, file, userID)
 	if err != nil {
+		logger.Log.Error("UploadMedia: Storage service upload failed",
+			zap.String("user_id", userID.String()),
+			zap.String("filename", file.Filename),
+			zap.Error(err),
+		)
+
+		// Provide more specific error messages based on the error type
+		if strings.Contains(err.Error(), "InvalidAccessKeyId") {
+			return nil, fmt.Errorf("storage configuration error: invalid access credentials")
+		} else if strings.Contains(err.Error(), "NoSuchBucket") {
+			return nil, fmt.Errorf("storage configuration error: bucket does not exist")
+		} else if strings.Contains(err.Error(), "AccessDenied") {
+			return nil, fmt.Errorf("storage access denied: check permissions and credentials")
+		} else if strings.Contains(err.Error(), "network") || strings.Contains(err.Error(), "connection") {
+			return nil, fmt.Errorf("storage connection failed: check network and endpoint configuration")
+		}
+
 		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}
+
+	logger.Log.Info("UploadMedia: File uploaded successfully, persisting to database",
+		zap.String("user_id", userID.String()),
+		zap.String("filename", file.Filename),
+		zap.String("media_id", media.ID.String()),
+	)
 
 	// Persist the media entity to the repository
 	err = s.mediaRepository.Create(ctx, media)
 	if err != nil {
+		logger.Log.Error("UploadMedia: Database persistence failed",
+			zap.String("user_id", userID.String()),
+			zap.String("filename", file.Filename),
+			zap.String("media_id", media.ID.String()),
+			zap.Error(err),
+		)
 		return nil, fmt.Errorf("failed to persist media entity: %w", err)
 	}
+
+	logger.Log.Info("UploadMedia: Media upload completed successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("filename", file.Filename),
+		zap.String("media_id", media.ID.String()),
+	)
 
 	return media, nil
 }

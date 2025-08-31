@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/qor/oss"
@@ -20,14 +21,9 @@ import (
 type StorageProvider string
 
 const (
-	StorageLocal   StorageProvider = "local"
-	StorageMinIO   StorageProvider = "minio"
-	StorageS3      StorageProvider = "s3"
-	StorageAzure   StorageProvider = "azure"
-	StorageGCS     StorageProvider = "gcs"
-	StorageAlibaba StorageProvider = "alibaba"
-	StorageTencent StorageProvider = "tencent"
-	StorageQiniu   StorageProvider = "qiniu"
+	StorageLocal StorageProvider = "local"
+	StorageMinIO StorageProvider = "minio"
+	StorageS3    StorageProvider = "s3"
 )
 
 // StorageConfig holds configuration for different storage providers
@@ -43,9 +39,6 @@ type StorageConfig struct {
 	Region    string `json:"region" yaml:"region"`
 	Bucket    string `json:"bucket" yaml:"bucket"`
 	Endpoint  string `json:"endpoint" yaml:"endpoint"`
-
-	// Additional configs for specific providers
-	ACL string `json:"acl" yaml:"acl"`
 }
 
 // StorageService provides a unified interface for file operations across different storage providers
@@ -79,7 +72,7 @@ func NewStorageService(config StorageConfig) (*StorageService, error) {
 	}, nil
 }
 
-// UploadFile uploads a file to the configured storage provider
+// UploadFile uploads a file to the configured storage provider with optimized performance
 func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHeader, userID uuid.UUID) (*entities.Media, error) {
 	// Validate file
 	if file == nil {
@@ -100,24 +93,28 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 	}
 	defer src.Close()
 
-	// Calculate file hash
-	hash := sha256.New()
-	if _, err := io.Copy(hash, src); err != nil {
-		return nil, fmt.Errorf("failed to calculate file hash: %w", err)
-	}
-	fileHash := fmt.Sprintf("%x", hash.Sum(nil))
-
-	// Reopen the file for upload since we consumed it for hash calculation
-	src, err = file.Open()
+	// Optimized file processing: calculate hash and upload in a single pass
+	media, err := s.processAndUploadFile(ctx, src, file, storagePath, userID, fileName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to reopen uploaded file: %w", err)
+		return nil, err
 	}
-	defer src.Close()
+
+	return media, nil
+}
+
+// processAndUploadFile processes the file and uploads it in a single pass
+func (s *StorageService) processAndUploadFile(ctx context.Context, src multipart.File, file *multipart.FileHeader, storagePath string, userID uuid.UUID, fileName string) (*entities.Media, error) {
+	// Create a multi-writer to calculate hash and prepare for upload simultaneously
+	hash := sha256.New()
+	teeReader := io.TeeReader(src, hash)
 
 	// Upload to storage
-	if _, err := s.storage.Put(storagePath, src); err != nil {
+	if _, err := s.storage.Put(storagePath, teeReader); err != nil {
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
 	}
+
+	// Calculate final hash
+	fileHash := fmt.Sprintf("%x", hash.Sum(nil))
 
 	// Generate public URL
 	if _, err := s.storage.GetURL(storagePath); err != nil {
@@ -128,8 +125,8 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 	media, err := entities.NewMedia(
 		fileName,                        // name
 		file.Filename,                   // fileName
-		fileHash,                        // hash (actual file hash)
-		string(s.config.Provider),       // disk (storage provider)
+		fileHash,                        // hash
+		string(s.config.Provider),       // disk
 		file.Header.Get("Content-Type"), // mimeType
 		file.Size,                       // size
 		userID,                          // userID
@@ -138,11 +135,8 @@ func (s *StorageService) UploadFile(ctx context.Context, file *multipart.FileHea
 		return nil, fmt.Errorf("failed to create media entity: %w", err)
 	}
 
-	// Set additional storage-specific fields
+	// Set storage-specific fields
 	media.Disk = string(s.config.Provider)
-
-	// Store the storage path and public URL in custom attributes or extend the entity
-	// For now, we'll use the existing fields
 
 	return media, nil
 }
@@ -190,4 +184,66 @@ func (s *StorageService) IsLocalStorage() bool {
 // IsCloudStorage checks if the current storage is cloud-based
 func (s *StorageService) IsCloudStorage() bool {
 	return s.config.Provider != StorageLocal
+}
+
+// TestConnection tests the connection to the storage provider
+func (s *StorageService) TestConnection() error {
+	// For local storage, we can just check if the path exists
+	if s.config.Provider == StorageLocal {
+		if _, err := os.Stat(s.config.LocalPath); os.IsNotExist(err) {
+			return fmt.Errorf("local storage path '%s' does not exist", s.config.LocalPath)
+		}
+		return nil
+	}
+
+	// For S3/MinIO, we can try to list a bucket or put a test object
+	if s.config.Provider == StorageMinIO || s.config.Provider == StorageS3 {
+		testPath := "/.test-connection"
+		testContent := "test-connection"
+		if _, err := s.storage.Put(testPath, strings.NewReader(testContent)); err != nil {
+			return fmt.Errorf("failed to access bucket '%s' or perform test operation: %w", s.config.Bucket, err)
+		}
+		s.storage.Delete(testPath)
+		return nil
+	}
+
+	return fmt.Errorf("no specific connection test implemented for provider: %s", s.config.Provider)
+}
+
+// EnsureBucketExists ensures that the required bucket exists for S3/MinIO storage
+func (s *StorageService) EnsureBucketExists() error {
+	if s.config.Provider != StorageMinIO && s.config.Provider != StorageS3 {
+		return nil // Not applicable for local storage
+	}
+
+	// For S3/MinIO, we need to ensure the bucket exists
+	// Since the qor/oss library doesn't have a direct bucket creation method,
+	// we'll try to upload a test file to see if the bucket exists
+	testPath := "/.bucket-test"
+	testContent := "bucket-test"
+
+	// Try to put a test object
+	if _, err := s.storage.Put(testPath, strings.NewReader(testContent)); err != nil {
+		return fmt.Errorf("failed to access bucket '%s': %w", s.config.Bucket, err)
+	}
+
+	// Clean up test object
+	s.storage.Delete(testPath)
+
+	return nil
+}
+
+// Initialize sets up the storage service, ensuring all required resources exist
+func (s *StorageService) Initialize() error {
+	// Test the connection first
+	if err := s.TestConnection(); err != nil {
+		return fmt.Errorf("storage connection test failed: %w", err)
+	}
+
+	// Ensure bucket exists for cloud storage
+	if err := s.EnsureBucketExists(); err != nil {
+		return fmt.Errorf("failed to ensure bucket exists: %w", err)
+	}
+
+	return nil
 }

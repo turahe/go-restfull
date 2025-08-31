@@ -7,7 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/helper/pagination"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // SearchController handles search-related HTTP requests
 type SearchController struct {
@@ -90,100 +91,111 @@ func (c *SearchController) Search(ctx *fiber.Ctx) error {
 	case "posts":
 		posts, err := c.hybridSearchService.SearchPosts(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search posts",
 			})
-		}
+	}
 		results = posts
 
 	case "users":
 		users, err := c.hybridSearchService.SearchUsers(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search users",
 			})
-		}
+	}
 		results = users
 
 	case "organizations":
 		orgs, err := c.hybridSearchService.SearchOrganizations(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search organizations",
 			})
-		}
+	}
 		results = orgs
 
 	case "tags":
 		tags, err := c.hybridSearchService.SearchTags(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search tags",
 			})
-		}
+	}
 		results = tags
 
 	case "taxonomies":
 		taxonomies, err := c.hybridSearchService.SearchTaxonomies(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search taxonomies",
 			})
-		}
+	}
 		results = taxonomies
 
 	case "media":
 		media, err := c.hybridSearchService.SearchMedia(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search media",
 			})
-		}
+	}
 		results = media
 
 	case "menus":
 		menus, err := c.hybridSearchService.SearchMenus(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search menus",
 			})
-		}
+	}
 		results = menus
 
 	case "roles":
 		roles, err := c.hybridSearchService.SearchRoles(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search roles",
 			})
-		}
+	}
 		results = roles
 
 	case "content":
 		content, err := c.hybridSearchService.SearchContent(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search content",
 			})
-		}
+	}
 		results = content
 
 	case "addresses":
 		addresses, err := c.hybridSearchService.SearchAddresses(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search addresses",
 			})
-		}
+	}
 		results = addresses
 
 	case "comments":
 		comments, err := c.hybridSearchService.SearchComments(ctx.Context(), req.Query, req.PageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search comments",
 			})
-		}
+	}
 		results = comments
 
 	case "all", "":
@@ -277,100 +289,111 @@ func (c *SearchController) SearchByType(ctx *fiber.Ctx) error {
 	case "posts":
 		posts, err := c.hybridSearchService.SearchPosts(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search posts",
 			})
-		}
+	}
 		results = posts
 
 	case "users":
 		users, err := c.hybridSearchService.SearchUsers(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search users",
 			})
-		}
+	}
 		results = users
 
 	case "organizations":
 		orgs, err := c.hybridSearchService.SearchOrganizations(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search organizations",
 			})
-		}
+	}
 		results = orgs
 
 	case "tags":
 		tags, err := c.hybridSearchService.SearchTags(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search tags",
 			})
-		}
+	}
 		results = tags
 
 	case "taxonomies":
 		taxonomies, err := c.hybridSearchService.SearchTaxonomies(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search taxonomies",
 			})
-		}
+	}
 		results = taxonomies
 
 	case "media":
 		media, err := c.hybridSearchService.SearchMedia(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search media",
 			})
-		}
+	}
 		results = media
 
 	case "menus":
 		menus, err := c.hybridSearchService.SearchMenus(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search menus",
 			})
-		}
+	}
 		results = menus
 
 	case "roles":
 		roles, err := c.hybridSearchService.SearchRoles(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search roles",
 			})
-		}
+	}
 		results = roles
 
 	case "content":
 		content, err := c.hybridSearchService.SearchContent(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search content",
 			})
-		}
+	}
 		results = content
 
 	case "addresses":
 		addresses, err := c.hybridSearchService.SearchAddresses(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search addresses",
 			})
-		}
+	}
 		results = addresses
 
 	case "comments":
 		comments, err := c.hybridSearchService.SearchComments(ctx.Context(), query, pageSize, offset)
 		if err != nil {
-			return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+		logger.Log.Error("Error occurred", zap.Error(err))
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to search comments",
 			})
-		}
+	}
 		results = comments
 
 	default:

@@ -32,23 +32,23 @@ const (
 // - Audit trail with creation, update, and deletion tracking
 // - Soft delete functionality for data retention
 type Media struct {
-	ID             uuid.UUID  `json:"id"`                        // Unique identifier for the media
-	Name           string     `json:"name"`                      // Display name for the media
-	FileName       string     `json:"file_name"`                 // Original filename of the uploaded file
-	Hash           string     `json:"hash"`                      // File hash for integrity verification
-	Disk           string     `json:"disk"`                      // Storage disk identifier (local, s3, etc.)
-	MimeType       string     `json:"mime_type"`                 // MIME type of the file for content identification
-	Size           int64      `json:"size"`                      // File size in bytes
-	RecordLeft     *uint64    `json:"record_left,omitempty"`     // Left boundary for nested set model
-	RecordRight    *uint64    `json:"record_right,omitempty"`    // Right boundary for nested set model
-	RecordOrdering *uint64    `json:"record_ordering,omitempty"` // Display order within the same level
-	RecordDepth    *uint64    `json:"record_depth,omitempty"`    // Depth level in the hierarchy
-	CreatedBy      uuid.UUID  `json:"created_by"`                // ID of user who uploaded this media
-	UpdatedBy      uuid.UUID  `json:"updated_by"`                // ID of user who last updated this media
-	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`      // ID of user who deleted this media (soft delete)
-	CreatedAt      time.Time  `json:"created_at"`                // Timestamp when media was uploaded
-	UpdatedAt      time.Time  `json:"updated_at"`                // Timestamp when media was last updated
-	DeletedAt      *time.Time `json:"deleted_at,omitempty"`      // Timestamp when media was soft deleted
+	ID             uuid.UUID  `json:"id"`        // Unique identifier for the media
+	Name           string     `json:"name"`      // Display name for the media
+	FileName       string     `json:"file_name"` // Original filename of the uploaded file
+	Hash           string     `json:"hash"`      // File hash for integrity verification
+	Disk           string     `json:"disk"`      // Storage disk identifier (local, s3, etc.)
+	MimeType       string     `json:"mime_type"` // MIME type of the file for content identification
+	Size           int64      `json:"size"`      // File size in bytes
+	RecordLeft     *int64     `json:"record_left" db:"record_left"`
+	RecordRight    *int64     `json:"record_right" db:"record_right"`
+	RecordOrdering *int64     `json:"record_ordering" db:"record_ordering"` // Display order within the same level
+	RecordDepth    *int64     `json:"record_depth" db:"record_depth"`       // Depth level in the hierarchy
+	CreatedBy      uuid.UUID  `json:"created_by"`                           // ID of user who uploaded this media
+	UpdatedBy      uuid.UUID  `json:"updated_by"`                           // ID of user who last updated this media
+	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`                 // ID of user who deleted this media (soft delete)
+	CreatedAt      time.Time  `json:"created_at"`                           // Timestamp when media was uploaded
+	UpdatedAt      time.Time  `json:"updated_at"`                           // Timestamp when media was last updated
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`                 // Timestamp when media was soft deleted
 }
 
 // NewMedia creates a new media entity with validation.

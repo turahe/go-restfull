@@ -67,8 +67,8 @@ func NewPostgresCommentRepository(db *pgxpool.Pool, redisClient redis.Cmdable) r
 // Returns:
 //   - error: Any error that occurred during the database operation
 func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entities.Comment) error {
-	// Calculate nested set values using the nested set manager
-	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "comments", comment.ParentID, 0)
+	// Calculate nested set values
+	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "comments", comment.ParentID, int64(0))
 	if err != nil {
 		return fmt.Errorf("failed to calculate nested set values: %w", err)
 	}
@@ -139,7 +139,7 @@ func (r *PostgresCommentRepository) Create(ctx context.Context, comment *entitie
 		return fmt.Errorf("failed to insert content: %w", err)
 	}
 
-	// Update the comment entity with the calculated nested set values
+	// Assign nested set values to comment entity
 	comment.RecordLeft = &nestedSetValues.Left
 	comment.RecordRight = &nestedSetValues.Right
 	comment.RecordDepth = &nestedSetValues.Depth

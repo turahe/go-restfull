@@ -10,7 +10,7 @@ import (
 // RegisterHealthRoutes registers health check routes (public access)
 func RegisterHealthRoutes(v1Group fiber.Router, container *container.Container) {
 	// Health check endpoint for API monitoring
-	healthzHandler := controllers.NewHealthzHTTPHandler()
+	healthzHandler := controllers.NewHealthzHTTPHandler(container.StorageService)
 	v1Group.Get("/health", healthzHandler.Healthz)
 	v1Group.Get("/healthz", healthzHandler.Healthz) // Alternative endpoint
 }

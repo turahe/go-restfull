@@ -204,7 +204,7 @@ func createOrganizationFallback(ctx context.Context, orgData struct {
 	}
 
 	// For the first organization, set manual nested set values
-	var recordLeft, recordRight, recordDepth, recordOrdering uint64
+	var recordLeft, recordRight, recordDepth, recordOrdering int64
 	if parentID == nil {
 		// Root organization - start with basic values
 		recordLeft = 1

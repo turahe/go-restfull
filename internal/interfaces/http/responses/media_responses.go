@@ -26,13 +26,13 @@ type MediaResource struct {
 	// Size is the file size in bytes
 	Size int64 `json:"size"`
 	// RecordLeft is the left boundary value for nested set model hierarchy
-	RecordLeft *uint64 `json:"record_left,omitempty"`
+	RecordLeft *int64 `json:"record_left,omitempty"`
 	// RecordRight is the right boundary value for nested set model hierarchy
-	RecordRight *uint64 `json:"record_right,omitempty"`
+	RecordRight *int64 `json:"record_right,omitempty"`
 	// RecordOrdering is the ordering value within the hierarchy level
-	RecordOrdering *uint64 `json:"record_ordering,omitempty"`
+	RecordOrdering *int64 `json:"record_ordering,omitempty"`
 	// RecordDepth is the depth level in the hierarchy tree
-	RecordDepth *uint64 `json:"record_depth,omitempty"`
+	RecordDepth *int64 `json:"record_depth,omitempty"`
 	// CreatedBy is the ID of the user who created the media item
 	CreatedBy string `json:"created_by"`
 	// UpdatedBy is the ID of the user who last updated the media item

@@ -11,10 +11,10 @@ import (
 	domainservices "github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/infrastructure/adapters"
 	"github.com/turahe/go-restfull/internal/infrastructure/messaging"
-	"github.com/turahe/go-restfull/internal/infrastructure/storage"
 	"github.com/turahe/go-restfull/internal/interfaces/http/controllers"
 	"github.com/turahe/go-restfull/pkg/email"
 	"github.com/turahe/go-restfull/pkg/rabbitmq"
+	"github.com/turahe/go-restfull/pkg/storage"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -77,6 +77,9 @@ type Container struct {
 	SearchService       ports.SearchService
 	HybridSearchService *appservices.HybridSearchService
 	IndexerService      *appservices.IndexerService
+
+	// Storage Service
+	StorageService *storage.StorageService
 
 	// Controllers
 	UserController         *controllers.UserController
@@ -185,6 +188,9 @@ func NewContainer(db *pgxpool.Pool) *Container {
 		panic(fmt.Errorf("failed to load default storage: %w", err))
 	}
 
+	// Assign storage service to container
+	container.StorageService = defaultStorage
+
 	// Initialize application services
 	// Media service (needed by user service)
 	container.MediaService = appservices.NewMediaService(container.MediaRepository, defaultStorage)
@@ -245,7 +251,7 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	// Auth controller
 	container.AuthController = controllers.NewAuthController(container.AuthService, container.UserRepository)
 	container.PostController = controllers.NewPostController(container.PostService)
-	container.MediaController = controllers.NewMediaController(container.MediaService)
+	container.MediaController = controllers.NewMediaController(container.MediaService, container.StorageService)
 	container.TagController = controllers.NewTagController(container.TagService)
 	// TODO: Add notification services when they are fully implemented
 	// container.CommentController = controllers.NewCommentController(container.CommentService, container.NotificationService, container.NotificationTemplateService)

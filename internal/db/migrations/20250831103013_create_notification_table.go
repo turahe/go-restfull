@@ -175,15 +175,15 @@ var createNotificationTables = &Migration{
 
 		// Insert default notification templates
 		_, err = pgx.GetPgxPool().Exec(context.Background(), `
-			INSERT INTO notification_templates (name, type, title, message, subject, channels, priority) VALUES
-			('welcome_user', 'user_registration', 'Welcome to Our Platform!', 'Hi {{username}}, welcome to our platform! We''re excited to have you on board.', 'Welcome to Our Platform', '["email", "in_app"]', 'normal'),
-			('password_reset', 'password_change', 'Password Reset Request', 'Hi {{username}}, you requested a password reset. Click the link below to reset your password.', 'Password Reset Request', '["email"]', 'high'),
-			('email_verification', 'email_verification', 'Verify Your Email', 'Hi {{username}}, please verify your email address by clicking the link below.', 'Verify Your Email', '["email"]', 'high'),
-			('new_post_notification', 'new_post', 'New Post from {{author}}', '{{author}} just published a new post: {{post_title}}', 'New Post Available', '["email", "in_app"]', 'normal'),
-			('comment_reply', 'comment_reply', 'Reply to Your Comment', '{{replier}} replied to your comment on {{post_title}}', 'New Reply to Your Comment', '["email", "in_app"]', 'normal'),
-			('comment_rejected', 'comment_rejected', 'Comment Rejected', 'Your comment on {{model_type}} has been rejected by a moderator. Please review our community guidelines and try again.', 'Comment Rejected', '["email", "in_app"]', 'normal'),
-			('system_maintenance', 'maintenance', 'Scheduled Maintenance', 'We will be performing scheduled maintenance on {{date}} from {{start_time}} to {{end_time}}.', 'Scheduled Maintenance Notice', '["email", "in_app"]', 'high'),
-			('security_alert', 'security_alert', 'Security Alert', 'We detected unusual activity on your account. Please review and contact support if needed.', 'Security Alert', '["email", "in_app"]', 'urgent')
+			INSERT INTO notification_templates (id, name, type, title, message, subject, channels, priority) VALUES
+			(gen_random_uuid(), 'welcome_user', 'user_registration', 'Welcome to Our Platform!', 'Hi {{username}}, welcome to our platform! We''re excited to have you on board.', 'Welcome to Our Platform', '["email", "in_app"]', 'normal'),
+			(gen_random_uuid(), 'password_reset', 'password_change', 'Password Reset Request', 'Hi {{username}}, you requested a password reset. Click the link below to reset your password.', 'Password Reset Request', '["email"]', 'high'),
+			(gen_random_uuid(), 'email_verification', 'email_verification', 'Verify Your Email', 'Hi {{username}}, please verify your email address by clicking the link below.', 'Verify Your Email', '["email"]', 'high'),
+			(gen_random_uuid(), 'new_post_notification', 'new_post', 'New Post from {{author}}', '{{author}} just published a new post: {{post_title}}', 'New Post Available', '["email", "in_app"]', 'normal'),
+			(gen_random_uuid(), 'comment_reply', 'comment_reply', 'Reply to Your Comment', '{{replier}} replied to your comment on {{post_title}}', 'New Reply to Your Comment', '["email", "in_app"]', 'normal'),
+			(gen_random_uuid(), 'comment_rejected', 'comment_rejected', 'Comment Rejected', 'Your comment on {{model_type}} has been rejected by a moderator. Please review our community guidelines and try again.', 'Comment Rejected', '["email", "in_app"]', 'normal'),
+			(gen_random_uuid(), 'system_maintenance', 'maintenance', 'Scheduled Maintenance', 'We will be performing scheduled maintenance on {{date}} from {{start_time}} to {{end_time}}.', 'Scheduled Maintenance Notice', '["email", "in_app"]', 'high'),
+			(gen_random_uuid(), 'security_alert', 'security_alert', 'Security Alert', 'We detected unusual activity on your account. Please review and contact support if needed.', 'Security Alert', '["email", "in_app"]', 'urgent')
 			ON CONFLICT (name) DO NOTHING;
 		`)
 		if err != nil {

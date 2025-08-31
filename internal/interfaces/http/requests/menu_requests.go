@@ -30,7 +30,7 @@ type CreateMenuRequest struct {
 	// Icon is the icon identifier for the menu item (optional, max 100 characters)
 	Icon string `json:"icon,omitempty" validate:"max=100"`
 	// RecordOrdering determines the display order of menu items (optional, must be >= 0 if provided)
-	RecordOrdering *uint64 `json:"record_ordering,omitempty" validate:"omitempty,gte=0"`
+	RecordOrdering *int64 `json:"record_ordering,omitempty" validate:"omitempty,gte=0"`
 	// ParentID is the UUID of the parent menu for hierarchical structures (optional, must be valid UUID if provided)
 	ParentID string `json:"parent_id,omitempty" validate:"omitempty,uuid4"`
 	// Target specifies how the menu link should open (optional, must be valid target if provided)
@@ -52,7 +52,7 @@ type UpdateMenuRequest struct {
 	// Icon is the icon identifier for the menu item (optional, max 100 characters if provided)
 	Icon string `json:"icon,omitempty" validate:"max=100"`
 	// RecordOrdering determines the display order of menu items (optional, must be >= 0 if provided)
-	RecordOrdering *uint64 `json:"record_ordering,omitempty" validate:"omitempty,gte=0"`
+	RecordOrdering *int64 `json:"record_ordering,omitempty" validate:"omitempty,gte=0"`
 	// ParentID is the UUID of the parent menu for hierarchical structures (optional, must be valid UUID if provided)
 	ParentID string `json:"parent_id,omitempty" validate:"omitempty,uuid4"`
 	// Target specifies how the menu link should open (optional, must be valid target if provided)
@@ -134,7 +134,7 @@ func (r *CreateMenuRequest) ToEntity() (*entities.Menu, error) {
 	}
 
 	// Set default record ordering if not provided
-	recordOrdering := uint64(0)
+	recordOrdering := int64(0)
 	if r.RecordOrdering != nil {
 		recordOrdering = *r.RecordOrdering
 	}

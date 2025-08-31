@@ -9,9 +9,9 @@ import (
 )
 
 // RegisterPublicRoutes registers public endpoints (no authentication required)
-func RegisterPublicRoutes(app *fiber.App) {
+func RegisterPublicRoutes(app *fiber.App, container *container.Container) {
 	// Comprehensive health check endpoint - MUST BE PUBLIC
-	healthzHandler := controllers.NewHealthzHTTPHandler()
+	healthzHandler := controllers.NewHealthzHTTPHandler(container.StorageService)
 	app.Get("/healthz", healthzHandler.Healthz)
 }
 
@@ -28,7 +28,7 @@ func RegisterProtectedRoutes(app *fiber.App, container *container.Container) {
 // RegisterRoutes registers all routes using the Hexagonal Architecture (legacy function)
 func RegisterRoutes(app *fiber.App, container *container.Container) {
 	// Public endpoints (no authentication required)
-	RegisterPublicRoutes(app)
+	RegisterPublicRoutes(app, container)
 
 	// Protected endpoints (require authentication)
 	RegisterProtectedRoutes(app, container)

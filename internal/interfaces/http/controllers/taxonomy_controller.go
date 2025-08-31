@@ -11,7 +11,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type TaxonomyController struct {
 	taxonomyService ports.TaxonomyService
@@ -99,6 +100,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -107,6 +109,7 @@ func (c *TaxonomyController) GetTaxonomyByID(ctx *fiber.Ctx) error {
 
 	taxonomy, err := c.taxonomyService.GetTaxonomyByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Taxonomy not found",
@@ -133,6 +136,7 @@ func (c *TaxonomyController) GetTaxonomyBySlug(ctx *fiber.Ctx) error {
 	slug := ctx.Params("slug")
 	taxonomy, err := c.taxonomyService.GetTaxonomyBySlug(ctx.Context(), slug)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Taxonomy not found",
@@ -162,6 +166,7 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -170,6 +175,7 @@ func (c *TaxonomyController) GetTaxonomies(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -264,6 +270,7 @@ func (c *TaxonomyController) GetTaxonomyChildren(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -298,6 +305,7 @@ func (c *TaxonomyController) GetTaxonomyDescendants(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -332,6 +340,7 @@ func (c *TaxonomyController) GetTaxonomyAncestors(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -366,6 +375,7 @@ func (c *TaxonomyController) GetTaxonomySiblings(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -412,6 +422,7 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -420,6 +431,7 @@ func (c *TaxonomyController) SearchTaxonomies(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -532,6 +544,7 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",
@@ -556,6 +569,7 @@ func (c *TaxonomyController) UpdateTaxonomy(ctx *fiber.Ctx) error {
 	// Get existing taxonomy
 	existingTaxonomy, err := c.taxonomyService.GetTaxonomyByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Taxonomy not found",
@@ -608,6 +622,7 @@ func (c *TaxonomyController) DeleteTaxonomy(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid taxonomy ID format",

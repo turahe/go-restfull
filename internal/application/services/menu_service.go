@@ -91,7 +91,7 @@ func (s *MenuService) CreateMenu(ctx context.Context, name, slug, description, u
 	// Create menu entity with the provided parameters
 	menu := entities.NewMenu(name, slug, description, url, icon, parentID)
 	// apply ordering if provided
-	ro := uint64(recordOrdering)
+	ro := int64(recordOrdering)
 	menu.RecordOrdering = &ro
 
 	// Validate the menu entity to ensure proper structure
@@ -305,7 +305,7 @@ func (s *MenuService) UpdateMenu(ctx context.Context, id uuid.UUID, name, slug, 
 	}
 
 	// Update the menu entity with new information
-	existingMenu.UpdateMenu(name, slug, description, url, icon, uint64(recordOrdering), parentID)
+	existingMenu.UpdateMenu(name, slug, description, url, icon, int64(recordOrdering), parentID)
 
 	// Persist the updated menu to the repository
 	err = s.menuRepository.Update(ctx, existingMenu)

@@ -7,7 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type MenuEntitiesController struct {
 	menuRoleService ports.MenuEntitiesService
@@ -23,6 +24,7 @@ func NewMenuRoleController(menuRoleService ports.MenuEntitiesService) *MenuEntit
 func (c *MenuEntitiesController) AssignRoleToMenu(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -32,6 +34,7 @@ func (c *MenuEntitiesController) AssignRoleToMenu(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
@@ -59,6 +62,7 @@ func (c *MenuEntitiesController) AssignRoleToMenu(ctx *fiber.Ctx) error {
 func (c *MenuEntitiesController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -68,6 +72,7 @@ func (c *MenuEntitiesController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
@@ -95,6 +100,7 @@ func (c *MenuEntitiesController) RemoveRoleFromMenu(ctx *fiber.Ctx) error {
 func (c *MenuEntitiesController) GetMenuRoles(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -104,6 +110,7 @@ func (c *MenuEntitiesController) GetMenuRoles(ctx *fiber.Ctx) error {
 
 	roles, err := c.menuRoleService.GetMenuRoles(ctx.Context(), menuID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve menu roles",
@@ -122,6 +129,7 @@ func (c *MenuEntitiesController) GetMenuRoles(ctx *fiber.Ctx) error {
 func (c *MenuEntitiesController) GetRoleMenus(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
@@ -134,6 +142,7 @@ func (c *MenuEntitiesController) GetRoleMenus(ctx *fiber.Ctx) error {
 
 	menus, err := c.menuRoleService.GetRoleMenus(ctx.Context(), roleID, limit, offset)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve role menus",
@@ -152,6 +161,7 @@ func (c *MenuEntitiesController) GetRoleMenus(ctx *fiber.Ctx) error {
 func (c *MenuEntitiesController) HasRole(ctx *fiber.Ctx) error {
 	menuID, err := uuid.Parse(ctx.Params("menu_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -161,6 +171,7 @@ func (c *MenuEntitiesController) HasRole(ctx *fiber.Ctx) error {
 
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
@@ -170,6 +181,7 @@ func (c *MenuEntitiesController) HasRole(ctx *fiber.Ctx) error {
 
 	hasRole, err := c.menuRoleService.HasRole(ctx.Context(), menuID, roleID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to check role assignment",
@@ -188,6 +200,7 @@ func (c *MenuEntitiesController) HasRole(ctx *fiber.Ctx) error {
 func (c *MenuEntitiesController) GetMenuRoleCount(ctx *fiber.Ctx) error {
 	roleID, err := uuid.Parse(ctx.Params("role_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid role ID",
@@ -197,6 +210,7 @@ func (c *MenuEntitiesController) GetMenuRoleCount(ctx *fiber.Ctx) error {
 
 	count, err := c.menuRoleService.GetMenuRoleCount(ctx.Context(), roleID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to get menu count",

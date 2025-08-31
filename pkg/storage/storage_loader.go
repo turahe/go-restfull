@@ -71,3 +71,18 @@ func (l *StorageLoader) LoadAllProviders() (map[string]*StorageService, error) {
 
 	return providers, nil
 }
+
+// ClearCache clears the storage service cache
+func (l *StorageLoader) ClearCache() {
+	// No-op since caching was removed
+}
+
+// ReloadStorage reloads a specific storage service (useful for configuration updates)
+func (l *StorageLoader) ReloadStorage(providerName string) (*StorageService, error) {
+	if providerName == "" {
+		return nil, fmt.Errorf("provider name cannot be empty")
+	}
+
+	// Load fresh storage service
+	return l.LoadStorage(providerName)
+}

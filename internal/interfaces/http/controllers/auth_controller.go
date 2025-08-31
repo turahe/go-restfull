@@ -10,7 +10,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // AuthController handles authentication-related HTTP requests
 type AuthController struct {
@@ -85,6 +86,7 @@ func (c *AuthController) Register(ctx *fiber.Ctx) error {
 	// Get normalized phone number
 	normalizedPhone, err := req.GetNormalizedPhone()
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid phone number format",
@@ -150,6 +152,7 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	// Login user
 	tokenPair, _, err := c.authService.LoginUser(ctx.Context(), req.Identity, req.Password)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid credentials",
@@ -245,6 +248,7 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 	// Logout user
 	err := c.authService.LogoutUser(ctx.Context(), userID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to logout",
@@ -290,6 +294,7 @@ func (c *AuthController) ForgetPassword(ctx *fiber.Ctx) error {
 	// if identifier as phone number, send OTP
 	err = c.authService.ForgetPassword(ctx.Context(), req.Identifier)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to send password reset email",
@@ -335,6 +340,7 @@ func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 	// Reset password
 	err = c.authService.ResetPassword(ctx.Context(), req.Email, req.OTP, req.Password)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusUnauthorized).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid email or OTP",

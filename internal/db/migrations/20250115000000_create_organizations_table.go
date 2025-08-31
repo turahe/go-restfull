@@ -61,7 +61,8 @@ var createOrganizationsTable20250115000000 = &Migration{
 				CONSTRAINT "organizations_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "organizations"("id") ON DELETE SET NULL,
 				CONSTRAINT "organizations_status_check" CHECK ("status" IN ('active', 'inactive', 'suspended')),
 				CONSTRAINT "organizations_record_left_right_check" CHECK ("record_left" < "record_right"),
-				CONSTRAINT "organizations_record_ordering_check" CHECK ("record_ordering" >= 0)
+				CONSTRAINT "organizations_record_ordering_check" CHECK ("record_ordering" >= 0),
+				CONSTRAINT "organizations_record_depth_check" CHECK ("record_depth" >= 0)
 			)
 		`)
 		if err != nil {

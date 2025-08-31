@@ -22,26 +22,26 @@ import (
 // - URL routing and target configuration
 // - Audit trail with creation, update, and deletion tracking
 type Menu struct {
-	ID             uuid.UUID  `json:"id"`                        // Unique identifier for the menu
-	Name           string     `json:"name"`                      // Display name for the menu item
-	Slug           string     `json:"slug"`                      // URL-friendly identifier for the menu
-	Description    string     `json:"description,omitempty"`     // Optional description of the menu
-	URL            string     `json:"url,omitempty"`             // Target URL for the menu link
-	Icon           string     `json:"icon,omitempty"`            // Icon identifier for the menu item
-	ParentID       *uuid.UUID `json:"parent_id,omitempty"`       // ID of parent menu (nil for root items)
-	RecordLeft     *uint64    `json:"record_left,omitempty"`     // Left boundary for nested set model
-	RecordRight    *uint64    `json:"record_right,omitempty"`    // Right boundary for nested set model
-	RecordOrdering *uint64    `json:"record_ordering,omitempty"` // Display order within the same level
-	RecordDepth    *uint64    `json:"record_depth,omitempty"`    // Depth level in the hierarchy
-	IsActive       bool       `json:"is_active"`                 // Whether the menu is active/enabled
-	IsVisible      bool       `json:"is_visible"`                // Whether the menu is visible to users
-	Target         string     `json:"target,omitempty"`          // Link target (_blank, _self, etc.)
-	CreatedBy      uuid.UUID  `json:"created_by"`                // ID of user who created this menu
-	UpdatedBy      uuid.UUID  `json:"updated_by"`                // ID of user who last updated this menu
-	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`      // ID of user who deleted this menu (soft delete)
-	CreatedAt      time.Time  `json:"created_at"`                // Timestamp when menu was created
-	UpdatedAt      time.Time  `json:"updated_at"`                // Timestamp when menu was last updated
-	DeletedAt      *time.Time `json:"deleted_at,omitempty"`      // Timestamp when menu was soft deleted
+	ID             uuid.UUID  `json:"id"`                    // Unique identifier for the menu
+	Name           string     `json:"name"`                  // Display name for the menu item
+	Slug           string     `json:"slug"`                  // URL-friendly identifier for the menu
+	Description    string     `json:"description,omitempty"` // Optional description of the menu
+	URL            string     `json:"url,omitempty"`         // Target URL for the menu link
+	Icon           string     `json:"icon,omitempty"`        // Icon identifier for the menu item
+	ParentID       *uuid.UUID `json:"parent_id,omitempty"`   // ID of parent menu (nil for root items)
+	RecordLeft     *int64     `json:"record_left" db:"record_left"`
+	RecordRight    *int64     `json:"record_right" db:"record_right"`
+	RecordOrdering *int64     `json:"record_ordering" db:"record_ordering"` // Display order within the same level
+	RecordDepth    *int64     `json:"record_depth" db:"record_depth"`       // Depth level in the hierarchy
+	IsActive       bool       `json:"is_active"`                            // Whether the menu is active/enabled
+	IsVisible      bool       `json:"is_visible"`                           // Whether the menu is visible to users
+	Target         string     `json:"target,omitempty"`                     // Link target (_blank, _self, etc.)
+	CreatedBy      uuid.UUID  `json:"created_by"`                           // ID of user who created this menu
+	UpdatedBy      uuid.UUID  `json:"updated_by"`                           // ID of user who last updated this menu
+	DeletedBy      *uuid.UUID `json:"deleted_by,omitempty"`                 // ID of user who deleted this menu (soft delete)
+	CreatedAt      time.Time  `json:"created_at"`                           // Timestamp when menu was created
+	UpdatedAt      time.Time  `json:"updated_at"`                           // Timestamp when menu was last updated
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`                 // Timestamp when menu was soft deleted
 
 	// Relationships
 	Parent   *Menu   `json:"parent,omitempty"`   // Reference to parent menu item
@@ -101,7 +101,7 @@ func NewMenu(name, slug, description, url, icon string, parentID *uuid.UUID) *Me
 //   - parentID: New parent menu ID
 //
 // Note: This method automatically updates the UpdatedAt timestamp
-func (m *Menu) UpdateMenu(name, slug, description, url, icon string, recordOrdering uint64, parentID *uuid.UUID) {
+func (m *Menu) UpdateMenu(name, slug, description, url, icon string, recordOrdering int64, parentID *uuid.UUID) {
 	m.Name = name                      // Update menu name
 	m.Slug = slug                      // Update menu slug
 	m.Description = description        // Update menu description

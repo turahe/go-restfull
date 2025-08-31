@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/turahe/go-restfull/internal/domain/entities"
@@ -31,15 +32,17 @@ func (r *PostgresTaxonomyRepository) Create(ctx context.Context, taxonomy *entit
 		taxonomy.UpdatedAt = now
 	}
 
-	// compute nested set values
-	values, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, uint64(1))
+	// Calculate nested set values
+	nestedSetValues, err := r.nestedSet.CreateNode(ctx, "taxonomies", taxonomy.ParentID, int64(1))
 	if err != nil {
-		// Fallback: create taxonomy without nested set values
-		return r.createTaxonomyFallback(ctx, taxonomy)
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
 	}
-	taxonomy.RecordLeft = &values.Left
-	taxonomy.RecordRight = &values.Right
-	taxonomy.RecordDepth = &values.Depth
+
+	// Assign nested set values to taxonomy entity
+	taxonomy.RecordLeft = &nestedSetValues.Left
+	taxonomy.RecordRight = &nestedSetValues.Right
+	taxonomy.RecordDepth = &nestedSetValues.Depth
+	taxonomy.RecordOrdering = &nestedSetValues.Ordering
 
 	query := `
 		INSERT INTO taxonomies (id, name, slug, code, description, parent_id, record_left, record_right, record_depth, created_at, updated_at, created_by, updated_by)
@@ -88,9 +91,9 @@ func (r *PostgresTaxonomyRepository) createTaxonomyFallback(ctx context.Context,
 	}
 
 	// Calculate new nested set values
-	left := uint64(maxRight + 1)
-	right := uint64(maxRight + 2)
-	depth := uint64(0)
+	left := int64(maxRight + 1)
+	right := int64(maxRight + 2)
+	depth := int64(0)
 
 	// If this is a child taxonomy, calculate depth based on parent
 	if taxonomy.ParentID != nil {
@@ -100,7 +103,7 @@ func (r *PostgresTaxonomyRepository) createTaxonomyFallback(ctx context.Context,
 			// If parent not found, treat as root
 			depth = 0
 		} else {
-			depth = uint64(parentDepth + 1)
+			depth = int64(parentDepth + 1)
 		}
 	}
 

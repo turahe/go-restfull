@@ -5,7 +5,8 @@ import (
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type RBACController struct {
 	rbacService services.RBACService
@@ -30,6 +31,7 @@ func NewRBACController(rbacService services.RBACService) *RBACController {
 func (c *RBACController) GetPolicy(ctx *fiber.Ctx) error {
 	policies, err := c.rbacService.GetPolicy()
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get policies",
@@ -62,6 +64,7 @@ func (c *RBACController) AddPolicy(ctx *fiber.Ctx) error {
 
 	err := c.rbacService.AddPolicy(req.Subject, req.Object, req.Action)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to add policy",
@@ -94,6 +97,7 @@ func (c *RBACController) RemovePolicy(ctx *fiber.Ctx) error {
 
 	err := c.rbacService.RemovePolicy(req.Subject, req.Object, req.Action)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to remove policy",
@@ -126,6 +130,7 @@ func (c *RBACController) GetRolesForUser(ctx *fiber.Ctx) error {
 
 	roles, err := c.rbacService.GetRolesForUser(userID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get user roles",
@@ -161,6 +166,7 @@ func (c *RBACController) AddRoleForUser(ctx *fiber.Ctx) error {
 
 	err := c.rbacService.AddRoleForUser(userID, role)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to add role for user",
@@ -199,6 +205,7 @@ func (c *RBACController) RemoveRoleForUser(ctx *fiber.Ctx) error {
 
 	err := c.rbacService.RemoveRoleForUser(userID, role)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to remove role from user",
@@ -234,6 +241,7 @@ func (c *RBACController) GetUsersForRole(ctx *fiber.Ctx) error {
 
 	users, err := c.rbacService.GetUsersForRole(role)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get users for role",

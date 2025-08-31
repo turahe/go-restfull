@@ -11,7 +11,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type OrganizationController struct {
 	organizationService ports.OrganizationService
@@ -88,6 +89,7 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -96,6 +98,7 @@ func (c *OrganizationController) GetOrganizationByID(ctx *fiber.Ctx) error {
 
 	organization, err := c.organizationService.GetOrganizationByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Organization not found",
@@ -124,6 +127,7 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -132,6 +136,7 @@ func (c *OrganizationController) GetAllOrganizations(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -180,6 +185,7 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -204,6 +210,7 @@ func (c *OrganizationController) UpdateOrganization(ctx *fiber.Ctx) error {
 	// Get existing organization
 	existingOrganization, err := c.organizationService.GetOrganizationByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Organization not found",
@@ -247,6 +254,7 @@ func (c *OrganizationController) DeleteOrganization(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -305,6 +313,7 @@ func (c *OrganizationController) GetOrganizationChildren(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -338,6 +347,7 @@ func (c *OrganizationController) GetOrganizationDescendants(ctx *fiber.Ctx) erro
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -371,6 +381,7 @@ func (c *OrganizationController) GetOrganizationAncestors(ctx *fiber.Ctx) error 
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -404,6 +415,7 @@ func (c *OrganizationController) GetOrganizationSiblings(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -437,6 +449,7 @@ func (c *OrganizationController) GetOrganizationPath(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -492,6 +505,7 @@ func (c *OrganizationController) GetOrganizationSubtree(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -526,6 +540,7 @@ func (c *OrganizationController) AddOrganizationChild(ctx *fiber.Ctx) error {
 	parentIDStr := ctx.Params("id")
 	parentID, err := uuid.Parse(parentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid parent organization ID format",
@@ -588,6 +603,7 @@ func (c *OrganizationController) MoveOrganizationSubtree(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -611,6 +627,7 @@ func (c *OrganizationController) MoveOrganizationSubtree(ctx *fiber.Ctx) error {
 
 	newParentID, err := uuid.Parse(req.NewParentID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid new parent ID format",
@@ -647,6 +664,7 @@ func (c *OrganizationController) DeleteOrganizationSubtree(ctx *fiber.Ctx) error
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -684,6 +702,7 @@ func (c *OrganizationController) SetOrganizationStatus(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -793,6 +812,7 @@ func (c *OrganizationController) GetOrganizationStats(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid organization ID format",
@@ -851,6 +871,7 @@ func (c *OrganizationController) ValidateOrganizationHierarchy(ctx *fiber.Ctx) e
 
 	parentID, err := uuid.Parse(parentIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid parent ID format",
@@ -859,6 +880,7 @@ func (c *OrganizationController) ValidateOrganizationHierarchy(ctx *fiber.Ctx) e
 
 	childID, err := uuid.Parse(childIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid child ID format",

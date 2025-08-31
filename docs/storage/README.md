@@ -107,7 +107,7 @@ MINIO_BUCKET=your-bucket
 package main
 
 import (
-    "github.com/turahe/go-restfull/internal/infrastructure/storage"
+    "github.com/turahe/go-restfull/pkg/storage"
 )
 
 func main() {
@@ -296,28 +296,38 @@ for _, obj := range objects {
 
 ### Common Issues
 
-1. **Configuration Errors**
-   - Verify YAML syntax
-   - Check required fields for each provider
-   - Validate credentials and endpoints
+If you encounter storage-related errors, refer to our comprehensive troubleshooting guide:
 
-2. **Permission Issues**
-   - Check file system permissions for local storage
-   - Verify IAM roles for cloud providers
-   - Ensure bucket/container access
+**[MinIO Troubleshooting Guide](MINIO_TROUBLESHOOTING.md)** - Detailed solutions for common MinIO and S3-compatible storage issues.
 
-3. **Network Issues**
-   - Check endpoint URLs
-   - Verify firewall settings
-   - Test connectivity to storage services
+### Quick Fixes
 
-### Debug Mode
+1. **InvalidAccessKeyId Error**: Check credential mismatch between docker-compose.yml and storage.yaml
+2. **Connection Refused**: Ensure storage service is running and accessible
+3. **Bucket Not Found**: Create required buckets in your storage provider
+4. **Permission Denied**: Verify access credentials and bucket permissions
 
-Enable debug logging:
+### Health Checks
 
-```go
-// Set log level for storage operations
-log.SetLevel(log.DebugLevel)
+The application includes built-in storage health monitoring:
+
+```bash
+# Check overall system health
+curl http://localhost:8000/healthz
+
+# Look for storage service status in the response
+```
+
+### Testing Storage
+
+Use the provided test scripts to verify storage configuration:
+
+```bash
+# Test MinIO connection
+./scripts/test_minio.sh
+
+# Test with Go script
+cd scripts && go run test_minio.go
 ```
 
 ## Best Practices
@@ -351,7 +361,7 @@ package main
 
 import (
     "log"
-    "github.com/turahe/go-restfull/internal/infrastructure/storage"
+    "github.com/turahe/go-restfull/pkg/storage"
 )
 
 func main() {

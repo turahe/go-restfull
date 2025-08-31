@@ -38,16 +38,17 @@ func (r *PostgresOrganizationRepository) Create(ctx context.Context, organizatio
 		organization.UpdatedAt = now
 	}
 
-	// Try to use nested set manager first
-	values, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, uint64(1))
+	// Calculate nested set values
+	nestedSetValues, err := r.nestedSet.CreateNode(ctx, "organizations", organization.ParentID, int64(1))
 	if err != nil {
-		// If nested set fails, use fallback approach
-		return r.createOrganizationFallback(ctx, organization)
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
 	}
-	organization.RecordLeft = &values.Left
-	organization.RecordRight = &values.Right
-	organization.RecordDepth = &values.Depth
-	organization.RecordOrdering = &values.Ordering
+
+	// Assign nested set values to organization entity
+	organization.RecordLeft = &nestedSetValues.Left
+	organization.RecordRight = &nestedSetValues.Right
+	organization.RecordDepth = &nestedSetValues.Depth
+	organization.RecordOrdering = &nestedSetValues.Ordering
 
 	query := `
 		INSERT INTO organizations (
@@ -88,7 +89,7 @@ func (r *PostgresOrganizationRepository) createOrganizationFallback(ctx context.
 	}
 
 	// For the first organization, set manual nested set values
-	var recordLeft, recordRight, recordDepth, recordOrdering uint64
+	var recordLeft, recordRight, recordDepth, recordOrdering int64
 	if organization.ParentID == nil {
 		// Root organization - start with basic values
 		recordLeft = 1
@@ -639,12 +640,12 @@ func (r *PostgresOrganizationRepository) GetTreeStatistics(ctx context.Context) 
 	return r.nestedSet.GetTreeStatistics(ctx, "organizations")
 }
 
-func (r *PostgresOrganizationRepository) GetTreeHeight(ctx context.Context) (uint64, error) {
+func (r *PostgresOrganizationRepository) GetTreeHeight(ctx context.Context) (int64, error) {
 	return r.nestedSet.GetTreeHeight(ctx, "organizations")
 }
 
 func (r *PostgresOrganizationRepository) GetLevelWidth(ctx context.Context, level uint64) (int64, error) {
-	return r.nestedSet.GetLevelWidth(ctx, "organizations", level)
+	return r.nestedSet.GetLevelWidth(ctx, "organizations", int64(level))
 }
 
 func (r *PostgresOrganizationRepository) GetSubtreeSize(ctx context.Context, organizationID uuid.UUID) (int64, error) {
@@ -663,7 +664,7 @@ func (r *PostgresOrganizationRepository) SwapPositions(ctx context.Context, org1
 	}
 	defer tx.Rollback(ctx)
 
-	var org1Left, org1Right, org2Left, org2Right uint64
+	var org1Left, org1Right, org2Left, org2Right int64
 	err = tx.QueryRow(ctx, `SELECT record_left, record_right FROM organizations WHERE id = $1 AND deleted_at IS NULL`, org1ID.String()).Scan(&org1Left, &org1Right)
 	if err != nil {
 		return fmt.Errorf("failed to get first organization info: %w", err)
@@ -675,7 +676,7 @@ func (r *PostgresOrganizationRepository) SwapPositions(ctx context.Context, org1
 	if (org1Left < org2Left && org1Right > org2Right) || (org2Left < org1Left && org2Right > org1Right) {
 		return fmt.Errorf("cannot swap positions: organizations are in ancestor-descendant relationship")
 	}
-	tempLeft := uint64(999999999)
+	tempLeft := int64(999999999)
 	_, err = tx.Exec(ctx, `UPDATE organizations SET record_left = $1, record_right = $2 WHERE id = $3`, tempLeft, tempLeft+org1Right-org1Left, org1ID.String())
 	if err != nil {
 		return fmt.Errorf("failed to move first organization to temp position: %w", err)
@@ -805,7 +806,7 @@ func (r *PostgresOrganizationRepository) BatchInsertBetween(ctx context.Context,
 }
 
 func (r *PostgresOrganizationRepository) insertBetweenInTx(ctx context.Context, tx pgx.Tx, organization *entities.Organization, leftSiblingID, rightSiblingID *uuid.UUID) error {
-	var leftSiblingRight, rightSiblingLeft uint64
+	var leftSiblingRight, rightSiblingLeft int64
 	if leftSiblingID != nil {
 		if err := tx.QueryRow(ctx, `SELECT record_right FROM organizations WHERE id = $1 AND deleted_at IS NULL`, leftSiblingID.String()).Scan(&leftSiblingRight); err != nil {
 			return fmt.Errorf("failed to get left sibling info: %w", err)
@@ -826,7 +827,7 @@ func (r *PostgresOrganizationRepository) insertBetweenInTx(ctx context.Context, 
 	newLeft := leftSiblingRight + 1
 	newRight := rightSiblingLeft - 1
 	if newLeft >= newRight {
-		shiftAmount := uint64(2)
+		shiftAmount := int64(2)
 		if _, err := tx.Exec(ctx, `
 			UPDATE organizations 
 			SET record_left = CASE 
@@ -845,8 +846,8 @@ func (r *PostgresOrganizationRepository) insertBetweenInTx(ctx context.Context, 
 	}
 	organization.RecordLeft = &newLeft
 	organization.RecordRight = &newRight
-	organization.RecordDepth = &[]uint64{0}[0]
-	organization.RecordOrdering = &[]uint64{newLeft}[0]
+	organization.RecordDepth = &[]int64{0}[0]
+	organization.RecordOrdering = &[]int64{newLeft}[0]
 	query := `
 		INSERT INTO organizations (
 			id, name, description, code, type, status, parent_id, 
@@ -888,23 +889,23 @@ func (r *PostgresOrganizationRepository) OptimizeTree(ctx context.Context) error
 	defer rows.Close()
 	var organizations []struct {
 		ID    uuid.UUID
-		Left  uint64
-		Right uint64
-		Depth uint64
+		Left  int64
+		Right int64
+		Depth int64
 	}
 	for rows.Next() {
 		var org struct {
 			ID    uuid.UUID
-			Left  uint64
-			Right uint64
-			Depth uint64
+			Left  int64
+			Right int64
+			Depth int64
 		}
 		if err := rows.Scan(&org.ID, &org.Left, &org.Right, &org.Depth); err != nil {
 			return fmt.Errorf("failed to scan organization: %w", err)
 		}
 		organizations = append(organizations, org)
 	}
-	newLeft := uint64(1)
+	newLeft := int64(1)
 	for _, org := range organizations {
 		subtreeSize := org.Right - org.Left + 1
 		newRight := newLeft + subtreeSize - 1

@@ -60,10 +60,10 @@ func NewNestedSetManager(db *pgxpool.Pool) *NestedSetManager {
 // - Depth: The level/depth of the node in the tree (0 = root)
 // - Ordering: The position among siblings at the same level
 type NestedSetValues struct {
-	Left     uint64 // Left boundary value for nested set positioning
-	Right    uint64 // Right boundary value for nested set positioning
-	Depth    uint64 // Tree depth level (0 = root, 1 = first level, etc.)
-	Ordering uint64 // Sibling ordering within the same parent
+	Left     int64 // Left boundary value for nested set positioning
+	Right    int64 // Right boundary value for nested set positioning
+	Depth    int64 // Tree depth level (0 = root, 1 = first level, etc.)
+	Ordering int64 // Sibling ordering within the same parent
 }
 
 // CreateNode creates a new node in the nested set with optimized queries.
@@ -84,7 +84,7 @@ type NestedSetValues struct {
 //
 // The method uses a transaction to ensure data consistency and optimized CTE queries
 // for better performance when dealing with large trees.
-func (n *NestedSetManager) CreateNode(ctx context.Context, tableName string, parentID *uuid.UUID, ordering uint64) (*NestedSetValues, error) {
+func (n *NestedSetManager) CreateNode(ctx context.Context, tableName string, parentID *uuid.UUID, ordering int64) (*NestedSetValues, error) {
 	// Begin transaction for atomicity
 	tx, err := n.db.Begin(ctx)
 	if err != nil {
@@ -681,9 +681,9 @@ func (n *NestedSetManager) GetSubtreeSize(ctx context.Context, tableName string,
 //   - tableName: Name of the database table containing the tree structure
 //
 // Returns:
-//   - uint64: Maximum depth of the tree (0 = single root node)
+//   - int64: Maximum depth of the tree (0 = single root node)
 //   - error: Any error that occurred during the operation
-func (n *NestedSetManager) GetTreeHeight(ctx context.Context, tableName string) (uint64, error) {
+func (n *NestedSetManager) GetTreeHeight(ctx context.Context, tableName string) (int64, error) {
 	// Query finds the maximum depth across all active nodes
 	query := fmt.Sprintf(`
 		SELECT COALESCE(MAX(record_depth), 0)
@@ -691,7 +691,7 @@ func (n *NestedSetManager) GetTreeHeight(ctx context.Context, tableName string) 
 		WHERE deleted_at IS NULL
 	`, tableName)
 
-	var height uint64
+	var height int64
 	err := n.db.QueryRow(ctx, query).Scan(&height)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get tree height: %w", err)
@@ -713,7 +713,7 @@ func (n *NestedSetManager) GetTreeHeight(ctx context.Context, tableName string) 
 // Returns:
 //   - int64: Number of nodes at the specified level
 //   - error: Any error that occurred during the operation
-func (n *NestedSetManager) GetLevelWidth(ctx context.Context, tableName string, level uint64) (int64, error) {
+func (n *NestedSetManager) GetLevelWidth(ctx context.Context, tableName string, level int64) (int64, error) {
 	// Query counts nodes at a specific depth level
 	query := fmt.Sprintf(`
 		SELECT COUNT(*)
@@ -805,7 +805,7 @@ func (n *NestedSetManager) RebuildTree(ctx context.Context, tableName string) er
 
 	// Step 2: Rebuild nested set values
 	// Start with left = 1 and increment by 2 for each node
-	var left uint64 = 1
+	var left int64 = 1
 	for _, node := range nodes {
 		// Calculate right value (left + 1 for leaf nodes)
 		right := left + 1
@@ -915,7 +915,7 @@ func (n *NestedSetManager) ValidateTree(ctx context.Context, tableName string) (
 
 	for rows3.Next() {
 		var id uuid.UUID
-		var childDepth, parentDepth uint64
+		var childDepth, parentDepth int64
 		if err := rows3.Scan(&id, &childDepth, &parentDepth); err != nil {
 			return nil, fmt.Errorf("failed to scan validation result: %w", err)
 		}

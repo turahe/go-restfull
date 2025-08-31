@@ -56,7 +56,7 @@ type OrganizationRepository interface {
 	ValidateTree(ctx context.Context) ([]string, error)
 	RebuildTree(ctx context.Context) error
 	GetTreeStatistics(ctx context.Context) (map[string]interface{}, error)
-	GetTreeHeight(ctx context.Context) (uint64, error)
+	GetTreeHeight(ctx context.Context) (int64, error)
 	GetLevelWidth(ctx context.Context, level uint64) (int64, error)
 	GetSubtreeSize(ctx context.Context, organizationID uuid.UUID) (int64, error)
 	InsertBetween(ctx context.Context, organization *entities.Organization, leftSiblingID, rightSiblingID *uuid.UUID) error

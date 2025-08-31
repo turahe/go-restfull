@@ -69,23 +69,23 @@ const (
 // - Audit trail with creation, update, and deletion tracking
 // - Soft delete functionality for data retention
 type Organization struct {
-	ID             uuid.UUID          `json:"id"`                        // Unique identifier for the organization
-	Name           string             `json:"name"`                      // Display name of the organization
-	Description    *string            `json:"description,omitempty"`     // Optional description of the organization
-	Code           *string            `json:"code,omitempty"`            // Optional organization code/identifier
-	Type           *OrganizationType  `json:"type,omitempty"`            // Optional organization type classification
-	Status         OrganizationStatus `json:"status"`                    // Current operational status of the organization
-	ParentID       *uuid.UUID         `json:"parent_id,omitempty"`       // ID of parent organization (nil for root)
-	RecordLeft     *uint64            `json:"record_left,omitempty"`     // Left boundary for nested set model
-	RecordRight    *uint64            `json:"record_right,omitempty"`    // Right boundary for nested set model
-	RecordDepth    *uint64            `json:"record_depth,omitempty"`    // Depth level in the hierarchy
-	RecordOrdering *uint64            `json:"record_ordering,omitempty"` // Display order within the same level
-	CreatedBy      uuid.UUID          `json:"created_by"`                // ID of user who created this organization
-	UpdatedBy      uuid.UUID          `json:"updated_by"`                // ID of user who last updated this organization
-	DeletedBy      *uuid.UUID         `json:"deleted_by,omitempty"`      // ID of user who deleted this organization (soft delete)
-	CreatedAt      time.Time          `json:"created_at"`                // Timestamp when organization was created
-	UpdatedAt      time.Time          `json:"updated_at"`                // Timestamp when organization was last updated
-	DeletedAt      *time.Time         `json:"deleted_at,omitempty"`      // Timestamp when organization was soft deleted
+	ID             uuid.UUID          `json:"id"`                    // Unique identifier for the organization
+	Name           string             `json:"name"`                  // Display name of the organization
+	Description    *string            `json:"description,omitempty"` // Optional description of the organization
+	Code           *string            `json:"code,omitempty"`        // Optional organization code/identifier
+	Type           *OrganizationType  `json:"type,omitempty"`        // Optional organization type classification
+	Status         OrganizationStatus `json:"status"`                // Current operational status of the organization
+	ParentID       *uuid.UUID         `json:"parent_id,omitempty"`   // ID of parent organization (nil for root)
+	RecordLeft     *int64             `json:"record_left" db:"record_left"`
+	RecordRight    *int64             `json:"record_right" db:"record_right"`
+	RecordDepth    *int64             `json:"record_depth" db:"record_depth"`
+	RecordOrdering *int64             `json:"record_ordering" db:"record_ordering"` // Display order within the same level
+	CreatedBy      uuid.UUID          `json:"created_by"`                           // ID of user who created this organization
+	UpdatedBy      uuid.UUID          `json:"updated_by"`                           // ID of user who last updated this organization
+	DeletedBy      *uuid.UUID         `json:"deleted_by,omitempty"`                 // ID of user who deleted this organization (soft delete)
+	CreatedAt      time.Time          `json:"created_at"`                           // Timestamp when organization was created
+	UpdatedAt      time.Time          `json:"updated_at"`                           // Timestamp when organization was last updated
+	DeletedAt      *time.Time         `json:"deleted_at,omitempty"`                 // Timestamp when organization was soft deleted
 
 	// Relationships
 	Parent   *Organization   `json:"parent,omitempty"`   // Reference to parent organization
@@ -206,7 +206,7 @@ func (o *Organization) HasChildren() bool {
 }
 
 // GetChildrenCount returns the number of direct children
-func (o *Organization) GetChildrenCount() uint64 {
+func (o *Organization) GetChildrenCount() int64 {
 	if o.RecordLeft == nil || o.RecordRight == nil {
 		return 0
 	}
@@ -214,7 +214,7 @@ func (o *Organization) GetChildrenCount() uint64 {
 }
 
 // GetDescendantsCount returns the number of all descendants
-func (o *Organization) GetDescendantsCount() uint64 {
+func (o *Organization) GetDescendantsCount() int64 {
 	if o.RecordLeft == nil || o.RecordRight == nil {
 		return 0
 	}

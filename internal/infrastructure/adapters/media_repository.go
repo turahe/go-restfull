@@ -15,8 +15,8 @@ import (
 
 type PostgresMediaRepository struct {
 	*BaseTransactionalRepository
-	db              *pgxpool.Pool
-	redisClient     redis.Cmdable
+	db               *pgxpool.Pool
+	redisClient      redis.Cmdable
 	nestedSetManager *nestedset.NestedSetManager
 }
 
@@ -30,14 +30,13 @@ func NewPostgresMediaRepository(db *pgxpool.Pool, redisClient redis.Cmdable) rep
 }
 
 func (r *PostgresMediaRepository) Create(ctx context.Context, media *entities.Media) error {
-	// Calculate nested set values using the nested set manager
-	// Media doesn't have parent_id, so we treat it as a root node
-	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "media", nil, 0)
+	// Calculate nested set values
+	nestedSetValues, err := r.nestedSetManager.CreateNode(ctx, "media", nil, int64(0))
 	if err != nil {
 		return fmt.Errorf("failed to calculate nested set values: %w", err)
 	}
 
-	// Update the media entity with the calculated nested set values
+	// Assign nested set values to media entity
 	media.RecordLeft = &nestedSetValues.Left
 	media.RecordRight = &nestedSetValues.Right
 	media.RecordDepth = &nestedSetValues.Depth

@@ -11,6 +11,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // RoleController handles HTTP requests for role operations
@@ -70,6 +72,7 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to retrieve roles",
@@ -79,6 +82,7 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 	// Get total count for pagination
 	total, err := c.roleService.GetRoleCount(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get role count",
@@ -106,6 +110,7 @@ func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {
 func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -114,6 +119,7 @@ func (c *RoleController) GetRoleByID(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.GetRoleByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Role not found",
@@ -146,6 +152,7 @@ func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 
 	role, err := c.roleService.GetRoleBySlug(ctx.Context(), slug)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Role not found",
@@ -216,6 +223,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -242,6 +250,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 	// Get existing role
 	existingRole, err := c.roleService.GetRoleByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Role not found",
@@ -278,6 +287,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -313,6 +323,7 @@ func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -345,6 +356,7 @@ func (c *RoleController) ActivateRole(ctx *fiber.Ctx) error {
 func (c *RoleController) DeactivateRole(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid role ID",
@@ -389,6 +401,7 @@ func (c *RoleController) SearchRoles(ctx *fiber.Ctx) error {
 
 	roles, err := c.roleService.SearchRoles(ctx.Context(), query, limit, offset)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to search roles",

@@ -29,16 +29,17 @@ func NewPostgresMenuRepository(db *pgxpool.Pool, redisClient redis.Cmdable) repo
 }
 
 func (r *PostgresMenuRepository) Create(ctx context.Context, menu *entities.Menu) error {
-	// Try to use nested set manager first
-	values, err := r.nestedSet.CreateNode(ctx, "menus", menu.ParentID, uint64(1))
+	// Calculate nested set values
+	nestedSetValues, err := r.nestedSet.CreateNode(ctx, "menus", menu.ParentID, int64(1))
 	if err != nil {
-		// If nested set fails, use fallback approach
-		return r.createMenuFallback(ctx, menu)
+		return fmt.Errorf("failed to calculate nested set values: %w", err)
 	}
-	menu.RecordLeft = &values.Left
-	menu.RecordRight = &values.Right
-	menu.RecordDepth = &values.Depth
-	menu.RecordOrdering = &values.Ordering
+
+	// Assign nested set values to menu entity
+	menu.RecordLeft = &nestedSetValues.Left
+	menu.RecordRight = &nestedSetValues.Right
+	menu.RecordDepth = &nestedSetValues.Depth
+	menu.RecordOrdering = &nestedSetValues.Ordering
 
 	query := `
 		INSERT INTO menus (
@@ -77,7 +78,7 @@ func (r *PostgresMenuRepository) Create(ctx context.Context, menu *entities.Menu
 // This is used when the nested set manager fails to create the first menu
 func (r *PostgresMenuRepository) createMenuFallback(ctx context.Context, menu *entities.Menu) error {
 	// For the first menu, set manual nested set values
-	var recordLeft, recordRight, recordDepth, recordOrdering uint64
+	var recordLeft, recordRight, recordDepth, recordOrdering int64
 	if menu.ParentID == nil {
 		// Root menu - start with basic values
 		recordLeft = 1
@@ -771,12 +772,12 @@ func (r *PostgresMenuRepository) GetTreeStatistics(ctx context.Context) (map[str
 	return r.nestedSet.GetTreeStatistics(ctx, "menus")
 }
 
-func (r *PostgresMenuRepository) GetTreeHeight(ctx context.Context) (uint64, error) {
+func (r *PostgresMenuRepository) GetTreeHeight(ctx context.Context) (int64, error) {
 	return r.nestedSet.GetTreeHeight(ctx, "menus")
 }
 
 func (r *PostgresMenuRepository) GetLevelWidth(ctx context.Context, level uint64) (int64, error) {
-	return r.nestedSet.GetLevelWidth(ctx, "menus", level)
+	return r.nestedSet.GetLevelWidth(ctx, "menus", int64(level))
 }
 
 func (r *PostgresMenuRepository) GetSubtreeSize(ctx context.Context, menuID uuid.UUID) (int64, error) {

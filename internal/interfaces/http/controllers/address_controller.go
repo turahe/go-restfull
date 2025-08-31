@@ -11,7 +11,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 type AddressController struct {
 	addressService ports.AddressService
@@ -90,6 +91,7 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid address ID format",
@@ -98,6 +100,7 @@ func (c *AddressController) GetAddressByID(ctx *fiber.Ctx) error {
 
 	address, err := c.addressService.GetAddressByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Address not found",
@@ -126,6 +129,7 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid address ID format",
@@ -150,6 +154,7 @@ func (c *AddressController) UpdateAddress(ctx *fiber.Ctx) error {
 	// Get current address to preserve unchanged fields
 	currentAddress, err := c.addressService.GetAddressByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Address not found",
@@ -194,6 +199,7 @@ func (c *AddressController) DeleteAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid address ID format",
@@ -234,6 +240,7 @@ func (c *AddressController) GetAddressesByAddressable(ctx *fiber.Ctx) error {
 
 	addressableID, err := uuid.Parse(addressableIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid addressable ID format",
@@ -279,6 +286,7 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 
 	addressableID, err := uuid.Parse(addressableIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid addressable ID format",
@@ -295,6 +303,7 @@ func (c *AddressController) GetPrimaryAddressByAddressable(ctx *fiber.Ctx) error
 
 	address, err := c.addressService.GetPrimaryAddressByAddressable(ctx.Context(), addressableID, addressableType)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Primary address not found",
@@ -326,6 +335,7 @@ func (c *AddressController) GetAddressesByAddressableAndType(ctx *fiber.Ctx) err
 
 	addressableID, err := uuid.Parse(addressableIDStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid addressable ID format",
@@ -379,6 +389,7 @@ func (c *AddressController) SetPrimaryAddress(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid address ID format",
@@ -402,6 +413,7 @@ func (c *AddressController) SetPrimaryAddress(ctx *fiber.Ctx) error {
 
 	addressableID, err := uuid.Parse(req.AddressableID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid addressable ID format",
@@ -442,6 +454,7 @@ func (c *AddressController) SetAddressType(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid address ID format",
@@ -508,6 +521,7 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -516,6 +530,7 @@ func (c *AddressController) SearchAddressesByCity(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -579,6 +594,7 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -587,6 +603,7 @@ func (c *AddressController) SearchAddressesByState(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -650,6 +667,7 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -658,6 +676,7 @@ func (c *AddressController) SearchAddressesByCountry(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",
@@ -721,6 +740,7 @@ func (c *AddressController) SearchAddressesByPostalCode(ctx *fiber.Ctx) error {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid limit parameter",
@@ -729,6 +749,7 @@ func (c *AddressController) SearchAddressesByPostalCode(ctx *fiber.Ctx) error {
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid offset parameter",

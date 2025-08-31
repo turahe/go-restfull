@@ -25,9 +25,9 @@ type TaxonomyDTO struct {
 	Code        string     `json:"code,omitempty"`
 	Description string     `json:"description,omitempty"`
 	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	RecordLeft  *uint64    `json:"record_left"`
-	RecordRight *uint64    `json:"record_right"`
-	RecordDepth *uint64    `json:"record_depth"`
+	RecordLeft  *int64     `json:"record_left"`
+	RecordRight *int64     `json:"record_right"`
+	RecordDepth *int64     `json:"record_depth"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`

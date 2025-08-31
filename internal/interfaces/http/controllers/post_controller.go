@@ -10,7 +10,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // PostController handles HTTP requests for post operations
 //
@@ -117,6 +118,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid post ID",
@@ -125,6 +127,7 @@ func (c *PostController) GetPostByID(ctx *fiber.Ctx) error {
 
 	post, err := c.postService.GetPostByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Post not found",
@@ -158,6 +161,7 @@ func (c *PostController) GetPostBySlug(ctx *fiber.Ctx) error {
 
 	post, err := c.postService.GetPostBySlug(ctx.Context(), slug)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Post not found",
@@ -225,6 +229,7 @@ func (c *PostController) GetPostsByAuthor(ctx *fiber.Ctx) error {
 	authorIDParam := ctx.Params("authorID")
 	authorID, err := uuid.Parse(authorIDParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid author ID",
@@ -273,6 +278,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid post ID",
@@ -307,6 +313,7 @@ func (c *PostController) UpdatePost(ctx *fiber.Ctx) error {
 	// Get existing post
 	existingPost, err := c.postService.GetPostByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusNotFound).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Post not found",
@@ -352,6 +359,7 @@ func (c *PostController) DeletePost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid post ID",
@@ -399,6 +407,7 @@ func (c *PostController) PublishPost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid post ID",
@@ -446,6 +455,7 @@ func (c *PostController) UnpublishPost(ctx *fiber.Ctx) error {
 	idParam := ctx.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(http.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid post ID",

@@ -13,9 +13,11 @@ import (
 // RBACMiddleware creates a middleware that checks RBAC permissions
 func RBACMiddleware(rbacService services.RBACService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		fmt.Printf("DEBUG: RBAC middleware called for %s %s\n", c.Method(), c.Path())
 
 		// If RBAC service is not initialized, skip checks
 		if rbacService == nil {
+			fmt.Printf("DEBUG: RBAC service is nil, skipping checks\n")
 			return c.Next()
 		}
 

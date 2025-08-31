@@ -62,7 +62,7 @@ type MenuResource struct {
 	// ParentID is the optional ID of the parent menu item for hierarchical menus
 	ParentID *string `json:"parent_id,omitempty"`
 	// Order determines the display order of the menu item
-	Order *uint64 `json:"order,omitempty"`
+	Order *int64 `json:"order,omitempty"`
 	// CreatedAt is the timestamp when the menu item was created
 	CreatedAt time.Time `json:"created_at"`
 	// UpdatedAt is the timestamp when the menu item was last updated

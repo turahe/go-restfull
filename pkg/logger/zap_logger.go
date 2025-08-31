@@ -15,6 +15,18 @@ func newZapLogger() *zap.Logger {
 	stacktraceLogLevel := getZapLogLevel(config.GetConfig().Log.StacktraceLevel)
 
 	// STEP 2: Set up the file writer
+	// Ensure log directory exists
+	logDir := "log"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		// If we can't create the log directory, fall back to console only
+		core := zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.AddSync(os.Stdout),
+			zapLogLevel,
+		)
+		return zap.New(core, zap.AddCaller(), zap.AddStacktrace(stacktraceLogLevel))
+	}
+
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   config.GetConfig().Log.FilePath,
 		MaxSize:    config.GetConfig().Log.FileSize,     // megabytes

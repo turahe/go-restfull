@@ -13,4 +13,4 @@ func NewMiscellaneousHTTPHandler() *MiscellaneousHTTPHandler {
 
 func (m *MiscellaneousHTTPHandler) NotFound(c *fiber.Ctx) error {
 	return exception.ApiNotFoundError
-} 
+}

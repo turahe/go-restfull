@@ -5,12 +5,16 @@ import (
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/helper/utils"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/pkg/exception"
+	"github.com/turahe/go-restfull/pkg/logger"
+	"github.com/turahe/go-restfull/pkg/storage"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // MediaController handles HTTP requests for media operations
@@ -30,12 +34,14 @@ import (
 //	@name						Authorization
 //	@description				Type "Bearer" followed by a space and JWT token.
 type MediaController struct {
-	mediaService ports.MediaService
+	mediaService   ports.MediaService
+	storageService *storage.StorageService
 }
 
-func NewMediaController(mediaService ports.MediaService) *MediaController {
+func NewMediaController(mediaService ports.MediaService, storageService *storage.StorageService) *MediaController {
 	return &MediaController{
-		mediaService: mediaService,
+		mediaService:   mediaService,
+		storageService: storageService,
 	}
 }
 
@@ -82,6 +88,12 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	if query != "" {
 		media, err = c.mediaService.SearchMedia(ctx.Context(), query, limit, offset)
 		if err != nil {
+			logger.Log.Error("Failed to search media",
+				zap.String("query", query),
+				zap.Int("limit", limit),
+				zap.Int("offset", offset),
+				zap.Error(err),
+			)
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Failed to search media",
@@ -90,6 +102,11 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	} else {
 		media, err = c.mediaService.GetAllMedia(ctx.Context(), limit, offset)
 		if err != nil {
+			logger.Log.Error("Failed to retrieve media",
+				zap.Int("limit", limit),
+				zap.Int("offset", offset),
+				zap.Error(err),
+			)
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Failed to retrieve media",
@@ -100,6 +117,9 @@ func (c *MediaController) GetMedia(ctx *fiber.Ctx) error {
 	// Get total count for pagination
 	total, err := c.mediaService.GetMediaCount(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Failed to retrieve media count",
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to retrieve media count",
@@ -139,6 +159,10 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 	// Parse media ID
 	mediaID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("GetMediaByID: Invalid media ID format",
+			zap.String("media_id", ctx.Params("id")),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid media ID format",
@@ -154,6 +178,10 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 				"message": "Media not found",
 			})
 		}
+		logger.Log.Error("GetMediaByID: Failed to retrieve media",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to retrieve media",
@@ -182,6 +210,13 @@ func (c *MediaController) GetMediaByID(ctx *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Router			/media [post]
 func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
+	logger.Log.Info("CreateMedia: Request received",
+		zap.String("ip", ctx.IP()),
+		zap.String("method", ctx.Method()),
+		zap.String("path", ctx.Path()),
+		zap.String("user_agent", ctx.Get("User-Agent")),
+	)
+
 	// Get user ID from context (assuming it's set by JWT middleware)
 	userIDInterface := ctx.Locals("user_id")
 	if userIDInterface == nil {
@@ -194,6 +229,10 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 	// Type assert directly to uuid.UUID
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
+		logger.Log.Error("CreateMedia: Invalid user ID format",
+			zap.String("ip", ctx.IP()),
+			zap.Any("user_id_interface", userIDInterface),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid user ID format",
@@ -203,20 +242,97 @@ func (c *MediaController) CreateMedia(ctx *fiber.Ctx) error {
 	// Get uploaded file
 	file, err := ctx.FormFile("file")
 	if err != nil {
+		logger.Log.Error("CreateMedia: No file uploaded",
+			zap.String("user_id", userID.String()),
+			zap.String("ip", ctx.IP()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "No file uploaded",
 		})
 	}
 
-	// Upload media
-	media, err := c.mediaService.UploadMedia(ctx.Context(), file, userID)
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// Validate file size and type
+	if file.Size == 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to upload media",
+			"message": "File is empty",
 		})
 	}
+
+	// Validate file size (max 50MB)
+	const maxFileSize = 50 * 1024 * 1024 // 50MB
+	if file.Size > maxFileSize {
+		return ctx.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{
+			"status":  "error",
+			"message": "File size exceeds maximum limit of 50MB",
+		})
+	}
+
+	// Validate file type
+	contentType := file.Header.Get("Content-Type")
+	if contentType == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "File type not detected",
+		})
+	}
+
+	// Check if it's a supported media type
+	if !utils.IsSupportedMediaType(contentType) {
+		return ctx.Status(fiber.StatusUnsupportedMediaType).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Unsupported file type: " + contentType,
+		})
+	}
+
+	// Check if storage service is available
+	if c.storageService == nil {
+		logger.Log.Error("CreateMedia: Storage service not available",
+			zap.String("user_id", userID.String()),
+		)
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Storage service not available",
+		})
+	}
+
+	// Test storage connection before attempting upload
+	if err := c.storageService.TestConnection(); err != nil {
+		logger.Log.Error("CreateMedia: Storage connection test failed",
+			zap.String("user_id", userID.String()),
+			zap.String("filename", file.Filename),
+			zap.Error(err),
+		)
+		return ctx.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Storage service is not accessible. Please try again later.",
+		})
+	}
+
+	// Upload file and save metadata using media service (which handles both storage and database)
+	media, err := c.mediaService.UploadMedia(ctx.Context(), file, userID)
+	if err != nil {
+		logger.Log.Error("CreateMedia: Failed to upload media",
+			zap.String("user_id", userID.String()),
+			zap.String("filename", file.Filename),
+			zap.Int64("file_size", file.Size),
+			zap.String("content_type", file.Header.Get("Content-Type")),
+			zap.Error(err),
+		)
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to upload media: " + err.Error(),
+		})
+	}
+
+	logger.Log.Info("CreateMedia: Media uploaded successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("media_id", media.ID.String()),
+		zap.String("filename", file.Filename),
+		zap.Int64("file_size", file.Size),
+	)
 
 	// Return media resource response
 	return ctx.Status(fiber.StatusCreated).JSON(responses.NewMediaResource(media))
@@ -241,6 +357,10 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 	// Parse media ID
 	mediaID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("UpdateMedia: Invalid media ID format",
+			zap.String("media_id", ctx.Params("id")),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid media ID format",
@@ -251,6 +371,10 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 	var request requests.UpdateMediaRequest
 
 	if err := ctx.BodyParser(&request); err != nil {
+		logger.Log.Error("UpdateMedia: Invalid request body",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid request body",
@@ -259,6 +383,10 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 
 	// Validate request
 	if err := request.Validate(); err != nil {
+		logger.Log.Error("UpdateMedia: Validation failed",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Validation failed: " + err.Error(),
@@ -274,6 +402,10 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 				"message": "Media not found",
 			})
 		}
+		logger.Log.Error("UpdateMedia: Failed to retrieve existing media",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to retrieve media",
@@ -293,6 +425,10 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 				"message": "Media not found",
 			})
 		}
+		logger.Log.Error("UpdateMedia: Failed to update media",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to update media",
@@ -321,6 +457,10 @@ func (c *MediaController) DeleteMedia(ctx *fiber.Ctx) error {
 	// Parse media ID
 	mediaID, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("DeleteMedia: Invalid media ID format",
+			zap.String("media_id", ctx.Params("id")),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid media ID format",
@@ -336,6 +476,10 @@ func (c *MediaController) DeleteMedia(ctx *fiber.Ctx) error {
 				"message": "Media not found",
 			})
 		}
+		logger.Log.Error("DeleteMedia: Failed to delete media",
+			zap.String("media_id", mediaID.String()),
+			zap.Error(err),
+		)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to delete media",

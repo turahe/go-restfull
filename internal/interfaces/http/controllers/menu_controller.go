@@ -11,7 +11,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-)
+	"github.com/turahe/go-restfull/pkg/logger"
+	"go.uber.org/zap")
 
 // MenuController handles HTTP requests for menu operations
 //
@@ -82,6 +83,7 @@ func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve menus",
@@ -92,6 +94,7 @@ func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 	// Get total count for pagination
 	total, err := c.menuService.GetMenuCount(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve menu count",
@@ -131,6 +134,7 @@ func (c *MenuController) GetMenus(ctx *fiber.Ctx) error {
 func (c *MenuController) GetMenuByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -140,6 +144,7 @@ func (c *MenuController) GetMenuByID(ctx *fiber.Ctx) error {
 
 	menu, err := c.menuService.GetMenuByID(ctx.Context(), id)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusNotFound,
 			ResponseMessage: "Menu not found",
@@ -177,6 +182,7 @@ func (c *MenuController) GetMenuBySlug(ctx *fiber.Ctx) error {
 
 	menu, err := c.menuService.GetMenuBySlug(ctx.Context(), slug)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusNotFound,
 			ResponseMessage: "Menu not found",
@@ -202,6 +208,7 @@ func (c *MenuController) GetMenuBySlug(ctx *fiber.Ctx) error {
 func (c *MenuController) GetRootMenus(ctx *fiber.Ctx) error {
 	menus, err := c.menuService.GetRootMenus(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve root menus",
@@ -227,6 +234,7 @@ func (c *MenuController) GetRootMenus(ctx *fiber.Ctx) error {
 func (c *MenuController) GetMenuHierarchy(ctx *fiber.Ctx) error {
 	menus, err := c.menuService.GetMenuHierarchy(ctx.Context())
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve menu hierarchy",
@@ -255,6 +263,7 @@ func (c *MenuController) GetMenuHierarchy(ctx *fiber.Ctx) error {
 func (c *MenuController) GetUserMenus(ctx *fiber.Ctx) error {
 	userID, err := uuid.Parse(ctx.Params("user_id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid user ID",
@@ -264,6 +273,7 @@ func (c *MenuController) GetUserMenus(ctx *fiber.Ctx) error {
 
 	menus, err := c.menuService.GetUserMenus(ctx.Context(), userID)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to retrieve user menus",
@@ -305,6 +315,7 @@ func (c *MenuController) SearchMenus(ctx *fiber.Ctx) error {
 
 	menus, err := c.menuService.SearchMenus(ctx.Context(), query, limit, offset)
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
 			ResponseMessage: "Failed to search menus",
@@ -392,6 +403,7 @@ func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -476,6 +488,7 @@ func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) DeleteMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -516,6 +529,7 @@ func (c *MenuController) DeleteMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) ActivateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -553,6 +567,7 @@ func (c *MenuController) ActivateMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) DeactivateMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -590,6 +605,7 @@ func (c *MenuController) DeactivateMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) ShowMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
@@ -627,6 +643,7 @@ func (c *MenuController) ShowMenu(ctx *fiber.Ctx) error {
 func (c *MenuController) HideMenu(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
+		logger.Log.Error("Error occurred", zap.Error(err))
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
 			ResponseMessage: "Invalid menu ID",
