@@ -5,6 +5,7 @@ import (
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/domain/services"
 	"github.com/turahe/go-restfull/internal/helper/utils"
 	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
@@ -16,12 +17,16 @@ import (
 
 // CommentController handles comment-related endpoints
 type CommentController struct {
-	commentService ports.CommentService
+	commentService              ports.CommentService
+	notificationService         services.NotificationService
+	notificationTemplateService services.NotificationTemplateService
 }
 
-func NewCommentController(commentService ports.CommentService) *CommentController {
+func NewCommentController(commentService ports.CommentService, notificationService services.NotificationService, notificationTemplateService services.NotificationTemplateService) *CommentController {
 	return &CommentController{
-		commentService: commentService,
+		commentService:              commentService,
+		notificationService:         notificationService,
+		notificationTemplateService: notificationTemplateService,
 	}
 }
 
@@ -483,6 +488,23 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Get the comment first to get the user ID for notification
+	comment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
+	if err != nil {
+		if errors.Is(err, exception.DataNotFoundError) {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Comment not found",
+				Data:            nil,
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve comment",
+			Data:            nil,
+		})
+	}
+
 	// Reject comment
 	err = c.commentService.RejectComment(ctx.Context(), commentID)
 	if err != nil {
@@ -500,8 +522,32 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Send notification to the comment author about the rejection using template
+	if c.notificationService != nil {
+		notificationData := map[string]interface{}{
+			"comment_id":      comment.ID.String(),
+			"comment_content": comment.Content,
+			"model_type":      comment.ModelType,
+			"model_id":        comment.ModelID.String(),
+			"rejected_at":     comment.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+
+		err = c.notificationService.SendNotificationFromTemplate(
+			ctx.Context(),
+			comment.CreatedBy,  // The user who created the comment
+			"comment_rejected", // Template name from the migration
+			notificationData,
+		)
+
+		// Log notification error but don't fail the request
+		if err != nil {
+			// In production, you might want to log this error
+			// For now, we'll just continue with the response
+		}
+	}
+
 	// Get the updated comment to return in response
-	comment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
+	updatedComment, err := c.commentService.GetCommentByID(ctx.Context(), commentID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusInternalServerError,
@@ -511,5 +557,5 @@ func (c *CommentController) RejectComment(ctx *fiber.Ctx) error {
 	}
 
 	// Return comment resource response
-	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(comment, nil, nil))
+	return ctx.Status(fiber.StatusOK).JSON(responses.NewCommentResource(updatedComment, nil, nil))
 }

@@ -22,10 +22,11 @@ const (
 	NotificationTypeSecurityAlert NotificationType = "security_alert"
 
 	// Content notifications
-	NotificationTypeNewPost      NotificationType = "new_post"
-	NotificationTypeCommentReply NotificationType = "comment_reply"
-	NotificationTypeMention      NotificationType = "mention"
-	NotificationTypeLike         NotificationType = "like"
+	NotificationTypeNewPost         NotificationType = "new_post"
+	NotificationTypeCommentReply    NotificationType = "comment_reply"
+	NotificationTypeCommentRejected NotificationType = "comment_rejected"
+	NotificationTypeMention         NotificationType = "mention"
+	NotificationTypeLike            NotificationType = "like"
 
 	// Organization notifications
 	NotificationTypeInvitation       NotificationType = "invitation"

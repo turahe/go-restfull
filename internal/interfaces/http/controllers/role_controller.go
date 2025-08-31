@@ -6,6 +6,7 @@ import (
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 
 	"github.com/gofiber/fiber/v2"
@@ -167,11 +168,7 @@ func (c *RoleController) GetRoleBySlug(ctx *fiber.Ctx) error {
 // @Failure 500 {object} responses.ErrorResponse
 // @Router /roles [post]
 func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
-	var request struct {
-		Name        string `json:"name"`
-		Slug        string `json:"slug"`
-		Description string `json:"description"`
-	}
+	var request requests.CreateRoleRequest
 
 	if err := ctx.BodyParser(&request); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
@@ -180,7 +177,19 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	role, err := c.roleService.CreateRole(ctx.Context(), request.Name, request.Slug, request.Description)
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Validation failed: " + err.Error(),
+		})
+	}
+
+	// Transform request to entity
+	role := request.ToEntity()
+
+	// Create role using the entity
+	createdRole, err := c.roleService.CreateRole(ctx.Context(), role.Name, role.Slug, role.Description)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",
@@ -188,7 +197,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(responses.NewRoleResource(role))
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewRoleResource(createdRole))
 }
 
 // UpdateRole godoc
@@ -213,11 +222,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var request struct {
-		Name        string `json:"name"`
-		Slug        string `json:"slug"`
-		Description string `json:"description"`
-	}
+	var request requests.UpdateRoleRequest
 
 	if err := ctx.BodyParser(&request); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
@@ -226,7 +231,28 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	role, err := c.roleService.UpdateRole(ctx.Context(), id, request.Name, request.Slug, request.Description)
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Validation failed: " + err.Error(),
+		})
+	}
+
+	// Get existing role
+	existingRole, err := c.roleService.GetRoleByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+			Status:  "error",
+			Message: "Role not found",
+		})
+	}
+
+	// Transform request to entity
+	updatedRole := request.ToEntity(existingRole)
+
+	// Update role using the entity
+	role, err := c.roleService.UpdateRole(ctx.Context(), id, updatedRole.Name, updatedRole.Slug, updatedRole.Description)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Status:  "error",

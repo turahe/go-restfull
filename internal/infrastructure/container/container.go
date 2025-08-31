@@ -37,6 +37,12 @@ type Container struct {
 	AddressRepository      repositories.AddressRepository
 	OrganizationRepository repositories.OrganizationRepository
 
+	// Notification Repositories
+	NotificationRepository           repositories.NotificationRepository
+	NotificationTemplateRepository   repositories.NotificationTemplateRepository
+	NotificationPreferenceRepository repositories.NotificationPreferenceRepository
+	NotificationDeliveryRepository   repositories.NotificationDeliveryRepository
+
 	// Application Services
 	UserService         ports.UserService
 	PostService         ports.PostService
@@ -142,6 +148,13 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.AddressRepository = adapters.NewPostgresAddressRepository(db)
 	container.OrganizationRepository = adapters.NewPostgresOrganizationRepository(db)
 
+	// Initialize notification repositories
+	container.NotificationRepository = adapters.NewPostgresNotificationRepository(db)
+	// TODO: Initialize other notification repositories when they are implemented
+	// container.NotificationTemplateRepository = adapters.NewPostgresNotificationTemplateRepository(db)
+	// container.NotificationPreferenceRepository = adapters.NewPostgresNotificationPreferenceRepository(db)
+	// container.NotificationDeliveryRepository = adapters.NewPostgresNotificationDeliveryRepository(db)
+
 	// Initialize hybrid search service after repositories
 	container.HybridSearchService = appservices.NewHybridSearchService(
 		container.SearchService,
@@ -198,6 +211,18 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.AddressService = appservices.NewAddressService(container.AddressRepository)
 	container.OrganizationService = appservices.NewOrganizationService(container.OrganizationRepository)
 
+	// Initialize notification services
+	// TODO: Initialize notification services when all repositories are implemented
+	// container.NotificationService = appservices.NewNotificationService(
+	// 	container.NotificationRepository,
+	// 	container.NotificationTemplateRepository,
+	// 	container.NotificationPreferenceRepository,
+	// 	container.NotificationDeliveryRepository,
+	// )
+	// container.NotificationTemplateService = appservices.NewNotificationTemplateService(container.NotificationTemplateRepository)
+	// container.NotificationPreferenceService = appservices.NewNotificationPreferenceService(container.NotificationPreferenceRepository)
+	// container.NotificationDeliveryService = appservices.NewNotificationDeliveryService(container.NotificationDeliveryRepository)
+
 	// Initialize indexer service
 	container.IndexerService = appservices.NewIndexerService(
 		container.SearchService,
@@ -222,7 +247,9 @@ func NewContainer(db *pgxpool.Pool) *Container {
 	container.PostController = controllers.NewPostController(container.PostService)
 	container.MediaController = controllers.NewMediaController(container.MediaService)
 	container.TagController = controllers.NewTagController(container.TagService)
-	container.CommentController = controllers.NewCommentController(container.CommentService)
+	// TODO: Add notification services when they are fully implemented
+	// container.CommentController = controllers.NewCommentController(container.CommentService, container.NotificationService, container.NotificationTemplateService)
+	container.CommentController = controllers.NewCommentController(container.CommentService, nil, nil)
 	container.RoleController = controllers.NewRoleController(container.RoleService)
 	container.UserRoleController = controllers.NewUserRoleController(container.UserRoleService)
 	container.MenuController = controllers.NewMenuController(container.MenuService)

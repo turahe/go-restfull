@@ -5,6 +5,7 @@ import (
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
 	"github.com/turahe/go-restfull/pkg/exception"
 
@@ -247,25 +248,44 @@ func (c *MediaController) UpdateMedia(ctx *fiber.Ctx) error {
 	}
 
 	// Parse request body
-	var requestBody struct {
-		FileName     string `json:"file_name"`
-		OriginalName string `json:"original_name"`
-		MimeType     string `json:"mime_type"`
-		Path         string `json:"path"`
-		URL          string `json:"url"`
-		Size         int64  `json:"size"`
-	}
+	var request requests.UpdateMediaRequest
 
-	if err := ctx.BodyParser(&requestBody); err != nil {
+	if err := ctx.BodyParser(&request); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid request body",
 		})
 	}
 
-	// Update media
-	media, err := c.mediaService.UpdateMedia(ctx.Context(), mediaID, requestBody.FileName, requestBody.OriginalName,
-		requestBody.MimeType, requestBody.Path, requestBody.URL, requestBody.Size)
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Validation failed: " + err.Error(),
+		})
+	}
+
+	// Get existing media
+	existingMedia, err := c.mediaService.GetMediaByID(ctx.Context(), mediaID)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Media not found",
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve media",
+		})
+	}
+
+	// Transform request to entity
+	updatedMedia := request.ToEntity(existingMedia)
+
+	// Update media using the entity
+	media, err := c.mediaService.UpdateMedia(ctx.Context(), mediaID, updatedMedia.Name, updatedMedia.FileName,
+		updatedMedia.Hash, updatedMedia.Disk, updatedMedia.MimeType, updatedMedia.Size)
 	if err != nil {
 		if err == exception.DataNotFoundError {
 			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{

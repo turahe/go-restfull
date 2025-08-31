@@ -5,7 +5,9 @@ import (
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
+	"github.com/turahe/go-restfull/internal/interfaces/http/requests"
 	"github.com/turahe/go-restfull/internal/interfaces/http/responses"
+	"github.com/turahe/go-restfull/pkg/exception"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -329,16 +331,7 @@ func (c *MenuController) SearchMenus(ctx *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Router			/menus [post]
 func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
-	var request struct {
-		Name           string     `json:"name"`
-		Slug           string     `json:"slug"`
-		Description    string     `json:"description"`
-		URL            string     `json:"url"`
-		Icon           string     `json:"icon"`
-		RecordOrdering int64      `json:"record_ordering"`
-		ParentID       *uuid.UUID `json:"parent_id"`
-		Target         string     `json:"target"`
-	}
+	var request requests.CreateMenuRequest
 
 	if err := ctx.BodyParser(&request); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -348,7 +341,27 @@ func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 		})
 	}
 
-	menu, err := c.menuService.CreateMenu(ctx.Context(), request.Name, request.Slug, request.Description, request.URL, request.Icon, request.RecordOrdering, request.ParentID)
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Validation failed: " + err.Error(),
+			Data:            map[string]interface{}{},
+		})
+	}
+
+	// Transform request to entity
+	menu, err := request.ToEntity()
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Failed to process request: " + err.Error(),
+			Data:            map[string]interface{}{},
+		})
+	}
+
+	// Create menu using the entity
+	createdMenu, err := c.menuService.CreateMenu(ctx.Context(), menu.Name, menu.Slug, menu.Description, menu.URL, menu.Icon, int64(*menu.RecordOrdering), menu.ParentID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
@@ -358,7 +371,7 @@ func (c *MenuController) CreateMenu(ctx *fiber.Ctx) error {
 	}
 
 	// Return menu resource response
-	return ctx.Status(fiber.StatusCreated).JSON(responses.NewMenuResource(menu))
+	return ctx.Status(fiber.StatusCreated).JSON(responses.NewMenuResource(createdMenu))
 }
 
 // UpdateMenu handles PUT /v1/menus/:id requests
@@ -386,16 +399,7 @@ func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var request struct {
-		Name           string     `json:"name"`
-		Slug           string     `json:"slug"`
-		Description    string     `json:"description"`
-		URL            string     `json:"url"`
-		Icon           string     `json:"icon"`
-		RecordOrdering int64      `json:"record_ordering"`
-		ParentID       *uuid.UUID `json:"parent_id"`
-		Target         string     `json:"target"`
-	}
+	var request requests.UpdateMenuRequest
 
 	if err := ctx.BodyParser(&request); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
@@ -405,7 +409,44 @@ func (c *MenuController) UpdateMenu(ctx *fiber.Ctx) error {
 		})
 	}
 
-	menu, err := c.menuService.UpdateMenu(ctx.Context(), id, request.Name, request.Slug, request.Description, request.URL, request.Icon, request.RecordOrdering, request.ParentID)
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Validation failed: " + err.Error(),
+			Data:            map[string]interface{}{},
+		})
+	}
+
+	// Get existing menu
+	existingMenu, err := c.menuService.GetMenuByID(ctx.Context(), id)
+	if err != nil {
+		if err == exception.DataNotFoundError {
+			return ctx.Status(fiber.StatusNotFound).JSON(responses.CommonResponse{
+				ResponseCode:    fiber.StatusNotFound,
+				ResponseMessage: "Menu not found",
+				Data:            map[string]interface{}{},
+			})
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusInternalServerError,
+			ResponseMessage: "Failed to retrieve menu",
+			Data:            map[string]interface{}{},
+		})
+	}
+
+	// Transform request to entity
+	updatedMenu, err := request.ToEntity(existingMenu)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
+			ResponseCode:    fiber.StatusBadRequest,
+			ResponseMessage: "Failed to process request: " + err.Error(),
+			Data:            map[string]interface{}{},
+		})
+	}
+
+	// Update menu using the entity
+	menu, err := c.menuService.UpdateMenu(ctx.Context(), id, updatedMenu.Name, updatedMenu.Slug, updatedMenu.Description, updatedMenu.URL, updatedMenu.Icon, int64(*updatedMenu.RecordOrdering), updatedMenu.ParentID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(responses.CommonResponse{
 			ResponseCode:    fiber.StatusBadRequest,
