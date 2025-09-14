@@ -23,6 +23,7 @@ type userService struct {
 	passwordService domainservices.PasswordService
 	emailService    domainservices.EmailService
 	mediaService    ports.MediaService
+	settingRepo     repositories.SettingRepository
 }
 
 func NewUserService(
@@ -30,12 +31,14 @@ func NewUserService(
 	passwordService domainservices.PasswordService,
 	emailService domainservices.EmailService,
 	mediaService ports.MediaService,
+	settingRepo repositories.SettingRepository,
 ) ports.UserService {
 	return &userService{
 		userRepo:        userRepo,
 		passwordService: passwordService,
 		emailService:    emailService,
 		mediaService:    mediaService,
+		settingRepo:     settingRepo,
 	}
 }
 
@@ -132,6 +135,93 @@ func (s *userService) CreateUser(ctx context.Context, user *entities.User) (*ent
 
 	if err := s.userRepo.Save(ctx, agg); err != nil {
 		return nil, err
+	}
+
+	settings := []*entities.Setting{
+		{
+			Key:     "timezone",
+			Value:   "Asia/Jakarta",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "language",
+			Value:   "en",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_enabled",
+			Value:   "false",
+			KeyType: "boolean",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_secret",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_qr_code",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes_backup",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes_backup_date",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes_backup_date",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes_backup_date",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "google_2fa_recovery_codes_backup_date",
+			Value:   "",
+			KeyType: "string",
+			Status:  false,
+		},
+		{
+			Key:     "account_status",
+			Value:   "active",
+			KeyType: "string",
+			Status:  true,
+		},
+		{
+			Key:     "kyc_status",
+			Value:   "pending",
+			KeyType: "string",
+			Status:  false,
+		},
+	}
+
+	for _, setting := range settings {
+		if err := s.settingRepo.Create(ctx, setting); err != nil {
+			return nil, err
+		}
 	}
 
 	// Fire-and-forget welcome email
@@ -410,4 +500,58 @@ func (s *userService) AuthenticateUser(ctx context.Context, username, password s
 		return nil, errors.New("invalid credentials")
 	}
 	return aggregateToEntity(agg), nil
+}
+
+// AttachUserImage attaches an existing media file to a user as an image.
+// This method creates a relationship between a media file and a user entity,
+// allowing the user to have visual representation.
+//
+// Business Rules:
+//   - User must exist and be accessible
+//   - Media file must exist and be accessible
+//   - Media file must be an image (validated by MIME type)
+//   - Only one image per user is allowed (replaces existing)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - userID: UUID of the user to attach the image to
+//   - mediaID: UUID of the media file to attach
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *userService) AttachUserImage(ctx context.Context, userID uuid.UUID, mediaID uuid.UUID) error {
+	if s.mediaService == nil {
+		return errors.New("media service not available")
+	}
+
+	// Validate that the user exists
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user with ID %s not found", userID.String())
+	}
+
+	// Validate that the media exists and is an image
+	media, err := s.mediaService.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate that the media is an image
+	if !media.IsImage() {
+		return fmt.Errorf("media file must be an image, got MIME type: %s", media.MimeType)
+	}
+
+	// Attach media to user as an image
+	err = s.mediaService.AttachMediaToEntity(ctx, mediaID, userID, "User", "image")
+	if err != nil {
+		return fmt.Errorf("failed to attach image to user: %w", err)
+	}
+
+	return nil
 }

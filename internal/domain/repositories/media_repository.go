@@ -22,4 +22,5 @@ type MediaRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	Count(ctx context.Context) (int64, error)
 	CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+	AttachMediaToEntity(ctx context.Context, mediaID uuid.UUID, mediableID uuid.UUID, mediableType, group string) error
 }

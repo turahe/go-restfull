@@ -9,6 +9,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
@@ -25,7 +26,8 @@ import (
 // for address management operations. It handles address creation, updates, deletion,
 // and various search operations while enforcing business rules and validation.
 type addressService struct {
-	addressRepo repositories.AddressRepository
+	addressRepo  repositories.AddressRepository
+	mediaService ports.MediaService
 }
 
 // NewAddressService creates a new instance of the address service with the provided repository.
@@ -34,22 +36,14 @@ type addressService struct {
 //
 // Parameters:
 //   - addressRepo: The repository interface for data access operations
+//   - mediaService: Media service for handling address images and media
 //
 // Returns:
 //   - ports.AddressService: The service interface implementation
-//
-// NewAddressService creates a new instance of the address service with the provided repository.
-// This function follows the dependency injection pattern to ensure loose coupling
-// between the service layer and the data access layer.
-//
-// Parameters:
-//   - addressRepo: The repository interface for data access operations
-//
-// Returns:
-//   - ports.AddressService: The service interface implementation
-func NewAddressService(addressRepo repositories.AddressRepository) ports.AddressService {
+func NewAddressService(addressRepo repositories.AddressRepository, mediaService ports.MediaService) ports.AddressService {
 	return &addressService{
-		addressRepo: addressRepo,
+		addressRepo:  addressRepo,
+		mediaService: mediaService,
 	}
 }
 
@@ -532,4 +526,58 @@ func (s *addressService) CheckAddressableHasAddresses(ctx context.Context, addre
 //   - error: Any error that occurred during the operation
 func (s *addressService) CheckAddressableHasPrimaryAddress(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType) (bool, error) {
 	return s.addressRepo.HasPrimaryAddress(ctx, addressableID, addressableType)
+}
+
+// AttachAddressImage attaches an existing media file to an address as an image.
+// This method creates a relationship between a media file and an address entity,
+// allowing the address to have visual representation.
+//
+// Business Rules:
+//   - Address must exist and be accessible
+//   - Media file must exist and be accessible
+//   - Media file must be an image (validated by MIME type)
+//   - Only one image per address is allowed (replaces existing)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - addressID: UUID of the address to attach the image to
+//   - mediaID: UUID of the media file to attach
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *addressService) AttachAddressImage(ctx context.Context, addressID uuid.UUID, mediaID uuid.UUID) error {
+	if s.mediaService == nil {
+		return errors.New("media service not available")
+	}
+
+	// Validate that the address exists
+	address, err := s.GetAddressByID(ctx, addressID)
+	if err != nil {
+		return fmt.Errorf("address not found: %w", err)
+	}
+	if address == nil {
+		return fmt.Errorf("address with ID %s not found", addressID.String())
+	}
+
+	// Validate that the media exists and is an image
+	media, err := s.mediaService.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate that the media is an image
+	if !media.IsImage() {
+		return fmt.Errorf("media file must be an image, got MIME type: %s", media.MimeType)
+	}
+
+	// Attach media to address as an image
+	err = s.mediaService.AttachMediaToEntity(ctx, mediaID, addressID, "Address", "image")
+	if err != nil {
+		return fmt.Errorf("failed to attach image to address: %w", err)
+	}
+
+	return nil
 }

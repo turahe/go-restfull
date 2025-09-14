@@ -40,4 +40,7 @@ type AddressService interface {
 	CheckAddressExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CheckAddressableHasAddresses(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType) (bool, error)
 	CheckAddressableHasPrimaryAddress(ctx context.Context, addressableID uuid.UUID, addressableType entities.AddressableType) (bool, error)
+
+	// Media attachment
+	AttachAddressImage(ctx context.Context, addressID uuid.UUID, mediaID uuid.UUID) error
 }

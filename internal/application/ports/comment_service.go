@@ -26,4 +26,5 @@ type CommentService interface {
 	GetCommentCountByPostID(ctx context.Context, postID uuid.UUID) (int64, error)
 	GetCommentCountByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
 	GetPendingCommentCount(ctx context.Context) (int64, error)
+	AttachCommentImage(ctx context.Context, commentID uuid.UUID, mediaID uuid.UUID) error
 }

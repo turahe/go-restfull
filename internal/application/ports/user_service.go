@@ -57,4 +57,7 @@ type UserService interface {
 
 	// AuthenticateUser authenticates user login
 	AuthenticateUser(ctx context.Context, username, password string) (*entities.User, error)
+
+	// AttachUserImage attaches an existing media file to a user as an image
+	AttachUserImage(ctx context.Context, userID uuid.UUID, mediaID uuid.UUID) error
 }

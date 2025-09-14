@@ -28,4 +28,8 @@ type TaxonomyService interface {
 	GetTaxonomyCount(ctx context.Context) (int64, error)
 	GetTaxonomyCountWithSearch(ctx context.Context, query string) (int64, error)
 	SearchTaxonomiesWithPagination(ctx context.Context, request *pagination.TaxonomySearchRequest) (*pagination.TaxonomySearchResponse, error)
+	GetTaxonomyImage(ctx context.Context, taxonomyID uuid.UUID) (*entities.Media, error)
+	GetTaxonomyMediaByGroup(ctx context.Context, taxonomyID uuid.UUID, group string) (*entities.Media, error)
+	GetAllTaxonomyMediaByGroup(ctx context.Context, taxonomyID uuid.UUID, group string, limit, offset int) ([]*entities.Media, error)
+	AttachTaxonomyImage(ctx context.Context, taxonomyID uuid.UUID, mediaID uuid.UUID) error
 }

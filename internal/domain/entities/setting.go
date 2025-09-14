@@ -27,6 +27,8 @@ type Setting struct {
 	ModelID   *uuid.UUID `json:"model_id,omitempty"`   // ID of the entity this setting belongs to (optional)
 	Key       string     `json:"key"`                  // Setting key/name for identification
 	Value     string     `json:"value"`                // Setting value/content
+	KeyType   string     `json:"key_type"`             // Setting key type
+	Status    bool       `json:"status"`               // Setting status
 	CreatedBy uuid.UUID  `json:"created_by"`           // ID of user who created this setting
 	UpdatedBy uuid.UUID  `json:"updated_by"`           // ID of user who last updated this setting
 	DeletedBy *uuid.UUID `json:"deleted_by,omitempty"` // ID of user who deleted this setting (soft delete)
@@ -54,7 +56,7 @@ type Setting struct {
 // - value, modelType, and modelID are optional
 //
 // Note: ModelType and ModelID enable polymorphic relationships for entity-specific settings
-func NewSetting(key, value, modelType string, modelID *uuid.UUID) (*Setting, error) {
+func NewSetting(key, value, modelType string, modelID *uuid.UUID, keyType string, status bool) (*Setting, error) {
 	// Validate required fields
 	if key == "" {
 		return nil, errors.New("key is required")
@@ -68,6 +70,8 @@ func NewSetting(key, value, modelType string, modelID *uuid.UUID) (*Setting, err
 		ModelID:   modelID,    // Set model ID (can be nil)
 		Key:       key,        // Set setting key
 		Value:     value,      // Set setting value
+		KeyType:   keyType,    // Set setting key type
+		Status:    status,     // Set setting status
 		CreatedAt: now,        // Set creation timestamp
 		UpdatedAt: now,        // Set initial update timestamp
 	}, nil
@@ -87,7 +91,7 @@ func NewSetting(key, value, modelType string, modelID *uuid.UUID) (*Setting, err
 //   - error: Always nil, included for interface consistency
 //
 // Note: This method automatically updates the UpdatedAt timestamp
-func (s *Setting) UpdateSetting(key, value, modelType string, modelID *uuid.UUID) error {
+func (s *Setting) UpdateSetting(key, value, modelType string, modelID *uuid.UUID, keyType string, status bool) error {
 	// Update fields only if new values are provided
 	if key != "" {
 		s.Key = key
@@ -101,7 +105,12 @@ func (s *Setting) UpdateSetting(key, value, modelType string, modelID *uuid.UUID
 	if modelID != nil {
 		s.ModelID = modelID
 	}
-
+	if keyType != "" {
+		s.KeyType = keyType
+	}
+	if status != s.Status {
+		s.Status = status
+	}
 	// Update modification timestamp
 	s.UpdatedAt = time.Now()
 	return nil

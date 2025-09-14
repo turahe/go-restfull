@@ -254,6 +254,30 @@ func (r *PostgresMediaRepository) GetAllByGroup(ctx context.Context, mediableID 
 	return mediaList, nil
 }
 
+// AttachMediaToEntity creates a relationship between a media file and an entity.
+// This method inserts a record into the mediables table to establish the polymorphic
+// relationship between media and any entity type.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - mediaID: The unique identifier of the media file
+//   - mediableID: The unique identifier of the entity to attach the media to
+//   - mediableType: The type of entity (e.g., "User", "Post", "Taxonomy")
+//   - group: The group/category of the media (e.g., "avatar", "cover", "image")
+//
+// Returns:
+//   - error: Any error that occurred during the database operation
+func (r *PostgresMediaRepository) AttachMediaToEntity(ctx context.Context, mediaID uuid.UUID, mediableID uuid.UUID, mediableType, group string) error {
+	query := `
+		INSERT INTO mediables (media_id, mediable_id, mediable_type, group_name, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, NOW(), NOW())
+		ON CONFLICT (media_id, mediable_id, mediable_type, group_name) 
+		DO UPDATE SET updated_at = NOW()
+	`
+	_, err := r.db.Exec(ctx, query, mediaID, mediableID, mediableType, group)
+	return err
+}
+
 // GetChildren retrieves all direct children of a media item.
 // This method returns media items that are one level below the specified parent.
 //

@@ -15,11 +15,13 @@ var createSettingTable = &Migration{
 	Up: func() error {
 		_, err := pgx.GetPgxPool().Exec(context.Background(), `
 			CREATE TABLE settings (
-				 "id" UUID NOT NULL,
+				"id" UUID NOT NULL,
 				"model_type" VARCHAR(255) NULL,
 				"model_id" UUID NULL,
 			    "key" VARCHAR(255) NOT NULL,
 			    "value" VARCHAR(255) NULL,
+				"key_type" VARCHAR(255) NULL,
+				"status" boolean DEFAULT TRUE,
 			    "created_by" UUID NULL,
 			    "updated_by" UUID NULL,
 			    "deleted_by" UUID NULL,

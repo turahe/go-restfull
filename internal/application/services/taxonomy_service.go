@@ -7,6 +7,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
@@ -23,6 +24,7 @@ import (
 // data organization and navigation.
 type TaxonomyService struct {
 	taxonomyRepository repositories.TaxonomyRepository
+	mediaService       ports.MediaService
 }
 
 // NewTaxonomyService creates a new taxonomy service instance with the provided repository.
@@ -31,12 +33,14 @@ type TaxonomyService struct {
 //
 // Parameters:
 //   - taxonomyRepository: Repository interface for taxonomy data access operations
+//   - mediaService: Media service for handling taxonomy images and media
 //
 // Returns:
 //   - ports.TaxonomyService: The taxonomy service interface implementation
-func NewTaxonomyService(taxonomyRepository repositories.TaxonomyRepository) ports.TaxonomyService {
+func NewTaxonomyService(taxonomyRepository repositories.TaxonomyRepository, mediaService ports.MediaService) ports.TaxonomyService {
 	return &TaxonomyService{
 		taxonomyRepository: taxonomyRepository,
+		mediaService:       mediaService,
 	}
 }
 
@@ -384,4 +388,114 @@ func (s *TaxonomyService) SearchTaxonomiesWithPagination(ctx context.Context, re
 	searchResponse := pagination.CreateTaxonomySearchResponse(taxonomies, request.Page, request.PerPage, totalCount)
 
 	return searchResponse, nil
+}
+
+// GetTaxonomyImage retrieves the image for a specific taxonomy.
+// This method returns the first image uploaded for the taxonomy, which is typically used as its visual representation.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - taxonomyID: UUID of the taxonomy to get image for
+//
+// Returns:
+//   - *entities.Media: The taxonomy's image media entity, or nil if no image exists
+//   - error: Any error that occurred during the operation
+func (s *TaxonomyService) GetTaxonomyImage(ctx context.Context, taxonomyID uuid.UUID) (*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, errors.New("media service not available")
+	}
+	return s.mediaService.GetMediaByGroup(ctx, taxonomyID, "Taxonomy", "image")
+}
+
+// GetTaxonomyMediaByGroup retrieves media by group for a specific taxonomy.
+// This method is useful for getting different types of media (image, cover, gallery, etc.)
+// for taxonomies.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - taxonomyID: UUID of the taxonomy to get media for
+//   - group: Group/category of the media (e.g., "image", "cover", "gallery")
+//
+// Returns:
+//   - *entities.Media: The media entity if found, or nil if no media exists
+//   - error: Any error that occurred during the operation
+func (s *TaxonomyService) GetTaxonomyMediaByGroup(ctx context.Context, taxonomyID uuid.UUID, group string) (*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, errors.New("media service not available")
+	}
+	return s.mediaService.GetMediaByGroup(ctx, taxonomyID, "Taxonomy", group)
+}
+
+// GetAllTaxonomyMediaByGroup retrieves all media by group for a specific taxonomy with pagination.
+// This method is useful for getting galleries or collections of media for taxonomies.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - taxonomyID: UUID of the taxonomy to get media for
+//   - group: Group/category of the media (e.g., "image", "cover", "gallery")
+//   - limit: Maximum number of media files to return
+//   - offset: Number of media files to skip for pagination
+//
+// Returns:
+//   - []*entities.Media: List of media entities
+//   - error: Any error that occurred during the operation
+func (s *TaxonomyService) GetAllTaxonomyMediaByGroup(ctx context.Context, taxonomyID uuid.UUID, group string, limit, offset int) ([]*entities.Media, error) {
+	if s.mediaService == nil {
+		return nil, errors.New("media service not available")
+	}
+	return s.mediaService.GetAllMediaByGroup(ctx, taxonomyID, "Taxonomy", group, limit, offset)
+}
+
+// AttachTaxonomyImage attaches an existing media file to a taxonomy as an image.
+// This method creates a relationship between a media file and a taxonomy entity,
+// allowing the taxonomy to have visual representation.
+//
+// Business Rules:
+//   - Taxonomy must exist and be accessible
+//   - Media file must exist and be accessible
+//   - Media file must be an image (validated by MIME type)
+//   - Only one image per taxonomy is allowed (replaces existing)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - taxonomyID: UUID of the taxonomy to attach the image to
+//   - mediaID: UUID of the media file to attach
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *TaxonomyService) AttachTaxonomyImage(ctx context.Context, taxonomyID uuid.UUID, mediaID uuid.UUID) error {
+	if s.mediaService == nil {
+		return errors.New("media service not available")
+	}
+
+	// Validate that the taxonomy exists
+	taxonomy, err := s.GetTaxonomyByID(ctx, taxonomyID)
+	if err != nil {
+		return fmt.Errorf("taxonomy not found: %w", err)
+	}
+	if taxonomy == nil {
+		return fmt.Errorf("taxonomy with ID %s not found", taxonomyID.String())
+	}
+
+	// Validate that the media exists and is an image
+	media, err := s.mediaService.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate that the media is an image
+	if !media.IsImage() {
+		return fmt.Errorf("media file must be an image, got MIME type: %s", media.MimeType)
+	}
+
+	// Attach media to taxonomy as an image
+	err = s.mediaService.AttachMediaToEntity(ctx, mediaID, taxonomyID, "Taxonomy", "image")
+	if err != nil {
+		return fmt.Errorf("failed to attach image to taxonomy: %w", err)
+	}
+
+	return nil
 }

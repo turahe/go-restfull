@@ -54,4 +54,7 @@ type PostService interface {
 
 	// GetPostMediaGallery retrieves all media in a specific group for a post
 	GetPostMediaGallery(ctx context.Context, postID uuid.UUID, group string, limit, offset int) ([]*entities.Media, error)
+
+	// AttachPostImage attaches an existing media file to a post as an image
+	AttachPostImage(ctx context.Context, postID uuid.UUID, mediaID uuid.UUID) error
 }

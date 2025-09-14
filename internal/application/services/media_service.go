@@ -322,3 +322,51 @@ func (s *mediaService) GetMediaByGroup(ctx context.Context, mediableID uuid.UUID
 func (s *mediaService) GetAllMediaByGroup(ctx context.Context, mediableID uuid.UUID, mediableType, group string, limit, offset int) ([]*entities.Media, error) {
 	return s.mediaRepository.GetAllByGroup(ctx, mediableID, mediableType, group, limit, offset)
 }
+
+// AttachMediaToEntity creates a relationship between a media file and an entity.
+// This method establishes the polymorphic relationship between media and any entity type
+// by inserting a record into the mediables table.
+//
+// Business Rules:
+//   - Media file must exist and be accessible
+//   - Entity must exist and be valid
+//   - Group must be a valid media group
+//   - Duplicate attachments are handled gracefully (upsert)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - mediaID: UUID of the media file to attach
+//   - mediableID: UUID of the entity to attach the media to
+//   - mediableType: Type of entity (e.g., "User", "Post", "Taxonomy")
+//   - group: Group/category of the media (e.g., "avatar", "cover", "image")
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *mediaService) AttachMediaToEntity(ctx context.Context, mediaID uuid.UUID, mediableID uuid.UUID, mediableType, group string) error {
+	// Validate that the media exists
+	media, err := s.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate group parameter
+	if group == "" {
+		return fmt.Errorf("group is required")
+	}
+
+	// Validate mediableType parameter
+	if mediableType == "" {
+		return fmt.Errorf("mediableType is required")
+	}
+
+	// Attach media to entity using repository
+	err = s.mediaRepository.AttachMediaToEntity(ctx, mediaID, mediableID, mediableType, group)
+	if err != nil {
+		return fmt.Errorf("failed to attach media to entity: %w", err)
+	}
+
+	return nil
+}

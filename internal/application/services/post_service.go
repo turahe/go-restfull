@@ -419,3 +419,57 @@ func (s *postService) GetPostMediaGallery(ctx context.Context, postID uuid.UUID,
 	}
 	return s.mediaService.GetAllMediaByGroup(ctx, postID, "Post", group, limit, offset)
 }
+
+// AttachPostImage attaches an existing media file to a post as an image.
+// This method creates a relationship between a media file and a post entity,
+// allowing the post to have visual representation.
+//
+// Business Rules:
+//   - Post must exist and be accessible
+//   - Media file must exist and be accessible
+//   - Media file must be an image (validated by MIME type)
+//   - Only one image per post is allowed (replaces existing)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - postID: UUID of the post to attach the image to
+//   - mediaID: UUID of the media file to attach
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *postService) AttachPostImage(ctx context.Context, postID uuid.UUID, mediaID uuid.UUID) error {
+	if s.mediaService == nil {
+		return errors.New("media service not available")
+	}
+
+	// Validate that the post exists
+	post, err := s.GetPostByID(ctx, postID)
+	if err != nil {
+		return fmt.Errorf("post not found: %w", err)
+	}
+	if post == nil {
+		return fmt.Errorf("post with ID %s not found", postID.String())
+	}
+
+	// Validate that the media exists and is an image
+	media, err := s.mediaService.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate that the media is an image
+	if !media.IsImage() {
+		return fmt.Errorf("media file must be an image, got MIME type: %s", media.MimeType)
+	}
+
+	// Attach media to post as an image
+	err = s.mediaService.AttachMediaToEntity(ctx, mediaID, postID, "Post", "image")
+	if err != nil {
+		return fmt.Errorf("failed to attach image to post: %w", err)
+	}
+
+	return nil
+}

@@ -5,6 +5,8 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/turahe/go-restfull/internal/application/ports"
 	"github.com/turahe/go-restfull/internal/domain/entities"
@@ -18,6 +20,7 @@ import (
 // hierarchical structures (replies), and status management while enforcing business rules.
 type commentService struct {
 	commentRepository repositories.CommentRepository
+	mediaService      ports.MediaService
 }
 
 // NewCommentService creates a new comment service instance with the provided repository.
@@ -26,12 +29,14 @@ type commentService struct {
 //
 // Parameters:
 //   - commentRepository: Repository interface for comment data access operations
+//   - mediaService: Media service for handling comment images and media
 //
 // Returns:
 //   - ports.CommentService: The comment service interface implementation
-func NewCommentService(commentRepository repositories.CommentRepository) ports.CommentService {
+func NewCommentService(commentRepository repositories.CommentRepository, mediaService ports.MediaService) ports.CommentService {
 	return &commentService{
 		commentRepository: commentRepository,
+		mediaService:      mediaService,
 	}
 }
 
@@ -299,4 +304,58 @@ func (s *commentService) GetCommentCountByUserID(ctx context.Context, userID uui
 //   - error: Any error that occurred during the operation
 func (s *commentService) GetPendingCommentCount(ctx context.Context) (int64, error) {
 	return s.commentRepository.CountPending(ctx)
+}
+
+// AttachCommentImage attaches an existing media file to a comment as an image.
+// This method creates a relationship between a media file and a comment entity,
+// allowing the comment to have visual representation.
+//
+// Business Rules:
+//   - Comment must exist and be accessible
+//   - Media file must exist and be accessible
+//   - Media file must be an image (validated by MIME type)
+//   - Only one image per comment is allowed (replaces existing)
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - commentID: UUID of the comment to attach the image to
+//   - mediaID: UUID of the media file to attach
+//
+// Returns:
+//   - error: Any error that occurred during the operation
+func (s *commentService) AttachCommentImage(ctx context.Context, commentID uuid.UUID, mediaID uuid.UUID) error {
+	if s.mediaService == nil {
+		return errors.New("media service not available")
+	}
+
+	// Validate that the comment exists
+	comment, err := s.GetCommentByID(ctx, commentID)
+	if err != nil {
+		return fmt.Errorf("comment not found: %w", err)
+	}
+	if comment == nil {
+		return fmt.Errorf("comment with ID %s not found", commentID.String())
+	}
+
+	// Validate that the media exists and is an image
+	media, err := s.mediaService.GetMediaByID(ctx, mediaID)
+	if err != nil {
+		return fmt.Errorf("media not found: %w", err)
+	}
+	if media == nil {
+		return fmt.Errorf("media with ID %s not found", mediaID.String())
+	}
+
+	// Validate that the media is an image
+	if !media.IsImage() {
+		return fmt.Errorf("media file must be an image, got MIME type: %s", media.MimeType)
+	}
+
+	// Attach media to comment as an image
+	err = s.mediaService.AttachMediaToEntity(ctx, mediaID, commentID, "Comment", "image")
+	if err != nil {
+		return fmt.Errorf("failed to attach image to comment: %w", err)
+	}
+
+	return nil
 }
