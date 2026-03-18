@@ -20,10 +20,16 @@ func (r *CommentRepository) Create(ctx context.Context, cmt *model.Comment) erro
 	return r.db.WithContext(ctx).Create(cmt).Error
 }
 
+func (r *CommentRepository) ReplaceTags(ctx context.Context, commentID uint, tags []model.Tag) error {
+	c := model.Comment{ID: commentID}
+	return r.db.WithContext(ctx).Model(&c).Association("Tags").Replace(tags)
+}
+
 func (r *CommentRepository) ListByPostID(ctx context.Context, postID uint, limit int) ([]model.Comment, error) {
 	var rows []model.Comment
 	err := r.db.WithContext(ctx).
 		Model(&model.Comment{}).
+		Preload("Tags").
 		Where("post_id = ?", postID).
 		Order("id asc").
 		Limit(limit).

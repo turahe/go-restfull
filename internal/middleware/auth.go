@@ -1,88 +1,86 @@
 package middleware
 
 import (
-	"crypto/rsa"
-	"errors"
-	"strconv"
 	"strings"
 
+	"go-rest/internal/repository"
+	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
 
 type AuthClaims struct {
-	UserID uint
-	Email  string
-	Name   string
+	UserID      uint
+	Role        string
+	Permissions []string
+	SessionID   string
+	DeviceID    string
+	JTI         string
+
+	Impersonation       bool
+	ImpersonatorID      *uint
+	ImpersonatedUserID  *uint
+	ImpersonationReason string
 }
 
 const ctxAuthKey = "auth_claims"
 
-func JWTAuth(publicKey *rsa.PublicKey, issuer string, log *zap.Logger) gin.HandlerFunc {
+func JWTAuth(jwtSvc *service.JWTService, authRepo *repository.AuthRepository, log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr, ok := bearerToken(c.GetHeader("Authorization"))
 		if !ok {
-			response.Unauthorized(c, 4010101, "missing or invalid authorization header", "missing bearer token")
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "missing or invalid authorization header", "missing bearer token")
 			c.Abort()
 			return
 		}
 
-		parsed, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
-			if t.Method.Alg() != jwt.SigningMethodRS256.Alg() {
-				return nil, errors.New("unexpected signing method")
-			}
-			return publicKey, nil
-		}, jwt.WithIssuer(issuer), jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}))
-		if err != nil || !parsed.Valid {
+		claims, err := jwtSvc.ParseAndValidateAccess(tokenStr)
+		if err != nil {
 			log.Warn("jwt invalid", zap.Error(err))
-			response.Unauthorized(c, 4010102, "invalid token", "invalid token")
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeInvalidToken), "invalid token", "invalid token")
 			c.Abort()
 			return
 		}
 
-		claims, ok := parsed.Claims.(jwt.MapClaims)
-		if !ok {
-			response.Unauthorized(c, 4010103, "invalid token claims", "invalid claims")
+		revoked, err := authRepo.IsJTIRevoked(c.Request.Context(), claims.ID)
+		if err != nil {
+			log.Warn("jti check failed", zap.Error(err))
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeInvalidToken), "invalid token", "invalid token")
+			c.Abort()
+			return
+		}
+		if revoked {
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeInvalidToken), "invalid token", "revoked token")
 			c.Abort()
 			return
 		}
 
-		sub, ok := claims["sub"]
-		if !ok {
-			response.Unauthorized(c, 4010104, "invalid token subject", "missing sub")
+		active, err := authRepo.SessionActive(c.Request.Context(), claims.SessionID)
+		if err != nil {
+			log.Warn("session check failed", zap.Error(err))
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeInvalidToken), "invalid token", "invalid token")
 			c.Abort()
 			return
 		}
-
-		var userID uint64
-		switch v := sub.(type) {
-		case float64:
-			userID = uint64(v)
-		case string:
-			n, err := strconv.ParseUint(v, 10, 64)
-			if err != nil {
-				response.Unauthorized(c, 4010104, "invalid token subject", "bad sub")
-				c.Abort()
-				return
-			}
-			userID = n
-		default:
-			response.Unauthorized(c, 4010104, "invalid token subject", "bad sub type")
+		if !active {
+			response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodeAuth, response.CaseCodeInvalidToken), "invalid token", "session revoked")
 			c.Abort()
 			return
 		}
 
 		ac := AuthClaims{
-			UserID: uint(userID),
-		}
-		if v, ok := claims["email"].(string); ok {
-			ac.Email = v
-		}
-		if v, ok := claims["name"].(string); ok {
-			ac.Name = v
+			UserID:      claims.UserID,
+			Role:        claims.Role,
+			Permissions: claims.Permissions,
+			SessionID:   claims.SessionID,
+			DeviceID:    claims.DeviceID,
+			JTI:         claims.ID,
+			Impersonation: claims.Impersonation,
+			ImpersonatorID: claims.ImpersonatorID,
+			ImpersonatedUserID: claims.ImpersonatedUserID,
+			ImpersonationReason: claims.ImpersonationReason,
 		}
 
 		c.Set(ctxAuthKey, ac)

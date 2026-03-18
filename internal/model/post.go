@@ -16,6 +16,11 @@ type Post struct {
 	UserID uint  `json:"user_id" gorm:"not null;index"`
 	User   *User `json:"author,omitempty" gorm:"constraint:OnDelete:CASCADE"`
 
+	CategoryID uint      `json:"category_id" gorm:"not null;index"`
+	Category   *Category `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
+
+	Tags []Tag `json:"tags,omitempty" gorm:"many2many:post_tags"`
+
 	CreatedBy uint  `json:"created_by" gorm:"not null;index"`
 	UpdatedBy uint  `json:"updated_by" gorm:"not null;index"`
 	DeletedBy *uint `json:"deleted_by,omitempty" gorm:"index"`
@@ -23,7 +28,5 @@ type Post struct {
 	CreatedAt time.Time      `json:"created_at" gorm:"index"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
-
-	Categories []Category `json:"categories,omitempty" gorm:"many2many:post_categories"`
 }
 

@@ -24,10 +24,11 @@ var (
 type PostService struct {
 	posts *repository.PostRepository
 	categories *repository.CategoryRepository
+	tags *repository.TagRepository
 }
 
-func NewPostService(posts *repository.PostRepository, categories *repository.CategoryRepository) *PostService {
-	return &PostService{posts: posts, categories: categories}
+func NewPostService(posts *repository.PostRepository, categories *repository.CategoryRepository, tags *repository.TagRepository) *PostService {
+	return &PostService{posts: posts, categories: categories, tags: tags}
 }
 
 func (s *PostService) List(ctx context.Context, cursor *uint, limit int, dir repository.CursorDirection) (repository.CursorPage, error) {
@@ -48,7 +49,7 @@ func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, 
 	if slug == "" {
 		return nil, ErrInvalidSlug
 	}
-	p, err := s.posts.FindBySlugWithCategories(ctx, slug)
+	p, err := s.posts.FindBySlugWithCategory(ctx, slug)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrPostNotFound
@@ -58,10 +59,10 @@ func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, 
 	return p, nil
 }
 
-func (s *PostService) Create(ctx context.Context, userID uint, title, content string, categoryIDs []uint) (*model.Post, error) {
+func (s *PostService) Create(ctx context.Context, userID uint, title, content string, categoryID uint, tagIDs []uint) (*model.Post, error) {
 	title = strings.TrimSpace(title)
 	content = strings.TrimSpace(content)
-	if title == "" || content == "" {
+	if title == "" || content == "" || categoryID == 0 {
 		return nil, ErrInvalidPayload
 	}
 
@@ -75,11 +76,20 @@ func (s *PostService) Create(ctx context.Context, userID uint, title, content st
 		return nil, err
 	}
 
+	cats, err := s.categories.FindByIDs(ctx, []uint{categoryID})
+	if err != nil {
+		return nil, err
+	}
+	if len(cats) != 1 {
+		return nil, errors.New("category not found")
+	}
+
 	p := &model.Post{
-		Title:   title,
-		Slug:    slug,
-		Content: content,
-		UserID:  userID,
+		Title:      title,
+		Slug:       slug,
+		Content:    content,
+		UserID:     userID,
+		CategoryID: categoryID,
 		CreatedBy: userID,
 		UpdatedBy: userID,
 	}
@@ -87,24 +97,24 @@ func (s *PostService) Create(ctx context.Context, userID uint, title, content st
 		return nil, err
 	}
 
-	if len(categoryIDs) > 0 {
-		cats, err := s.categories.FindByIDs(ctx, categoryIDs)
+	if len(tagIDs) > 0 && s.tags != nil {
+		tags, err := s.tags.FindByIDs(ctx, uniqueUint(tagIDs))
 		if err != nil {
 			return nil, err
 		}
-		if len(cats) != len(uniqueUint(categoryIDs)) {
-			return nil, errors.New("one or more categories not found")
+		if len(tags) != len(uniqueUint(tagIDs)) {
+			return nil, errors.New("one or more tags not found")
 		}
-		if err := s.posts.ReplaceCategories(ctx, p.ID, cats); err != nil {
+		if err := s.posts.ReplaceTags(ctx, p.ID, tags); err != nil {
 			return nil, err
 		}
-		p.Categories = cats
+		p.Tags = tags
 	}
 
 	return p, nil
 }
 
-func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryIDs []uint) (*model.Post, error) {
+func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryID *uint, tagIDs []uint) (*model.Post, error) {
 	p, err := s.posts.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -122,23 +132,39 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, tit
 	if strings.TrimSpace(content) != "" {
 		p.Content = strings.TrimSpace(content)
 	}
+	if categoryID != nil {
+		if *categoryID == 0 {
+			return nil, ErrInvalidPayload
+		}
+		cats, err := s.categories.FindByIDs(ctx, []uint{*categoryID})
+		if err != nil {
+			return nil, err
+		}
+		if len(cats) != 1 {
+			return nil, errors.New("category not found")
+		}
+		p.CategoryID = *categoryID
+	}
 	p.UpdatedBy = actorUserID
 
 	if err := s.posts.Update(ctx, p); err != nil {
 		return nil, err
 	}
 
-	if categoryIDs != nil {
-		cats, err := s.categories.FindByIDs(ctx, categoryIDs)
+	// If tagIds is present in JSON, gin will bind it as either [] (empty) or [..].
+	// If not present, it stays nil. That lets us distinguish "no change" vs "replace/clear".
+	if tagIDs != nil && s.tags != nil {
+		tags, err := s.tags.FindByIDs(ctx, uniqueUint(tagIDs))
 		if err != nil {
 			return nil, err
 		}
-		if len(cats) != len(uniqueUint(categoryIDs)) {
-			return nil, errors.New("one or more categories not found")
+		if len(tags) != len(uniqueUint(tagIDs)) {
+			return nil, errors.New("one or more tags not found")
 		}
-		if err := s.posts.ReplaceCategories(ctx, p.ID, cats); err != nil {
+		if err := s.posts.ReplaceTags(ctx, p.ID, tags); err != nil {
 			return nil, err
 		}
+		p.Tags = tags
 	}
 	return p, nil
 }
@@ -183,24 +209,5 @@ func slugify(s string) string {
 		s = strings.ReplaceAll(s, "--", "-")
 	}
 	return s
-}
-
-func uniqueUint(in []uint) []uint {
-	if len(in) == 0 {
-		return in
-	}
-	seen := make(map[uint]struct{}, len(in))
-	out := make([]uint, 0, len(in))
-	for _, v := range in {
-		if v == 0 {
-			continue
-		}
-		if _, ok := seen[v]; ok {
-			continue
-		}
-		seen[v] = struct{}{}
-		out = append(out, v)
-	}
-	return out
 }
 

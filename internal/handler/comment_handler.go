@@ -58,7 +58,7 @@ func (h *CommentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	cmt, err := h.comments.Create(c.Request.Context(), postID, auth.UserID, req.Content)
+	cmt, err := h.comments.Create(c.Request.Context(), postID, auth.UserID, req.Content, req.TagIDs)
 	if err != nil {
 		switch err {
 		case service.ErrPostMissing:

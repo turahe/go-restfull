@@ -17,13 +17,14 @@ var (
 
 type CommentService struct {
 	comments *repository.CommentRepository
+	tags     *repository.TagRepository
 }
 
-func NewCommentService(comments *repository.CommentRepository) *CommentService {
-	return &CommentService{comments: comments}
+func NewCommentService(comments *repository.CommentRepository, tags *repository.TagRepository) *CommentService {
+	return &CommentService{comments: comments, tags: tags}
 }
 
-func (s *CommentService) Create(ctx context.Context, postID uint, userID uint, content string) (*model.Comment, error) {
+func (s *CommentService) Create(ctx context.Context, postID uint, userID uint, content string, tagIDs []uint) (*model.Comment, error) {
 	content = strings.TrimSpace(content)
 	if postID == 0 {
 		return nil, ErrInvalidPostRef
@@ -49,6 +50,21 @@ func (s *CommentService) Create(ctx context.Context, postID uint, userID uint, c
 	}
 	if err := s.comments.Create(ctx, cmt); err != nil {
 		return nil, err
+	}
+
+	if len(tagIDs) > 0 && s.tags != nil {
+		ids := uniqueUint(tagIDs)
+		tags, err := s.tags.FindByIDs(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		if len(tags) != len(ids) {
+			return nil, errors.New("one or more tags not found")
+		}
+		if err := s.comments.ReplaceTags(ctx, cmt.ID, tags); err != nil {
+			return nil, err
+		}
+		cmt.Tags = tags
 	}
 	return cmt, nil
 }

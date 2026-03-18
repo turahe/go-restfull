@@ -55,10 +55,11 @@ func (r *PostRepository) FindBySlug(ctx context.Context, slug string) (*model.Po
 	return &p, nil
 }
 
-func (r *PostRepository) FindBySlugWithCategories(ctx context.Context, slug string) (*model.Post, error) {
+func (r *PostRepository) FindBySlugWithCategory(ctx context.Context, slug string) (*model.Post, error) {
 	var p model.Post
 	err := r.db.WithContext(ctx).
-		Preload("Categories").
+		Preload("Category").
+		Preload("Tags").
 		Where("slug = ?", slug).
 		First(&p).Error
 	if err != nil {
@@ -67,9 +68,13 @@ func (r *PostRepository) FindBySlugWithCategories(ctx context.Context, slug stri
 	return &p, nil
 }
 
-func (r *PostRepository) ReplaceCategories(ctx context.Context, postID uint, categories []model.Category) error {
+func (r *PostRepository) SetCategory(ctx context.Context, postID uint, categoryID uint) error {
+	return r.db.WithContext(ctx).Model(&model.Post{}).Where("id = ?", postID).Update("category_id", categoryID).Error
+}
+
+func (r *PostRepository) ReplaceTags(ctx context.Context, postID uint, tags []model.Tag) error {
 	p := model.Post{ID: postID}
-	return r.db.WithContext(ctx).Model(&p).Association("Categories").Replace(categories)
+	return r.db.WithContext(ctx).Model(&p).Association("Tags").Replace(tags)
 }
 
 func (r *PostRepository) SlugExists(ctx context.Context, slug string) (bool, error) {

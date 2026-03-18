@@ -128,7 +128,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 		return
 	}
 
-	p, err := h.posts.Create(c.Request.Context(), auth.UserID, req.Title, req.Content, req.CategoryIDs)
+	p, err := h.posts.Create(c.Request.Context(), auth.UserID, req.Title, req.Content, req.CategoryID, req.TagIDs)
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
@@ -172,7 +172,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 		return
 	}
 
-	p, err := h.posts.Update(c.Request.Context(), id, auth.UserID, req.Title, req.Content, req.CategoryIDs)
+	p, err := h.posts.Update(c.Request.Context(), id, auth.UserID, req.Title, req.Content, req.CategoryID, req.TagIDs)
 	if err != nil {
 		switch err {
 		case service.ErrPostNotFound:

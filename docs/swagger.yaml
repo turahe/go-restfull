@@ -1,5 +1,36 @@
 basePath: /
 definitions:
+  request.AddPermissionRequest:
+    properties:
+      act:
+        maxLength: 50
+        minLength: 1
+        type: string
+      obj:
+        maxLength: 200
+        minLength: 1
+        type: string
+      role:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - act
+    - obj
+    - role
+    type: object
+  request.AssignRoleRequest:
+    properties:
+      role:
+        maxLength: 50
+        minLength: 2
+        type: string
+      userId:
+        type: integer
+    required:
+    - role
+    - userId
+    type: object
   request.CreateCategoryRequest:
     properties:
       name:
@@ -20,7 +51,7 @@ definitions:
     type: object
   request.CreatePostRequest:
     properties:
-      category_ids:
+      categoryIds:
         items:
           type: integer
         type: array
@@ -35,8 +66,29 @@ definitions:
     - content
     - title
     type: object
+  request.ImpersonateRequest:
+    properties:
+      deviceId:
+        maxLength: 64
+        minLength: 4
+        type: string
+      reason:
+        maxLength: 255
+        minLength: 5
+        type: string
+      userId:
+        type: integer
+    required:
+    - deviceId
+    - reason
+    - userId
+    type: object
   request.LoginRequest:
     properties:
+      deviceId:
+        maxLength: 64
+        minLength: 4
+        type: string
       email:
         maxLength: 190
         type: string
@@ -45,8 +97,23 @@ definitions:
         minLength: 8
         type: string
     required:
+    - deviceId
     - email
     - password
+    type: object
+  request.RefreshRequest:
+    properties:
+      deviceId:
+        maxLength: 64
+        minLength: 4
+        type: string
+      refreshToken:
+        maxLength: 200
+        minLength: 10
+        type: string
+    required:
+    - deviceId
+    - refreshToken
     type: object
   request.RegisterRequest:
     properties:
@@ -75,7 +142,7 @@ definitions:
     type: object
   request.UpdatePostRequest:
     properties:
-      category_ids:
+      categoryIds:
         items:
           type: integer
         type: array
@@ -106,6 +173,45 @@ info:
   title: Blog REST API
   version: "1.0"
 paths:
+  /api/v1/auth/impersonate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Impersonate payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.ImpersonateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Admin/support impersonate a user (short-lived)
+      tags:
+      - Auth
   /api/v1/auth/login:
     post:
       consumes:
@@ -137,6 +243,39 @@ paths:
           schema:
             $ref: '#/definitions/response.Envelope'
       summary: Login and get JWT
+      tags:
+      - Auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: Rotate refresh token and get new access token
       tags:
       - Auth
   /api/v1/auth/register:
@@ -582,6 +721,84 @@ paths:
       summary: Get post by slug
       tags:
       - Posts
+  /api/v1/rbac/add-permission:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Add permission
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.AddPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Add permission to role
+      tags:
+      - RBAC
+  /api/v1/rbac/assign-role:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Assign role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - RBAC
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

@@ -31,7 +31,15 @@ RateLimitBurst int
 	JWTPublicKeyPath  string
 	JWTPrivateKeyPath string
 	JWTIssuer         string
-	JWTTTLMinutes     int
+	JWTAudience       string
+	JWTKeyID          string
+
+	AccessTokenTTLMinutes        int
+	RefreshTokenTTLDays          int
+	ImpersonationTTLMinutes      int
+	RefreshTokenPepper           string
+
+	CasbinModelPath string
 }
 
 func Load() (Config, error) {
@@ -55,14 +63,33 @@ func Load() (Config, error) {
 		JWTPublicKeyPath:   strings.TrimSpace(getEnvDefault("JWT_PUBLIC_KEY_PATH", "keys/jwtRS256.key.pub")),
 		JWTPrivateKeyPath:  strings.TrimSpace(getEnvDefault("JWT_PRIVATE_KEY_PATH", "keys/jwtRS256.key")),
 		JWTIssuer:          strings.TrimSpace(getEnvDefault("JWT_ISSUER", "go-rest-blog")),
-		JWTTTLMinutes:      getEnvIntDefault("JWT_TTL_MINUTES", 120),
+		JWTAudience:        strings.TrimSpace(getEnvDefault("JWT_AUDIENCE", "blog-api")),
+		JWTKeyID:           strings.TrimSpace(getEnvDefault("JWT_KEY_ID", "k1")),
+
+		AccessTokenTTLMinutes:   getEnvIntDefault("ACCESS_TOKEN_TTL_MINUTES", 10),
+		RefreshTokenTTLDays:     getEnvIntDefault("REFRESH_TOKEN_TTL_DAYS", 30),
+		ImpersonationTTLMinutes: getEnvIntDefault("IMPERSONATION_TTL_MINUTES", 5),
+		RefreshTokenPepper:      os.Getenv("REFRESH_TOKEN_PEPPER"),
+		CasbinModelPath:         strings.TrimSpace(getEnvDefault("CASBIN_MODEL_PATH", "configs/casbin_model.conf")),
 	}
 
 	if cfg.DBName == "" || cfg.DBUser == "" || cfg.DBHost == "" || cfg.DBPort == "" {
 		return Config{}, errors.New("missing required DB configuration")
 	}
-	if cfg.JWTTTLMinutes <= 0 {
-		return Config{}, errors.New("JWT_TTL_MINUTES must be > 0")
+	if cfg.AccessTokenTTLMinutes < 5 || cfg.AccessTokenTTLMinutes > 15 {
+		return Config{}, errors.New("ACCESS_TOKEN_TTL_MINUTES must be between 5 and 15")
+	}
+	if cfg.RefreshTokenTTLDays < 1 || cfg.RefreshTokenTTLDays > 365 {
+		return Config{}, errors.New("REFRESH_TOKEN_TTL_DAYS must be between 1 and 365")
+	}
+	if cfg.ImpersonationTTLMinutes < 1 || cfg.ImpersonationTTLMinutes > 10 {
+		return Config{}, errors.New("IMPERSONATION_TTL_MINUTES must be between 1 and 10")
+	}
+	if cfg.JWTIssuer == "" || cfg.JWTAudience == "" || cfg.JWTKeyID == "" {
+		return Config{}, errors.New("JWT_ISSUER, JWT_AUDIENCE, JWT_KEY_ID are required")
+	}
+	if cfg.CasbinModelPath == "" {
+		return Config{}, errors.New("CASBIN_MODEL_PATH is required")
 	}
 	if cfg.RateLimitRPS < 0 {
 		return Config{}, errors.New("RATE_LIMIT_RPS must be >= 0")
