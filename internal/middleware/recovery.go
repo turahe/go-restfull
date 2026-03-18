@@ -14,7 +14,7 @@ func Recovery(log *zap.Logger) gin.HandlerFunc {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Error("panic", zap.Any("recover", rec))
-				response.JSON(c, http.StatusInternalServerError, 5000100, "internal server error", nil, "panic")
+				response.JSON(c, http.StatusInternalServerError, 5000001, "internal server error", nil, "panic")
 				c.Abort()
 			}
 		}()

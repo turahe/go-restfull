@@ -1,26 +1,22 @@
 package handler
 
 import (
+	"go-rest/internal/handler/request"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
+	BaseHandler
 	auth *service.AuthService
-	log  *zap.Logger
 }
 
 func NewAuthHandler(auth *service.AuthService, log *zap.Logger) *AuthHandler {
-	return &AuthHandler{auth: auth, log: log}
-}
-
-type registerReq struct {
-	Name     string `json:"name" binding:"required,min=2,max=100"`
-	Email    string `json:"email" binding:"required,email,max=190"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
+	return &AuthHandler{BaseHandler: BaseHandler{Log: log}, auth: auth}
 }
 
 // Register godoc
@@ -28,39 +24,35 @@ type registerReq struct {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      registerReq  true  "Register payload"
+// @Param        body  body      request.RegisterRequest  true  "Register payload"
 // @Success      201   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      500   {object}  response.Envelope
-// @Router       /api/register [post]
+// @Router       /api/v1/auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req registerReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, 4000101, "invalid request", err.Error())
+	var req request.RegisterRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
 		return
 	}
 
 	u, err := h.auth.Register(c.Request.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
 		if err == service.ErrEmailTaken {
-			response.BadRequest(c, 4000102, "email already registered", "email taken")
+			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeDuplicateEntry), "email already registered", "email taken")
 			return
 		}
-		h.log.Error("register failed", zap.Error(err))
-		response.InternalServerError(c, 5000201, "internal error", "register failed")
+		h.internalError(c, response.ServiceCodeAuth, err, "register failed")
 		return
 	}
 
-	response.Created(c, 2010101, "registered", gin.H{
+	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeAuth, response.CaseCodeCreated), "registered", gin.H{
 		"id":    u.ID,
 		"name":  u.Name,
 		"email": u.Email,
 	})
-}
-
-type loginReq struct {
-	Email    string `json:"email" binding:"required,email,max=190"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
 }
 
 // Login godoc
@@ -68,31 +60,32 @@ type loginReq struct {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      loginReq  true  "Login payload"
+// @Param        body  body      request.LoginRequest  true  "Login payload"
 // @Success      200   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      401   {object}  response.Envelope
 // @Failure      500   {object}  response.Envelope
-// @Router       /api/login [post]
+// @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req loginReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, 4000103, "invalid request", err.Error())
+	var req request.LoginRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
 		return
 	}
 
 	token, u, err := h.auth.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		if err == service.ErrInvalidCredentials {
-			response.Unauthorized(c, 4010201, "invalid credentials", "invalid credentials")
+			response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeInvalidCredentials), "invalid credentials", "invalid credentials")
 			return
 		}
-		h.log.Error("login failed", zap.Error(err))
-		response.InternalServerError(c, 5000202, "internal error", "login failed")
+		h.internalError(c, response.ServiceCodeAuth, err, "login failed")
 		return
 	}
 
-	response.OK(c, 2000101, "ok", gin.H{
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeLoginSuccess), "ok", gin.H{
 		"token": token,
 		"user": gin.H{
 			"id":    u.ID,
@@ -101,4 +94,3 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		},
 	})
 }
-

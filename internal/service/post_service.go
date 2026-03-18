@@ -79,6 +79,8 @@ func (s *PostService) Create(ctx context.Context, userID uint, title, content st
 		Slug:    slug,
 		Content: content,
 		UserID:  userID,
+		CreatedBy: userID,
+		UpdatedBy: userID,
 	}
 	if err := s.posts.Create(ctx, p); err != nil {
 		return nil, err
@@ -104,6 +106,7 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, tit
 	if strings.TrimSpace(content) != "" {
 		p.Content = strings.TrimSpace(content)
 	}
+	p.UpdatedBy = actorUserID
 
 	if err := s.posts.Update(ctx, p); err != nil {
 		return nil, err
@@ -123,7 +126,7 @@ func (s *PostService) Delete(ctx context.Context, id uint, actorUserID uint) err
 	if p.UserID != actorUserID {
 		return ErrNotPostOwner
 	}
-	return s.posts.DeleteByID(ctx, id)
+	return s.posts.SoftDeleteByID(ctx, id, actorUserID)
 }
 
 func (s *PostService) uniqueSlug(ctx context.Context, base string) (string, error) {

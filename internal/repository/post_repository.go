@@ -28,6 +28,15 @@ func (r *PostRepository) DeleteByID(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&model.Post{}, id).Error
 }
 
+func (r *PostRepository) SoftDeleteByID(ctx context.Context, id uint, deletedBy uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Post{}).Where("id = ?", id).Update("deleted_by", deletedBy).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&model.Post{}, id).Error
+	})
+}
+
 func (r *PostRepository) FindByID(ctx context.Context, id uint) (*model.Post, error) {
 	var p model.Post
 	err := r.db.WithContext(ctx).First(&p, id).Error

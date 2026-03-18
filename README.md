@@ -19,6 +19,35 @@ go run cmd/main.go
 
 Auto migration runs on startup.
 
+## Docker
+
+- Start MySQL only:
+
+```bash
+docker compose up -d mysql
+```
+
+- Start MySQL + API:
+
+```bash
+docker compose up -d --build
+```
+
+- Stop:
+
+```bash
+docker compose down
+```
+
+## Makefile
+
+```bash
+make docker-up
+make docker-down
+make swagger
+make test
+```
+
 ## Swagger
 
 After starting the server, open:
@@ -81,7 +110,7 @@ curl "localhost:8080/api/posts?limit=10&cursor=%PREV_CURSOR%&dir=prev"
 ### Get Post by Slug
 
 ```bash
-curl "localhost:8080/api/posts/hello-world"
+curl "localhost:8080/api/v1/posts/slug/hello-world"
 ```
 
 ### Update Post (auth, owner only)

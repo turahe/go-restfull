@@ -44,6 +44,8 @@ func (s *CommentService) Create(ctx context.Context, postID uint, userID uint, c
 		PostID:  postID,
 		UserID:  userID,
 		Content: content,
+		CreatedBy: userID,
+		UpdatedBy: userID,
 	}
 	if err := s.comments.Create(ctx, cmt); err != nil {
 		return nil, err

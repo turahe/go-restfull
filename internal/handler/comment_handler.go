@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
@@ -13,16 +15,12 @@ import (
 )
 
 type CommentHandler struct {
+	BaseHandler
 	comments *service.CommentService
-	log      *zap.Logger
 }
 
 func NewCommentHandler(comments *service.CommentService, log *zap.Logger) *CommentHandler {
-	return &CommentHandler{comments: comments, log: log}
-}
-
-type createCommentReq struct {
-	Content string `json:"content" binding:"required,min=1,max=2000"`
+	return &CommentHandler{BaseHandler: BaseHandler{Log: log}, comments: comments}
 }
 
 // CreateComment godoc
@@ -32,29 +30,31 @@ type createCommentReq struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id    path      int              true  "Post ID"
-// @Param        body  body      createCommentReq  true  "Create comment payload"
+// @Param        body  body      request.CreateCommentRequest  true  "Create comment payload"
 // @Success      201   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      401   {object}  response.Envelope
 // @Failure      404   {object}  response.Envelope
 // @Failure      500   {object}  response.Envelope
-// @Router       /api/posts/{id}/comments [post]
+// @Router       /api/v1/posts/{id}/comments [post]
 func (h *CommentHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
 	if !ok {
-		response.Unauthorized(c, 4010401, "unauthorized", "missing auth")
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeComments, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
 
 	postID, err := parseUintParam(c, "id")
 	if err != nil {
-		response.BadRequest(c, 4000401, "invalid post id", "id must be uint")
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid post id", "id must be uint")
 		return
 	}
 
-	var req createCommentReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, 4000402, "invalid request", err.Error())
+	var req request.CreateCommentRequest
+	if !h.bindJSON(c, response.ServiceCodeComments, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeComments, req) {
 		return
 	}
 
@@ -62,15 +62,14 @@ func (h *CommentHandler) Create(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case service.ErrPostMissing:
-			response.NotFound(c, 4040401, "not found", "post not found")
+			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "post not found")
 		default:
-			h.log.Error("create comment failed", zap.Error(err))
-			response.BadRequest(c, 4000403, "invalid request", err.Error())
+			h.internalError(c, response.ServiceCodeComments, err, "create comment failed")
 		}
 		return
 	}
 
-	response.Created(c, 2010401, "created", cmt)
+	response.Created(c, response.BuildResponseCode(201, response.ServiceCodeComments, response.CaseCodeCreated), "created", cmt)
 }
 
 // ListComments godoc
@@ -82,11 +81,11 @@ func (h *CommentHandler) Create(c *gin.Context) {
 // @Success      200    {object}  response.Envelope
 // @Failure      400    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
-// @Router       /api/posts/{id}/comments [get]
+// @Router       /api/v1/posts/{id}/comments [get]
 func (h *CommentHandler) List(c *gin.Context) {
 	postID, err := parseUintParam(c, "id")
 	if err != nil {
-		response.BadRequest(c, 4000404, "invalid post id", "id must be uint")
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid post id", "id must be uint")
 		return
 	}
 
@@ -94,7 +93,7 @@ func (h *CommentHandler) List(c *gin.Context) {
 	if s := strings.TrimSpace(c.Query("limit")); s != "" {
 		n, err := strconv.Atoi(s)
 		if err != nil {
-			response.BadRequest(c, 4000405, "invalid limit", "limit must be int")
+			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
 			return
 		}
 		limit = n
@@ -102,11 +101,9 @@ func (h *CommentHandler) List(c *gin.Context) {
 
 	rows, err := h.comments.List(c.Request.Context(), postID, limit)
 	if err != nil {
-		h.log.Error("list comments failed", zap.Error(err))
-		response.InternalServerError(c, 5000401, "internal error", "list failed")
+		h.internalError(c, response.ServiceCodeComments, err, "list failed")
 		return
 	}
 
-	response.OK(c, 2000401, "ok", rows)
+	response.OK(c, response.BuildResponseCode(200, response.ServiceCodeComments, response.CaseCodeListRetrieved), "ok", rows)
 }
-

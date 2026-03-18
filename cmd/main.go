@@ -90,13 +90,14 @@ func main() {
 		response.OK(c, 2000001, "ok", gin.H{"status": "ok"})
 	})
 
-	api := r.Group("/api")
+	api := r.Group("/api/v1")
 	{
-		api.POST("/register", authH.Register)
-		api.POST("/login", authH.Login)
+		api.POST("auth/register", authH.Register)
+		api.POST("auth/login", authH.Login)
 
 		api.GET("/posts", postH.List)
-		api.GET("/posts/:slug", postH.GetBySlug)
+		// NOTE: Gin can't disambiguate /posts/:slug from /posts/:id/comments.
+		api.GET("/posts/slug/:slug", postH.GetBySlug)
 
 		auth := api.Group("")
 		auth.Use(middleware.JWTAuth(jwtm.PublicKey(), cfg.JWTIssuer, log))
@@ -133,4 +134,3 @@ func main() {
 	_ = srv.Shutdown(ctx)
 	log.Info("server stopped")
 }
-

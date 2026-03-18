@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  handler.createCommentReq:
+  request.CreateCommentRequest:
     properties:
       content:
         maxLength: 2000
@@ -9,7 +9,7 @@ definitions:
     required:
     - content
     type: object
-  handler.createPostReq:
+  request.CreatePostRequest:
     properties:
       content:
         minLength: 1
@@ -22,7 +22,7 @@ definitions:
     - content
     - title
     type: object
-  handler.loginReq:
+  request.LoginRequest:
     properties:
       email:
         maxLength: 190
@@ -35,7 +35,7 @@ definitions:
     - email
     - password
     type: object
-  handler.registerReq:
+  request.RegisterRequest:
     properties:
       email:
         maxLength: 190
@@ -53,7 +53,7 @@ definitions:
     - name
     - password
     type: object
-  handler.updatePostReq:
+  request.UpdatePostRequest:
     properties:
       content:
         minLength: 1
@@ -71,9 +71,9 @@ definitions:
       error: {}
       message:
         type: string
-      next_cursor:
+      next:
         type: string
-      prev_cursor:
+      prev:
         type: string
     type: object
 info:
@@ -82,7 +82,7 @@ info:
   title: Blog REST API
   version: "1.0"
 paths:
-  /api/login:
+  /api/v1/auth/login:
     post:
       consumes:
       - application/json
@@ -92,7 +92,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handler.loginReq'
+          $ref: '#/definitions/request.LoginRequest'
       produces:
       - application/json
       responses:
@@ -115,7 +115,36 @@ paths:
       summary: Login and get JWT
       tags:
       - Auth
-  /api/posts:
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Register payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: Register a new user
+      tags:
+      - Auth
+  /api/v1/posts:
     get:
       parameters:
       - description: Page size (max 50)
@@ -162,7 +191,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handler.createPostReq'
+          $ref: '#/definitions/request.CreatePostRequest'
       produces:
       - application/json
       responses:
@@ -183,7 +212,7 @@ paths:
       summary: Create a post
       tags:
       - Posts
-  /api/posts/{id}:
+  /api/v1/posts/{id}:
     delete:
       parameters:
       - description: Post ID
@@ -237,7 +266,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handler.updatePostReq'
+          $ref: '#/definitions/request.UpdatePostRequest'
       produces:
       - application/json
       responses:
@@ -270,7 +299,7 @@ paths:
       summary: Update a post (owner only)
       tags:
       - Posts
-  /api/posts/{id}/comments:
+  /api/v1/posts/{id}/comments:
     get:
       parameters:
       - description: Post ID
@@ -314,7 +343,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handler.createCommentReq'
+          $ref: '#/definitions/request.CreateCommentRequest'
       produces:
       - application/json
       responses:
@@ -343,7 +372,7 @@ paths:
       summary: Add a comment to a post
       tags:
       - Comments
-  /api/posts/{slug}:
+  /api/v1/posts/slug/{slug}:
     get:
       parameters:
       - description: Post slug
@@ -369,35 +398,6 @@ paths:
       summary: Get post by slug
       tags:
       - Posts
-  /api/register:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Register payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handler.registerReq'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/response.Envelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Envelope'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/response.Envelope'
-      summary: Register a new user
-      tags:
-      - Auth
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

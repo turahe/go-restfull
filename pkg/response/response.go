@@ -6,8 +6,8 @@ type Envelope struct {
 	Code       int     `json:"code"`
 	Message    string  `json:"message"`
 	Data       any     `json:"data"`
-	NextCursor *string `json:"next_cursor,omitempty"`
-	PrevCursor *string `json:"prev_cursor,omitempty"`
+	NextCursor *string `json:"next,omitempty"`
+	PrevCursor *string `json:"prev,omitempty"`
 	Error      any     `json:"error"`
 }
 
@@ -67,4 +67,3 @@ func InternalServerError(c Context, code int, message string, err any) {
 type Context interface {
 	JSON(code int, obj any)
 }
-

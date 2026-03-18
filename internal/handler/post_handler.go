@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/repository"
 	"go-rest/internal/service"
@@ -14,12 +15,12 @@ import (
 )
 
 type PostHandler struct {
+	BaseHandler
 	posts *service.PostService
-	log   *zap.Logger
 }
 
 func NewPostHandler(posts *service.PostService, log *zap.Logger) *PostHandler {
-	return &PostHandler{posts: posts, log: log}
+	return &PostHandler{BaseHandler: BaseHandler{Log: log}, posts: posts}
 }
 
 // ListPosts godoc
@@ -32,7 +33,7 @@ func NewPostHandler(posts *service.PostService, log *zap.Logger) *PostHandler {
 // @Success      200     {object}  response.Envelope
 // @Failure      400     {object}  response.Envelope
 // @Failure      500     {object}  response.Envelope
-// @Router       /api/posts [get]
+// @Router       /api/v1/posts [get]
 func (h *PostHandler) List(c *gin.Context) {
 	limit := parseIntDefault(c.Query("limit"), 10)
 	if limit > 50 {
@@ -46,7 +47,7 @@ func (h *PostHandler) List(c *gin.Context) {
 	if s := strings.TrimSpace(c.Query("cursor")); s != "" {
 		v, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
-			response.BadRequest(c, 4000301, "invalid cursor", "cursor must be uint")
+			response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidValue), "invalid cursor", "cursor must be uint")
 			return
 		}
 		tmp := uint(v)
@@ -60,8 +61,7 @@ func (h *PostHandler) List(c *gin.Context) {
 
 	page, err := h.posts.List(c.Request.Context(), cursor, limit, dir)
 	if err != nil {
-		h.log.Error("list posts failed", zap.Error(err))
-		response.InternalServerError(c, 5000301, "internal error", "list failed")
+		h.internalError(c, response.ServiceCodePosts, err, "list failed")
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *PostHandler) List(c *gin.Context) {
 		prev = &s
 	}
 
-	response.OKCursor(c, 2000301, "ok", page.Items, next, prev)
+	response.OKCursor(c, response.BuildResponseCode(200, response.ServiceCodePosts, response.CaseCodeListRetrieved), "ok", page.Items, next, prev)
 }
 
 // GetPostBySlug godoc
@@ -87,24 +87,19 @@ func (h *PostHandler) List(c *gin.Context) {
 // @Success      200   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      404   {object}  response.Envelope
-// @Router       /api/posts/{slug} [get]
+// @Router       /api/v1/posts/slug/{slug} [get]
 func (h *PostHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 	p, err := h.posts.GetBySlug(c.Request.Context(), slug)
 	if err != nil {
 		if err == service.ErrPostNotFound {
-			response.NotFound(c, 4040301, "not found", "post not found")
+			response.NotFound(c, response.BuildResponseCode(404, response.ServiceCodePosts, response.CaseCodeNotFound), "not found", "post not found")
 			return
 		}
-		response.BadRequest(c, 4000302, "invalid request", err.Error())
+		response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidFormat), "invalid request", err.Error())
 		return
 	}
-	response.OK(c, 2000302, "ok", p)
-}
-
-type createPostReq struct {
-	Title   string `json:"title" binding:"required,min=3,max=200"`
-	Content string `json:"content" binding:"required,min=1"`
+	response.OK(c, response.BuildResponseCode(200, response.ServiceCodePosts, response.CaseCodeRetrieved), "ok", p)
 }
 
 // CreatePost godoc
@@ -113,35 +108,32 @@ type createPostReq struct {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        body  body      createPostReq  true  "Create post payload"
+// @Param        body  body      request.CreatePostRequest  true  "Create post payload"
 // @Success      201   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      401   {object}  response.Envelope
-// @Router       /api/posts [post]
+// @Router       /api/v1/posts [post]
 func (h *PostHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
 	if !ok {
-		response.Unauthorized(c, 4010301, "unauthorized", "missing auth")
+		response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodePosts, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
 
-	var req createPostReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, 4000303, "invalid request", err.Error())
+	var req request.CreatePostRequest
+	if !h.bindJSON(c, response.ServiceCodePosts, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodePosts, req) {
 		return
 	}
 
 	p, err := h.posts.Create(c.Request.Context(), auth.UserID, req.Title, req.Content)
 	if err != nil {
-		response.BadRequest(c, 4000304, "invalid request", err.Error())
+		response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
 	}
-	response.Created(c, 2010301, "created", p)
-}
-
-type updatePostReq struct {
-	Title   string `json:"title" binding:"omitempty,min=3,max=200"`
-	Content string `json:"content" binding:"omitempty,min=1"`
+	response.Created(c, response.BuildResponseCode(201, response.ServiceCodePosts, response.CaseCodeCreated), "created", p)
 }
 
 // UpdatePost godoc
@@ -151,30 +143,32 @@ type updatePostReq struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id    path      int           true  "Post ID"
-// @Param        body  body      updatePostReq  true  "Update post payload"
+// @Param        body  body      request.UpdatePostRequest  true  "Update post payload"
 // @Success      200   {object}  response.Envelope
 // @Failure      400   {object}  response.Envelope
 // @Failure      401   {object}  response.Envelope
 // @Failure      403   {object}  response.Envelope
 // @Failure      404   {object}  response.Envelope
 // @Failure      500   {object}  response.Envelope
-// @Router       /api/posts/{id} [put]
+// @Router       /api/v1/posts/{id} [put]
 func (h *PostHandler) Update(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
 	if !ok {
-		response.Unauthorized(c, 4010302, "unauthorized", "missing auth")
+		response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodePosts, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
 
 	id, err := parseUintParam(c, "id")
 	if err != nil {
-		response.BadRequest(c, 4000305, "invalid id", "id must be uint")
+		response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	var req updatePostReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, 4000306, "invalid request", err.Error())
+	var req request.UpdatePostRequest
+	if !h.bindJSON(c, response.ServiceCodePosts, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodePosts, req) {
 		return
 	}
 
@@ -182,17 +176,16 @@ func (h *PostHandler) Update(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case service.ErrPostNotFound:
-			response.NotFound(c, 4040302, "not found", "post not found")
+			response.NotFound(c, response.BuildResponseCode(404, response.ServiceCodePosts, response.CaseCodeNotFound), "not found", "post not found")
 		case service.ErrNotPostOwner:
-			response.Forbidden(c, 4030301, "forbidden", "owner only")
+			response.Forbidden(c, response.BuildResponseCode(403, response.ServiceCodePosts, response.CaseCodePermissionDenied), "forbidden", "owner only")
 		default:
-			h.log.Error("update post failed", zap.Error(err))
-			response.InternalServerError(c, 5000302, "internal error", "update failed")
+			h.internalError(c, response.ServiceCodePosts, err, "update failed")
 		}
 		return
 	}
 
-	response.OK(c, 2000303, "updated", p)
+	response.OK(c, response.BuildResponseCode(200, response.ServiceCodePosts, response.CaseCodeUpdated), "updated", p)
 }
 
 // DeletePost godoc
@@ -207,17 +200,17 @@ func (h *PostHandler) Update(c *gin.Context) {
 // @Failure      403 {object}  response.Envelope
 // @Failure      404 {object}  response.Envelope
 // @Failure      500 {object}  response.Envelope
-// @Router       /api/posts/{id} [delete]
+// @Router       /api/v1/posts/{id} [delete]
 func (h *PostHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
 	if !ok {
-		response.Unauthorized(c, 4010303, "unauthorized", "missing auth")
+		response.Unauthorized(c, response.BuildResponseCode(401, response.ServiceCodePosts, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
 
 	id, err := parseUintParam(c, "id")
 	if err != nil {
-		response.BadRequest(c, 4000307, "invalid id", "id must be uint")
+		response.BadRequest(c, response.BuildResponseCode(400, response.ServiceCodePosts, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
@@ -225,17 +218,16 @@ func (h *PostHandler) Delete(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case service.ErrPostNotFound:
-			response.NotFound(c, 4040303, "not found", "post not found")
+			response.NotFound(c, response.BuildResponseCode(404, response.ServiceCodePosts, response.CaseCodeNotFound), "not found", "post not found")
 		case service.ErrNotPostOwner:
-			response.Forbidden(c, 4030302, "forbidden", "owner only")
+			response.Forbidden(c, response.BuildResponseCode(403, response.ServiceCodePosts, response.CaseCodePermissionDenied), "forbidden", "owner only")
 		default:
-			h.log.Error("delete post failed", zap.Error(err))
-			response.InternalServerError(c, 5000303, "internal error", "delete failed")
+			h.internalError(c, response.ServiceCodePosts, err, "delete failed")
 		}
 		return
 	}
 
-	response.OK(c, 2000304, "deleted", gin.H{"id": id})
+	response.OK(c, response.BuildResponseCode(200, response.ServiceCodePosts, response.CaseCodeDeleted), "deleted", gin.H{"id": id})
 }
 
 func parseIntDefault(s string, def int) int {

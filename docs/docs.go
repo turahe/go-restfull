@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -34,7 +34,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.loginReq"
+                            "$ref": "#/definitions/request.LoginRequest"
                         }
                     }
                 ],
@@ -66,7 +66,52 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/posts": {
+        "/api/v1/auth/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "Register payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/posts": {
             "get": {
                 "produces": [
                     "application/json"
@@ -145,7 +190,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.createPostReq"
+                            "$ref": "#/definitions/request.CreatePostRequest"
                         }
                     }
                 ],
@@ -171,7 +216,47 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/posts/{id}": {
+        "/api/v1/posts/slug/{slug}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Posts"
+                ],
+                "summary": "Get post by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/posts/{id}": {
             "put": {
                 "security": [
                     {
@@ -202,7 +287,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.updatePostReq"
+                            "$ref": "#/definitions/request.UpdatePostRequest"
                         }
                     }
                 ],
@@ -307,7 +392,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/posts/{id}/comments": {
+        "/api/v1/posts/{id}/comments": {
             "get": {
                 "produces": [
                     "application/json"
@@ -382,7 +467,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.createCommentReq"
+                            "$ref": "#/definitions/request.CreateCommentRequest"
                         }
                     }
                 ],
@@ -419,95 +504,10 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/api/posts/{slug}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Posts"
-                ],
-                "summary": "Get post by slug",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Post slug",
-                        "name": "slug",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/register": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Register a new user",
-                "parameters": [
-                    {
-                        "description": "Register payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.registerReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "handler.createCommentReq": {
+        "request.CreateCommentRequest": {
             "type": "object",
             "required": [
                 "content"
@@ -520,7 +520,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.createPostReq": {
+        "request.CreatePostRequest": {
             "type": "object",
             "required": [
                 "content",
@@ -538,7 +538,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.loginReq": {
+        "request.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -556,7 +556,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.registerReq": {
+        "request.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -580,7 +580,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.updatePostReq": {
+        "request.UpdatePostRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -605,10 +605,10 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
-                "next_cursor": {
+                "next": {
                     "type": "string"
                 },
-                "prev_cursor": {
+                "prev": {
                     "type": "string"
                 }
             }
