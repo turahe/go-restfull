@@ -52,3 +52,17 @@ func (r *UserRepository) List(ctx context.Context, limit int) ([]model.User, err
 	return rows, nil
 }
 
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID uint, newHash string) error {
+	return r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("password", newHash).Error
+}
+
+func (r *UserRepository) UpdateEmail(ctx context.Context, userID uint, newEmail string) error {
+	return r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("email", newEmail).Error
+}
+

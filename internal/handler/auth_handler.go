@@ -7,6 +7,7 @@ import (
 	svcresp "go-rest/internal/service/response"
 	"go-rest/pkg/response"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -239,6 +240,90 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 		return
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeRetrieved), "ok", profile)
+}
+
+// ChangePassword godoc
+// @Summary      Change password for current user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      request.ChangePasswordRequest  true  "Change password payload"
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/password/change [post]
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	auth, ok := middleware.GetAuth(c)
+	if !ok {
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
+		return
+	}
+
+	var req request.ChangePasswordRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
+		return
+	}
+
+	if err := h.auth.ChangePassword(c.Request.Context(), auth.UserID, req.CurrentPassword, req.NewPassword); err != nil {
+		if err == service.ErrInvalidCurrentPass {
+			response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeInvalidCredentials), "invalid password", "invalid current password")
+			return
+		}
+		h.internalError(c, response.ServiceCodeAuth, err, "change password failed")
+		return
+	}
+
+	_ = h.auth.Logout(c.Request.Context(), auth.SessionID, "", time.Time{}, auth.UserID)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "password changed", nil)
+}
+
+// ChangeEmail godoc
+// @Summary      Change email for current user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      request.ChangeEmailRequest  true  "Change email payload"
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/email/change [post]
+func (h *AuthHandler) ChangeEmail(c *gin.Context) {
+	auth, ok := middleware.GetAuth(c)
+	if !ok {
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
+		return
+	}
+
+	var req request.ChangeEmailRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
+		return
+	}
+
+	if err := h.auth.ChangeEmail(c.Request.Context(), auth.UserID, req.CurrentPassword, req.NewEmail); err != nil {
+		if err == service.ErrInvalidCurrentPass {
+			response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeInvalidCredentials), "invalid password", "invalid current password")
+			return
+		}
+		if err == service.ErrEmailTaken {
+			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeDuplicateEntry), "email already registered", "email taken")
+			return
+		}
+		h.internalError(c, response.ServiceCodeAuth, err, "change email failed")
+		return
+	}
+
+	_ = h.auth.Logout(c.Request.Context(), auth.SessionID, "", time.Time{}, auth.UserID)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "email changed", nil)
 }
 
 // Impersonate godoc

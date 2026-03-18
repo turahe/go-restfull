@@ -23,3 +23,13 @@ type ImpersonateRequest struct {
 	DeviceID string `json:"deviceId" binding:"required,min=4,max=64"`
 }
 
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"currentPassword" binding:"required,min=8,max=72"`
+	NewPassword     string `json:"newPassword" binding:"required,min=8,max=72"`
+}
+
+type ChangeEmailRequest struct {
+	CurrentPassword string `json:"currentPassword" binding:"required,min=8,max=72"`
+	NewEmail        string `json:"newEmail" binding:"required,email,max=190"`
+}
+

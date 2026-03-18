@@ -18,6 +18,7 @@ import (
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrEmailTaken         = errors.New("email already registered")
+	ErrInvalidCurrentPass = errors.New("invalid current password")
 )
 
 type AuthService struct {
@@ -107,6 +108,46 @@ func (s *AuthService) Profile(ctx context.Context, userID uint) (svcresp.AuthUse
 		Role:        role,
 		Permissions: perms,
 	}, nil
+}
+
+func (s *AuthService) ChangePassword(ctx context.Context, userID uint, currentPassword, newPassword string) error {
+	u, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(currentPassword)); err != nil {
+		return ErrInvalidCurrentPass
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePassword(ctx, userID, string(hash))
+}
+
+func (s *AuthService) ChangeEmail(ctx context.Context, userID uint, currentPassword, newEmail string) error {
+	newEmail = strings.TrimSpace(strings.ToLower(newEmail))
+	u, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if newEmail == "" {
+		return errors.New("newEmail is required")
+	}
+	if newEmail == u.Email {
+		return nil // no-op
+	}
+	_, err = s.users.FindByEmail(ctx, newEmail)
+	if err == nil {
+		return ErrEmailTaken
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(currentPassword)); err != nil {
+		return ErrInvalidCurrentPass
+	}
+	return s.users.UpdateEmail(ctx, userID, newEmail)
 }
 
 func (s *AuthService) SetupTwoFA(ctx context.Context, userID uint, email string) (TwoFactorSetupResult, error) {

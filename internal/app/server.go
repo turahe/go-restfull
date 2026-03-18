@@ -143,6 +143,8 @@ func Serve(ctx context.Context) error {
 		auth.Use(middleware.RBAC(rbacSvc, log))
 		{
 			auth.GET("/auth/profile", authH.Profile)
+			auth.POST("/auth/password/change", authH.ChangePassword)
+			auth.POST("/auth/email/change", authH.ChangeEmail)
 			auth.POST("/auth/2fa/setup", authH.TwoFASetup)
 			auth.POST("/auth/2fa/enable", authH.TwoFAEnable)
 			auth.POST("/auth/impersonate", authH.Impersonate)
