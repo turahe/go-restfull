@@ -17,11 +17,13 @@ type AuthUser struct {
 }
 
 type LoginResult struct {
-	AccessToken  string   `json:"accessToken"`
-	RefreshToken string   `json:"refreshToken"`
-	ExpiresAt    time.Time `json:"expiresAt"`
-	SessionID    string   `json:"sessionId"`
-	User         AuthUser `json:"user"`
+	TwoFactorRequired bool      `json:"twoFactorRequired"`
+	ChallengeID       string    `json:"challengeId,omitempty"`
+	AccessToken       string    `json:"accessToken,omitempty"`
+	RefreshToken      string    `json:"refreshToken,omitempty"`
+	ExpiresAt         time.Time `json:"expiresAt"`
+	SessionID         string    `json:"sessionId"`
+	User              AuthUser  `json:"user"`
 }
 
 type RefreshResult struct {

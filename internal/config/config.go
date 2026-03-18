@@ -40,6 +40,9 @@ RateLimitBurst int
 	RefreshTokenPepper           string
 
 	CasbinModelPath string
+
+	TwoFactorEncKey string
+	TwoFactorIssuer string
 }
 
 func Load() (Config, error) {
@@ -71,6 +74,8 @@ func Load() (Config, error) {
 		ImpersonationTTLMinutes: getEnvIntDefault("IMPERSONATION_TTL_MINUTES", 5),
 		RefreshTokenPepper:      os.Getenv("REFRESH_TOKEN_PEPPER"),
 		CasbinModelPath:         strings.TrimSpace(getEnvDefault("CASBIN_MODEL_PATH", "configs/casbin_model.conf")),
+		TwoFactorEncKey:         strings.TrimSpace(os.Getenv("TWO_FACTOR_ENC_KEY")),
+		TwoFactorIssuer:         strings.TrimSpace(getEnvDefault("TWO_FACTOR_ISSUER", "")),
 	}
 
 	if cfg.DBName == "" || cfg.DBUser == "" || cfg.DBHost == "" || cfg.DBPort == "" {
@@ -99,6 +104,12 @@ func Load() (Config, error) {
 	}
 	if cfg.RedisDB < 0 {
 		return Config{}, errors.New("REDIS_DB must be >= 0")
+	}
+	if cfg.TwoFactorEncKey == "" {
+		return Config{}, errors.New("TWO_FACTOR_ENC_KEY is required")
+	}
+	if cfg.TwoFactorIssuer == "" {
+		cfg.TwoFactorIssuer = cfg.JWTIssuer
 	}
 	return cfg, nil
 }

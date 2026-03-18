@@ -26,6 +26,7 @@ type AuthService struct {
 	jwt   *JWTService
 	audit *repository.AuditRepository
 	rbac  *RBACService
+	twoFA *TwoFactorService
 
 	accessTTL        time.Duration
 	refreshTTLDays   int
@@ -33,12 +34,18 @@ type AuthService struct {
 	refreshPepper    string
 }
 
-func NewAuthService(users *repository.UserRepository, authRepo *repository.AuthRepository, auditRepo *repository.AuditRepository, rbacSvc *RBACService, jwtm *JWTService, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string) *AuthService {
+type TwoFactorSetupResult struct {
+	Secret     string `json:"secret"`
+	OtpauthURL string `json:"otpauthUrl"`
+}
+
+func NewAuthService(users *repository.UserRepository, authRepo *repository.AuthRepository, auditRepo *repository.AuditRepository, rbacSvc *RBACService, jwtm *JWTService, twoFA *TwoFactorService, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string) *AuthService {
 	return &AuthService{
 		users:            users,
 		auth:             authRepo,
 		audit:            auditRepo,
 		rbac:             rbacSvc,
+		twoFA:            twoFA,
 		jwt:              jwtm,
 		accessTTL:        time.Duration(accessTTLMinutes) * time.Minute,
 		refreshTTLDays:   refreshTTLDays,
@@ -102,6 +109,101 @@ func (s *AuthService) Profile(ctx context.Context, userID uint) (svcresp.AuthUse
 	}, nil
 }
 
+func (s *AuthService) SetupTwoFA(ctx context.Context, userID uint, email string) (TwoFactorSetupResult, error) {
+	if s.twoFA == nil {
+		return TwoFactorSetupResult{}, errors.New("2fa service not configured")
+	}
+	setup, err := s.twoFA.Setup(ctx, userID, email)
+	if err != nil {
+		return TwoFactorSetupResult{}, err
+	}
+	return TwoFactorSetupResult{
+		Secret:     setup.Secret,
+		OtpauthURL: setup.OtpauthURL,
+	}, nil
+}
+
+func (s *AuthService) EnableTwoFA(ctx context.Context, userID uint, code string) error {
+	if s.twoFA == nil {
+		return errors.New("2fa service not configured")
+	}
+	return s.twoFA.Enable(ctx, userID, code)
+}
+
+func (s *AuthService) VerifyTwoFAChallenge(ctx context.Context, challengeID string, deviceID string, code string) (svcresp.LoginResult, error) {
+	if s.twoFA == nil {
+		return svcresp.LoginResult{}, errors.New("2fa service not configured")
+	}
+	userID, err := s.twoFA.VerifyChallenge(ctx, challengeID, deviceID, code, 5)
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+	u, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+
+	// Create session
+	sessionID, err := newUUIDLike()
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+	now := time.Now()
+	sess := &model.AuthSession{
+		ID:        sessionID,
+		UserID:    u.ID,
+		DeviceID:  deviceID,
+		IPAddress: "",
+		UserAgent: "",
+		LastSeenAt: now,
+	}
+	if err := s.auth.CreateSession(ctx, sess); err != nil {
+		return svcresp.LoginResult{}, err
+	}
+
+	accessJTI, err := newUUIDLike()
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+	role, perms, err := s.loadRoleAndPerms(ctx, u.ID)
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+	rc := s.jwt.DefaultRegistered(fmt.Sprintf("%d", u.ID), s.accessTTL)
+	rc.ID = accessJTI
+	claims := AccessClaims{
+		RegisteredClaims: rc,
+		UserID:           u.ID,
+		Role:             role,
+		Permissions:      perms,
+		SessionID:        sessionID,
+		DeviceID:         deviceID,
+	}
+	accessToken, err := s.jwt.IssueAccessToken(claims)
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+	refreshToken, rtModel, err := s.issueRefreshToken(ctx, u.ID, sessionID, nil)
+	if err != nil {
+		return svcresp.LoginResult{}, err
+	}
+
+	return svcresp.LoginResult{
+		TwoFactorRequired: false,
+		AccessToken:       accessToken,
+		RefreshToken:      refreshToken,
+		ExpiresAt:         rtModel.ExpiresAt,
+		SessionID:         sessionID,
+		User: svcresp.AuthUser{
+			ID:          u.ID,
+			Name:        u.Name,
+			Email:       u.Email,
+			Role:        role,
+			Permissions: perms,
+		},
+	}, nil
+}
+
 func (s *AuthService) Login(ctx context.Context, email, password string, meta svcresp.LoginMeta) (svcresp.LoginResult, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	u, err := s.users.FindByEmail(ctx, email)
@@ -117,7 +219,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta sv
 	}
 
 	if meta.DeviceID == "" {
-		return svcresp.LoginResult{}, errors.New("device_id is required")
+		return svcresp.LoginResult{}, errors.New("deviceId is required")
 	}
 
 	// Create session
@@ -136,6 +238,31 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta sv
 	}
 	if err := s.auth.CreateSession(ctx, sess); err != nil {
 		return svcresp.LoginResult{}, err
+	}
+
+	// If 2FA is enabled, create a challenge and return without tokens.
+	if s.twoFA != nil {
+		enabled, err := s.twoFA.IsEnabled(ctx, u.ID)
+		if err != nil {
+			return svcresp.LoginResult{}, err
+		}
+		if enabled {
+			chID, exp, err := s.twoFA.NewLoginChallenge(ctx, u.ID, meta.DeviceID, 5*time.Minute)
+			if err != nil {
+				return svcresp.LoginResult{}, err
+			}
+			return svcresp.LoginResult{
+				TwoFactorRequired: true,
+				ChallengeID:       chID,
+				ExpiresAt:         exp,
+				SessionID:         sessionID,
+				User: svcresp.AuthUser{
+					ID:    u.ID,
+					Name:  u.Name,
+					Email: u.Email,
+				},
+			}, nil
+		}
 	}
 
 	accessJTI, err := newUUIDLike()
@@ -169,10 +296,11 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta sv
 	}
 
 	return svcresp.LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    rtModel.ExpiresAt,
-		SessionID:    sessionID,
+		TwoFactorRequired: false,
+		AccessToken:       accessToken,
+		RefreshToken:      refreshToken,
+		ExpiresAt:         rtModel.ExpiresAt,
+		SessionID:         sessionID,
 		User: svcresp.AuthUser{
 			ID:          u.ID,
 			Name:        u.Name,

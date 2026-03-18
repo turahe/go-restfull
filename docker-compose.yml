@@ -53,6 +53,8 @@ services:
       REFRESH_TOKEN_PEPPER: "change_me_strong_secret"
       IMPERSONATION_TTL_MINUTES: "5"
       CASBIN_MODEL_PATH: configs/casbin_model.conf
+      TWO_FACTOR_ENC_KEY: "0123456789abcdef0123456789abcdef"
+      TWO_FACTOR_ISSUER: "go-rest-blog"
     ports:
       - "8080:8080"
     depends_on:

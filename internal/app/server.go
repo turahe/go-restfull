@@ -84,9 +84,11 @@ func Serve(ctx context.Context) error {
 	roleRepo := repository.NewRoleRepository(db.Gorm)
 	postRepo := repository.NewPostRepository(db.Gorm)
 	commentRepo := repository.NewCommentRepository(db.Gorm)
+	twoFARepo := repository.NewTwoFactorRepository(db.Gorm)
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper)
+	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer)
+	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, twoFASvc, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper)
 	userSvc := service.NewUserService(userRepo)
 	roleSvc := service.NewRoleService(roleRepo)
 	categorySvc := service.NewCategoryService(categoryRepo)
@@ -141,6 +143,8 @@ func Serve(ctx context.Context) error {
 		auth.Use(middleware.RBAC(rbacSvc, log))
 		{
 			auth.GET("/auth/profile", authH.Profile)
+			auth.POST("/auth/2fa/setup", authH.TwoFASetup)
+			auth.POST("/auth/2fa/enable", authH.TwoFAEnable)
 			auth.POST("/auth/impersonate", authH.Impersonate)
 			auth.POST("/posts", postH.Create)
 			auth.PUT("/posts/:id", postH.Update)
@@ -168,6 +172,8 @@ func Serve(ctx context.Context) error {
 		}
 
 		api.GET("/posts/:id/comments", commentH.List)
+
+		api.POST("/auth/2fa/verify", authH.TwoFAVerify)
 	}
 
 	srv := &http.Server{

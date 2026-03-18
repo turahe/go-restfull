@@ -9,15 +9,15 @@ Production-ready local blog API with clean architecture:
 ## Run
 
 1. Create a MySQL database named `blog` (or set `DB_NAME`).
-2. Copy `.env.example` to `.env` and update DB credentials.
+2. Copy `.env.example` to `.env` and update DB credentials (including Redis and JWT paths).
 3. Start:
 
 ```bash
 go mod tidy
-go run cmd/main.go
+go run ./cmd
 ```
 
-Auto migration runs on startup.
+Auto migration runs on startup. Swagger is available at `http://localhost:8080/swagger/index.html`.
 
 ## Docker
 
@@ -48,18 +48,12 @@ make swagger
 make test
 ```
 
-## Swagger
-
-After starting the server, open:
-
-- `http://localhost:8080/swagger/index.html`
-
-## Auth (fintech-style JWT)
+## Auth (fintech-style JWT + 2FA)
 
 This API uses **RS256** access tokens and **refresh token rotation**.
 
 ### Token lifecycle
-- **Access token**: short-lived (`ACCESS_TOKEN_TTL_MINUTES`, 5–15 minutes). Contains `iss`, `aud`, `exp`, `iat`, `nbf`, `jti`, plus app claims: `user_id`, `role`, `permissions`, `session_id`, `device_id`.
+- **Access token**: short-lived (`ACCESS_TOKEN_TTL_MINUTES`, 5–15 minutes). Contains `iss`, `aud`, `exp`, `iat`, `nbf`, `jti`, plus app claims: `userId`, `role`, `permissions`, `sessionId`, `deviceId`.
 - **Refresh token**: long-lived (`REFRESH_TOKEN_TTL_DAYS`). Stored **hashed** in MySQL.
 - **Rotation**: every `/auth/refresh` call:
   - marks the old refresh token as `used_at`
@@ -77,12 +71,36 @@ This API uses **RS256** access tokens and **refresh token rotation**.
   - deploy new key pair (new `kid`) and start signing with it
   - keep old public key available for verification until all old access tokens expire
 
-### Database tables (recommended)
-- `users`: includes `role`, `permissions`
+### Database tables
+- `users`
+- `roles`, `permissions`, `user_roles`, `role_permissions` (RBAC via Casbin)
 - `auth_sessions`: per device/session, revocable
 - `refresh_tokens`: hashed, rotated, reuse-detectable
 - `revoked_jtis`: blacklist for revoked access tokens
 - `impersonation_audits`: immutable audit trail
+- `user_two_factors`, `two_factor_challenges`: TOTP 2FA config and login challenges
+
+### 2FA (TOTP)
+
+- Optional **TOTP** (Google Authenticator, etc.) per user.
+- Flow:
+  1. User logs in with email/password + `deviceId`.
+  2. If 2FA **disabled** → returns `accessToken` + `refreshToken` as usual.
+  3. If 2FA **enabled** → returns:
+     ```json
+     {
+       "twoFactorRequired": true,
+       "challengeId": "...",
+       "expiresAt": "...",
+       "sessionId": "...",
+       "user": { "id", "name", "email" }
+     }
+     ```
+  4. Client then calls `/api/v1/auth/2fa/verify` with `challengeId`, `code`, `deviceId` to obtain tokens.
+
+2FA management endpoints (auth required):
+- `POST /api/v1/auth/2fa/setup` → returns `secret` and `otpauthUrl` for TOTP app.
+- `POST /api/v1/auth/2fa/enable` → body: `{ "code": "123456" }`.
 
 ## Impersonation
 Admin/support users can impersonate a user with a **short-lived (default 5 min)** access token.
@@ -100,12 +118,12 @@ Rules:
 
 If you ever see errors like `compile: version "goX.Y.Z" does not match go tool version ...`, your `GOROOT` is likely pointing at a different Go installation than your `go.exe`. Fix by ensuring `GOROOT` matches `go version`, or by unsetting `GOROOT`.
 
-## API
+## API (examples)
 
 ### Register
 
 ```bash
-curl -X POST localhost:8080/api/register `
+curl -X POST localhost:8080/api/v1/auth/register `
   -H "Content-Type: application/json" `
   -d "{\"name\":\"Alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"
 ```
@@ -113,12 +131,19 @@ curl -X POST localhost:8080/api/register `
 ### Login
 
 ```bash
-curl -X POST localhost:8080/api/login `
+curl -X POST localhost:8080/api/v1/auth/login `
   -H "Content-Type: application/json" `
   -d "{\"email\":\"alice@example.com\",\"password\":\"password123\",\"deviceId\":\"device-1\"}"
 ```
 
-Copy `access_token` as `%ACCESS_TOKEN%` and `refresh_token` as `%REFRESH_TOKEN%`.
+If `twoFactorRequired=false`, copy `accessToken` as `%ACCESS_TOKEN%` and `refreshToken` as `%REFRESH_TOKEN%`.
+If `twoFactorRequired=true`, call `/api/v1/auth/2fa/verify`:
+
+```bash
+curl -X POST localhost:8080/api/v1/auth/2fa/verify `
+  -H "Content-Type: application/json" `
+  -d "{\"challengeId\":\"...\",\"code\":\"123456\",\"deviceId\":\"device-1\"}"
+```
 
 ### Refresh (rotation)
 
@@ -140,7 +165,7 @@ curl -X POST localhost:8080/api/v1/auth/impersonate `
 ### Create Post (auth)
 
 ```bash
-curl -X POST localhost:8080/api/posts `
+curl -X POST localhost:8080/api/v1/posts `
   -H "Authorization: Bearer %ACCESS_TOKEN%" `
   -H "Content-Type: application/json" `
   -d "{\"title\":\"Hello World\",\"content\":\"My first post\",\"categoryId\":1}"
@@ -151,19 +176,19 @@ curl -X POST localhost:8080/api/posts `
 - First page:
 
 ```bash
-curl "localhost:8080/api/posts?limit=10"
+curl "localhost:8080/api/v1/posts?limit=10"
 ```
 
 - Next page:
 
 ```bash
-curl "localhost:8080/api/posts?limit=10&cursor=%NEXT_CURSOR%&dir=next"
+curl "localhost:8080/api/v1/posts?limit=10&cursor=%NEXT_CURSOR%&dir=next"
 ```
 
 - Prev page:
 
 ```bash
-curl "localhost:8080/api/posts?limit=10&cursor=%PREV_CURSOR%&dir=prev"
+curl "localhost:8080/api/v1/posts?limit=10&cursor=%PREV_CURSOR%&dir=prev"
 ```
 
 ### Get Post by Slug
@@ -175,7 +200,7 @@ curl "localhost:8080/api/v1/posts/slug/hello-world"
 ### Update Post (auth, owner only)
 
 ```bash
-curl -X PUT localhost:8080/api/posts/1 `
+curl -X PUT localhost:8080/api/v1/posts/1 `
   -H "Authorization: Bearer %ACCESS_TOKEN%" `
   -H "Content-Type: application/json" `
   -d "{\"title\":\"Updated title\",\"content\":\"Updated content\"}"
@@ -184,14 +209,14 @@ curl -X PUT localhost:8080/api/posts/1 `
 ### Delete Post (auth, owner only)
 
 ```bash
-curl -X DELETE localhost:8080/api/posts/1 `
+curl -X DELETE localhost:8080/api/v1/posts/1 `
   -H "Authorization: Bearer %ACCESS_TOKEN%"
 ```
 
 ### Add Comment (auth)
 
 ```bash
-curl -X POST localhost:8080/api/posts/1/comments `
+curl -X POST localhost:8080/api/v1/posts/1/comments `
   -H "Authorization: Bearer %ACCESS_TOKEN%" `
   -H "Content-Type: application/json" `
   -d "{\"content\":\"Nice post\"}"
@@ -200,6 +225,6 @@ curl -X POST localhost:8080/api/posts/1/comments `
 ### List Comments
 
 ```bash
-curl "localhost:8080/api/posts/1/comments?limit=50"
+curl "localhost:8080/api/v1/posts/1/comments?limit=50"
 ```
 

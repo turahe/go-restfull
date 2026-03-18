@@ -94,6 +94,94 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeLoginSuccess), "ok", res)
 }
 
+// TwoFASetup godoc
+// @Summary      Initialize TOTP 2FA for current user
+// @Tags         Auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/2fa/setup [post]
+func (h *AuthHandler) TwoFASetup(c *gin.Context) {
+	auth, ok := middleware.GetAuth(c)
+	if !ok {
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
+		return
+	}
+	profile, err := h.auth.Profile(c.Request.Context(), auth.UserID)
+	if err != nil {
+		h.internalError(c, response.ServiceCodeAuth, err, "2fa setup failed")
+		return
+	}
+	res, err := h.auth.SetupTwoFA(c.Request.Context(), auth.UserID, profile.Email)
+	if err != nil {
+		h.internalError(c, response.ServiceCodeAuth, err, "2fa setup failed")
+		return
+	}
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+}
+
+// TwoFAEnable godoc
+// @Summary      Enable TOTP 2FA for current user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      request.TwoFAEnableRequest  true  "Enable 2FA payload"
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/2fa/enable [post]
+func (h *AuthHandler) TwoFAEnable(c *gin.Context) {
+	auth, ok := middleware.GetAuth(c)
+	if !ok {
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
+		return
+	}
+	var req request.TwoFAEnableRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
+		return
+	}
+	if err := h.auth.EnableTwoFA(c.Request.Context(), auth.UserID, req.Code); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeInvalidValue), "invalid 2fa code", err.Error())
+		return
+	}
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "enabled", nil)
+}
+
+// TwoFAVerify godoc
+// @Summary      Verify 2FA challenge and issue tokens
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      request.TwoFAVerifyRequest  true  "Verify 2FA payload"
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/2fa/verify [post]
+func (h *AuthHandler) TwoFAVerify(c *gin.Context) {
+	var req request.TwoFAVerifyRequest
+	if !h.bindJSON(c, response.ServiceCodeAuth, &req) {
+		return
+	}
+	if !h.validate(c, response.ServiceCodeAuth, req) {
+		return
+	}
+
+	res, err := h.auth.VerifyTwoFAChallenge(c.Request.Context(), req.ChallengeID, req.DeviceID, req.Code)
+	if err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeInvalidValue), "invalid 2fa verification", err.Error())
+		return
+	}
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+}
+
 // Refresh godoc
 // @Summary      Rotate refresh token and get new access token
 // @Tags         Auth

@@ -17,6 +17,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.RefreshToken{},
 		&model.RevokedJTI{},
 		&model.ImpersonationAudit{},
+		&model.UserTwoFactor{},
+		&model.TwoFactorChallenge{},
 		&model.Category{},
 		&model.Tag{},
 		&model.Post{},
