@@ -23,10 +23,11 @@ var (
 
 type PostService struct {
 	posts *repository.PostRepository
+	categories *repository.CategoryRepository
 }
 
-func NewPostService(posts *repository.PostRepository) *PostService {
-	return &PostService{posts: posts}
+func NewPostService(posts *repository.PostRepository, categories *repository.CategoryRepository) *PostService {
+	return &PostService{posts: posts, categories: categories}
 }
 
 func (s *PostService) List(ctx context.Context, cursor *uint, limit int, dir repository.CursorDirection) (repository.CursorPage, error) {
@@ -47,7 +48,7 @@ func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, 
 	if slug == "" {
 		return nil, ErrInvalidSlug
 	}
-	p, err := s.posts.FindBySlug(ctx, slug)
+	p, err := s.posts.FindBySlugWithCategories(ctx, slug)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrPostNotFound
@@ -57,7 +58,7 @@ func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, 
 	return p, nil
 }
 
-func (s *PostService) Create(ctx context.Context, userID uint, title, content string) (*model.Post, error) {
+func (s *PostService) Create(ctx context.Context, userID uint, title, content string, categoryIDs []uint) (*model.Post, error) {
 	title = strings.TrimSpace(title)
 	content = strings.TrimSpace(content)
 	if title == "" || content == "" {
@@ -85,10 +86,25 @@ func (s *PostService) Create(ctx context.Context, userID uint, title, content st
 	if err := s.posts.Create(ctx, p); err != nil {
 		return nil, err
 	}
+
+	if len(categoryIDs) > 0 {
+		cats, err := s.categories.FindByIDs(ctx, categoryIDs)
+		if err != nil {
+			return nil, err
+		}
+		if len(cats) != len(uniqueUint(categoryIDs)) {
+			return nil, errors.New("one or more categories not found")
+		}
+		if err := s.posts.ReplaceCategories(ctx, p.ID, cats); err != nil {
+			return nil, err
+		}
+		p.Categories = cats
+	}
+
 	return p, nil
 }
 
-func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string) (*model.Post, error) {
+func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryIDs []uint) (*model.Post, error) {
 	p, err := s.posts.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -110,6 +126,19 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, tit
 
 	if err := s.posts.Update(ctx, p); err != nil {
 		return nil, err
+	}
+
+	if categoryIDs != nil {
+		cats, err := s.categories.FindByIDs(ctx, categoryIDs)
+		if err != nil {
+			return nil, err
+		}
+		if len(cats) != len(uniqueUint(categoryIDs)) {
+			return nil, errors.New("one or more categories not found")
+		}
+		if err := s.posts.ReplaceCategories(ctx, p.ID, cats); err != nil {
+			return nil, err
+		}
 	}
 	return p, nil
 }
@@ -154,5 +183,24 @@ func slugify(s string) string {
 		s = strings.ReplaceAll(s, "--", "-")
 	}
 	return s
+}
+
+func uniqueUint(in []uint) []uint {
+	if len(in) == 0 {
+		return in
+	}
+	seen := make(map[uint]struct{}, len(in))
+	out := make([]uint, 0, len(in))
+	for _, v := range in {
+		if v == 0 {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
 }
 

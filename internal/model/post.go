@@ -23,5 +23,7 @@ type Post struct {
 	CreatedAt time.Time      `json:"created_at" gorm:"index"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+
+	Categories []Category `json:"categories,omitempty" gorm:"many2many:post_categories"`
 }
 

@@ -10,6 +10,7 @@ const (
 	ServiceCodeAuth     = "01" // Authentication
 	ServiceCodePosts    = "03" // Posts
 	ServiceCodeComments = "04" // Comments
+	ServiceCodeCategories = "05" // Categories
 )
 
 // Case codes (2 digits: 01-99)
@@ -40,6 +41,9 @@ const (
 
 	// Server errors
 	CaseCodeInternalError = "55"
+
+	// Rate limiting
+	CaseCodeRateLimitExceeded = "61"
 )
 
 // BuildResponseCode builds a response code from HTTP status, service code, and case code.

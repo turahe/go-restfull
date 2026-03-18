@@ -14,6 +14,14 @@ type Config struct {
 
 	ServerPort string
 
+	RateLimitRPS   float64
+RateLimitBurst int
+
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
+	RateLimitKeyPrefix string
+
 	DBHost     string
 	DBPort     string
 	DBUser     string
@@ -33,6 +41,12 @@ func Load() (Config, error) {
 	cfg := Config{
 		Env:                strings.TrimSpace(os.Getenv("APP_ENV")),
 		ServerPort:         strings.TrimSpace(getEnvDefault("SERVER_PORT", "8080")),
+		RateLimitRPS:       getEnvFloatDefault("RATE_LIMIT_RPS", 5),
+		RateLimitBurst:     getEnvIntDefault("RATE_LIMIT_BURST", 10),
+		RedisAddr:          strings.TrimSpace(os.Getenv("REDIS_ADDR")),
+		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
+		RedisDB:            getEnvIntDefault("REDIS_DB", 0),
+		RateLimitKeyPrefix: strings.TrimSpace(getEnvDefault("RATE_LIMIT_KEY_PREFIX", "rl:ip:")),
 		DBHost:             strings.TrimSpace(getEnvDefault("DB_HOST", "127.0.0.1")),
 		DBPort:             strings.TrimSpace(getEnvDefault("DB_PORT", "3306")),
 		DBUser:             strings.TrimSpace(getEnvDefault("DB_USER", "root")),
@@ -49,6 +63,15 @@ func Load() (Config, error) {
 	}
 	if cfg.JWTTTLMinutes <= 0 {
 		return Config{}, errors.New("JWT_TTL_MINUTES must be > 0")
+	}
+	if cfg.RateLimitRPS < 0 {
+		return Config{}, errors.New("RATE_LIMIT_RPS must be >= 0")
+	}
+	if cfg.RateLimitBurst < 0 {
+		return Config{}, errors.New("RATE_LIMIT_BURST must be >= 0")
+	}
+	if cfg.RedisDB < 0 {
+		return Config{}, errors.New("REDIS_DB must be >= 0")
 	}
 	return cfg, nil
 }
@@ -67,6 +90,18 @@ func getEnvIntDefault(key string, def int) int {
 		return def
 	}
 	n, err := strconv.Atoi(v)
+	if err != nil {
+		return def
+	}
+	return n
+}
+
+func getEnvFloatDefault(key string, def float64) float64 {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	n, err := strconv.ParseFloat(v, 64)
 	if err != nil {
 		return def
 	}
