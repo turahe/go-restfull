@@ -140,6 +140,7 @@ func Serve(ctx context.Context) error {
 		auth.Use(middleware.JWTAuth(jwtm, authRepo, log))
 		auth.Use(middleware.RBAC(rbacSvc, log))
 		{
+			auth.GET("/auth/profile", authH.Profile)
 			auth.POST("/auth/impersonate", authH.Impersonate)
 			auth.POST("/posts", postH.Create)
 			auth.PUT("/posts/:id", postH.Update)

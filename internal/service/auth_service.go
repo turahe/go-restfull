@@ -84,6 +84,24 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 	return u, nil
 }
 
+func (s *AuthService) Profile(ctx context.Context, userID uint) (svcresp.AuthUser, error) {
+	u, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return svcresp.AuthUser{}, err
+	}
+	role, perms, err := s.loadRoleAndPerms(ctx, u.ID)
+	if err != nil {
+		return svcresp.AuthUser{}, err
+	}
+	return svcresp.AuthUser{
+		ID:          u.ID,
+		Name:        u.Name,
+		Email:       u.Email,
+		Role:        role,
+		Permissions: perms,
+	}, nil
+}
+
 func (s *AuthService) Login(ctx context.Context, email, password string, meta svcresp.LoginMeta) (svcresp.LoginResult, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	u, err := s.users.FindByEmail(ctx, email)

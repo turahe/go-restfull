@@ -129,6 +129,30 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
 }
 
+// Profile godoc
+// @Summary      Get current user profile
+// @Tags         Auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
+// @Router       /api/v1/auth/profile [get]
+func (h *AuthHandler) Profile(c *gin.Context) {
+	auth, ok := middleware.GetAuth(c)
+	if !ok {
+		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeAuth, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
+		return
+	}
+
+	profile, err := h.auth.Profile(c.Request.Context(), auth.UserID)
+	if err != nil {
+		h.internalError(c, response.ServiceCodeAuth, err, "profile failed")
+		return
+	}
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeRetrieved), "ok", profile)
+}
+
 // Impersonate godoc
 // @Summary      Admin/support impersonate a user (short-lived)
 // @Tags         Auth
