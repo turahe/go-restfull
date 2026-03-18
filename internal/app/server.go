@@ -81,18 +81,25 @@ func Serve(ctx context.Context) error {
 	auditRepo := repository.NewAuditRepository(db.Gorm)
 	categoryRepo := repository.NewCategoryRepository(db.Gorm)
 	tagRepo := repository.NewTagRepository(db.Gorm)
+	roleRepo := repository.NewRoleRepository(db.Gorm)
 	postRepo := repository.NewPostRepository(db.Gorm)
 	commentRepo := repository.NewCommentRepository(db.Gorm)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper)
+	userSvc := service.NewUserService(userRepo)
+	roleSvc := service.NewRoleService(roleRepo)
 	categorySvc := service.NewCategoryService(categoryRepo)
+	tagSvc := service.NewTagService(tagRepo)
 	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo)
 	commentSvc := service.NewCommentService(commentRepo, tagRepo)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc, log)
+	userH := handler.NewUserHandler(userSvc, log)
+	roleH := handler.NewRoleHandler(roleSvc, log)
 	categoryH := handler.NewCategoryHandler(categorySvc, log)
+	tagH := handler.NewTagHandler(tagSvc, log)
 	postH := handler.NewPostHandler(postSvc, log)
 	commentH := handler.NewCommentHandler(commentSvc, log)
 	rbacH := handler.NewRBACHandler(rbacSvc, log)
@@ -126,6 +133,8 @@ func Serve(ctx context.Context) error {
 		api.GET("/posts/slug/:slug", postH.GetBySlug)
 		api.GET("/categories", categoryH.List)
 		api.GET("/categories/:slug", categoryH.GetBySlug)
+		api.GET("/tags", tagH.List)
+		api.GET("/tags/:slug", tagH.GetBySlug)
 
 		auth := api.Group("")
 		auth.Use(middleware.JWTAuth(jwtm, authRepo, log))
@@ -141,6 +150,17 @@ func Serve(ctx context.Context) error {
 			auth.POST("/categories", categoryH.Create)
 			auth.PUT("/categories/:id", categoryH.Update)
 			auth.DELETE("/categories/:id", categoryH.Delete)
+
+			auth.POST("/tags", tagH.Create)
+			auth.PUT("/tags/:id", tagH.Update)
+			auth.DELETE("/tags/:id", tagH.Delete)
+
+			auth.GET("/users", userH.List)
+			auth.GET("/users/:id", userH.GetByID)
+
+			auth.GET("/roles", roleH.List)
+			auth.POST("/roles", roleH.Create)
+			auth.DELETE("/roles/:id", roleH.Delete)
 
 			auth.POST("/rbac/assign-role", rbacH.AssignRole)
 			auth.POST("/rbac/add-permission", rbacH.AddPermission)

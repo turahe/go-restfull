@@ -38,3 +38,17 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, er
 	return &u, nil
 }
 
+func (r *UserRepository) List(ctx context.Context, limit int) ([]model.User, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	var rows []model.User
+	if err := r.db.WithContext(ctx).Order("id asc").Limit(limit).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+

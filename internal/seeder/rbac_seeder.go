@@ -35,6 +35,7 @@ func SeedDefaultRBAC(ctx context.Context, db *gorm.DB, enf *rbac.Enforcer) error
 		{Role: "support", Obj: "/api/v1/auth/impersonate", Act: "POST", Desc: "Impersonate users"},
 		{Role: "support", Obj: "/api/v1/posts*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage posts"},
 		{Role: "support", Obj: "/api/v1/categories*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage categories"},
+		{Role: "support", Obj: "/api/v1/tags*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage tags"},
 		{Role: "support", Obj: "/api/v1/posts/*/comments", Act: "POST", Desc: "Create comments"},
 		{Role: "support", Obj: "/api/v1/posts/*/comments", Act: "GET", Desc: "List comments"},
 
@@ -43,6 +44,8 @@ func SeedDefaultRBAC(ctx context.Context, db *gorm.DB, enf *rbac.Enforcer) error
 		{Role: "user", Obj: "/api/v1/posts/slug/*", Act: "GET", Desc: "Get post by slug"},
 		{Role: "user", Obj: "/api/v1/categories", Act: "GET", Desc: "List categories"},
 		{Role: "user", Obj: "/api/v1/categories/*", Act: "GET", Desc: "Get category by slug"},
+		{Role: "user", Obj: "/api/v1/tags", Act: "GET", Desc: "List tags"},
+		{Role: "user", Obj: "/api/v1/tags/*", Act: "GET", Desc: "Get tag by slug"},
 		{Role: "user", Obj: "/api/v1/posts", Act: "POST", Desc: "Create post"},
 		{Role: "user", Obj: "/api/v1/posts/*", Act: "PUT", Desc: "Update post"},
 		{Role: "user", Obj: "/api/v1/posts/*", Act: "DELETE", Desc: "Delete post"},

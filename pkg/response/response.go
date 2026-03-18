@@ -6,9 +6,9 @@ type Envelope struct {
 	Code       int     `json:"code"`
 	Message    string  `json:"message"`
 	Data       any     `json:"data"`
-	NextCursor *string `json:"next,omitempty"`
-	PrevCursor *string `json:"prev,omitempty"`
-	Error      any     `json:"error"`
+	NextCursor *string `json:"nextCursor,omitempty"`
+	PrevCursor *string `json:"prevCursor,omitempty"`
+	Error      any     `json:"error,omitempty"`
 }
 
 func JSON(c Context, httpStatus int, code int, message string, data any, err any) {

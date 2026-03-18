@@ -13,20 +13,20 @@ type Post struct {
 	Slug    string `json:"slug" gorm:"type:varchar(220);not null;uniqueIndex"`
 	Content string `json:"content" gorm:"type:longtext;not null"`
 
-	UserID uint  `json:"user_id" gorm:"not null;index"`
+	UserID uint  `json:"userId" gorm:"not null;index"`
 	User   *User `json:"author,omitempty" gorm:"constraint:OnDelete:CASCADE"`
 
-	CategoryID uint      `json:"category_id" gorm:"not null;index"`
+	CategoryID uint      `json:"categoryId" gorm:"not null;index"`
 	Category   *Category `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
 
 	Tags []Tag `json:"tags,omitempty" gorm:"many2many:post_tags"`
 
-	CreatedBy uint  `json:"created_by" gorm:"not null;index"`
-	UpdatedBy uint  `json:"updated_by" gorm:"not null;index"`
-	DeletedBy *uint `json:"deleted_by,omitempty" gorm:"index"`
+	CreatedBy uint  `json:"createdBy" gorm:"not null;index"`
+	UpdatedBy uint  `json:"updatedBy" gorm:"not null;index"`
+	DeletedBy *uint `json:"deletedBy,omitempty" gorm:"index"`
 
-	CreatedAt time.Time      `json:"created_at" gorm:"index"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	CreatedAt time.Time      `json:"createdAt" gorm:"index"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 

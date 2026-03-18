@@ -11,6 +11,9 @@ const (
 	ServiceCodePosts    = "03" // Posts
 	ServiceCodeComments = "04" // Comments
 	ServiceCodeCategories = "05" // Categories
+	ServiceCodeTags     = "06" // Tags
+	ServiceCodeUsers    = "07" // Users
+	ServiceCodeRoles    = "08" // Roles
 )
 
 // Case codes (2 digits: 01-99)
