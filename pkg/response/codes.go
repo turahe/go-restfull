@@ -14,6 +14,7 @@ const (
 	ServiceCodeTags     = "06" // Tags
 	ServiceCodeUsers    = "07" // Users
 	ServiceCodeRoles    = "08" // Roles
+	ServiceCodeMedia    = "09" // Media
 )
 
 // Case codes (2 digits: 01-99)

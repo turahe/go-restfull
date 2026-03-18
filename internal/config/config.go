@@ -43,6 +43,15 @@ RateLimitBurst int
 
 	TwoFactorEncKey string
 	TwoFactorIssuer string
+
+	MediaUploadDir       string
+	MediaMaxUploadBytes int64
+
+	MinioEndpoint   string
+	MinioAccessKey  string
+	MinioSecretKey  string
+	MinioBucket     string
+	MinioUseSSL      bool
 }
 
 func Load() (Config, error) {
@@ -76,6 +85,14 @@ func Load() (Config, error) {
 		CasbinModelPath:         strings.TrimSpace(getEnvDefault("CASBIN_MODEL_PATH", "configs/casbin_model.conf")),
 		TwoFactorEncKey:         strings.TrimSpace(os.Getenv("TWO_FACTOR_ENC_KEY")),
 		TwoFactorIssuer:         strings.TrimSpace(getEnvDefault("TWO_FACTOR_ISSUER", "")),
+		MediaUploadDir:          strings.TrimSpace(getEnvDefault("MEDIA_UPLOAD_DIR", "uploads")),
+		MediaMaxUploadBytes:     getEnvInt64Default("MEDIA_MAX_UPLOAD_BYTES", 10*1024*1024),
+
+		MinioEndpoint:  strings.TrimSpace(os.Getenv("MINIO_ENDPOINT")),
+		MinioAccessKey: strings.TrimSpace(os.Getenv("MINIO_ACCESS_KEY")),
+		MinioSecretKey: os.Getenv("MINIO_SECRET_KEY"),
+		MinioBucket:    strings.TrimSpace(getEnvDefault("MINIO_BUCKET", "media")),
+		MinioUseSSL:     getEnvBoolDefault("MINIO_USE_SSL", false),
 	}
 
 	if cfg.DBName == "" || cfg.DBUser == "" || cfg.DBHost == "" || cfg.DBPort == "" {
@@ -111,6 +128,18 @@ func Load() (Config, error) {
 	if cfg.TwoFactorIssuer == "" {
 		cfg.TwoFactorIssuer = cfg.JWTIssuer
 	}
+	if cfg.MediaUploadDir == "" {
+		cfg.MediaUploadDir = "uploads"
+	}
+	if cfg.MediaMaxUploadBytes <= 0 {
+		return Config{}, errors.New("MEDIA_MAX_UPLOAD_BYTES must be > 0")
+	}
+
+	// If MinIO is partially configured, treat it as disabled to avoid breaking local dev.
+	// (We only enable when endpoint + access + secret are all set.)
+	if cfg.MinioEndpoint == "" || cfg.MinioAccessKey == "" || cfg.MinioSecretKey == "" {
+		cfg.MinioEndpoint = ""
+	}
 	return cfg, nil
 }
 
@@ -132,6 +161,33 @@ func getEnvIntDefault(key string, def int) int {
 		return def
 	}
 	return n
+}
+
+func getEnvInt64Default(key string, def int64) int64 {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return def
+	}
+	return n
+}
+
+func getEnvBoolDefault(key string, def bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	switch strings.ToLower(v) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	default:
+		return def
+	}
 }
 
 func getEnvFloatDefault(key string, def float64) float64 {

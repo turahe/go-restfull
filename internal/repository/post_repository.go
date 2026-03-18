@@ -60,6 +60,7 @@ func (r *PostRepository) FindBySlugWithCategory(ctx context.Context, slug string
 	err := r.db.WithContext(ctx).
 		Preload("Category").
 		Preload("Tags").
+		Preload("Media").
 		Where("slug = ?", slug).
 		First(&p).Error
 	if err != nil {
@@ -105,7 +106,7 @@ type CursorPage struct {
 }
 
 func (r *PostRepository) ListCursor(ctx context.Context, cursor *uint, limit int, dir CursorDirection) (CursorPage, error) {
-	q := r.db.WithContext(ctx).Model(&model.Post{})
+	q := r.db.WithContext(ctx).Model(&model.Post{}).Preload("Media")
 
 	if cursor != nil {
 		if dir == CursorPrev {

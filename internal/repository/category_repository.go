@@ -47,7 +47,7 @@ func (r *CategoryRepository) FindByID(ctx context.Context, id uint) (*model.Cate
 
 func (r *CategoryRepository) FindBySlug(ctx context.Context, slug string) (*model.Category, error) {
 	var c model.Category
-	if err := r.db.WithContext(ctx).Where("slug = ?", slug).First(&c).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Media").Where("slug = ?", slug).First(&c).Error; err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -75,7 +75,7 @@ func (r *CategoryRepository) List(ctx context.Context, limit int) ([]model.Categ
 		limit = 200
 	}
 	var rows []model.Category
-	err := r.db.WithContext(ctx).Order("id asc").Limit(limit).Find(&rows).Error
+	err := r.db.WithContext(ctx).Preload("Media").Order("id asc").Limit(limit).Find(&rows).Error
 	if err != nil {
 		return nil, err
 	}

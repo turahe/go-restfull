@@ -13,6 +13,8 @@ type Category struct {
 
 	Posts []Post `json:"posts,omitempty"`
 
+	Media []Media `json:"media,omitempty" gorm:"many2many:category_media;"`
+
 	CreatedBy uint  `json:"createdBy" gorm:"not null;index"`
 	UpdatedBy uint  `json:"updatedBy" gorm:"not null;index"`
 	DeletedBy *uint `json:"deletedBy,omitempty" gorm:"index"`
@@ -21,4 +23,3 @@ type Category struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
-

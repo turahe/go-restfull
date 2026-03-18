@@ -7,8 +7,8 @@ import (
 )
 
 type Post struct {
-	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	Title     string    `json:"title" gorm:"type:varchar(200);not null"`
+	ID    uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title string `json:"title" gorm:"type:varchar(200);not null"`
 	// Unique index on slug also serves as the required index for lookups.
 	Slug    string `json:"slug" gorm:"type:varchar(220);not null;uniqueIndex"`
 	Content string `json:"content" gorm:"type:longtext;not null"`
@@ -18,6 +18,8 @@ type Post struct {
 
 	CategoryID uint      `json:"categoryId" gorm:"not null;index"`
 	Category   *Category `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
+
+	Media []Media `json:"media,omitempty" gorm:"many2many:post_media;"`
 
 	Tags []Tag `json:"tags,omitempty" gorm:"many2many:post_tags"`
 
@@ -29,4 +31,3 @@ type Post struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
-

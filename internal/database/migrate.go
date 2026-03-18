@@ -23,6 +23,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.Tag{},
 		&model.Post{},
 		&model.Comment{},
+		&model.Media{},
+		&model.Mediable{},
 	)
 }
 

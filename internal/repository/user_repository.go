@@ -31,7 +31,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var u model.User
-	err := r.db.WithContext(ctx).First(&u, id).Error
+	err := r.db.WithContext(ctx).Preload("Media").First(&u, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (r *UserRepository) List(ctx context.Context, limit int) ([]model.User, err
 		limit = 500
 	}
 	var rows []model.User
-	if err := r.db.WithContext(ctx).Order("id asc").Limit(limit).Find(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Media").Order("id asc").Limit(limit).Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	return rows, nil

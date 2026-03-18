@@ -30,6 +30,7 @@ func (r *CommentRepository) ListByPostID(ctx context.Context, postID uint, limit
 	err := r.db.WithContext(ctx).
 		Model(&model.Comment{}).
 		Preload("Tags").
+		Preload("Media").
 		Where("post_id = ?", postID).
 		Order("id asc").
 		Limit(limit).

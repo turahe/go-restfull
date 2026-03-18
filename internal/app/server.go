@@ -32,6 +32,11 @@ func Serve(ctx context.Context) error {
 		return err
 	}
 
+	// Ensure media upload directory exists inside the container/host.
+	if err := os.MkdirAll(cfg.MediaUploadDir, 0o755); err != nil {
+		return err
+	}
+
 	log, err := logger.New(cfg.Env)
 	if err != nil {
 		return err
@@ -85,6 +90,7 @@ func Serve(ctx context.Context) error {
 	postRepo := repository.NewPostRepository(db.Gorm)
 	commentRepo := repository.NewCommentRepository(db.Gorm)
 	twoFARepo := repository.NewTwoFactorRepository(db.Gorm)
+	mediaRepo := repository.NewMediaRepository(db.Gorm)
 
 	// Services
 	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer)
@@ -95,6 +101,7 @@ func Serve(ctx context.Context) error {
 	tagSvc := service.NewTagService(tagRepo)
 	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo)
 	commentSvc := service.NewCommentService(commentRepo, tagRepo)
+	mediaSvc := service.NewMediaService(mediaRepo, cfg)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc, log)
@@ -104,6 +111,7 @@ func Serve(ctx context.Context) error {
 	tagH := handler.NewTagHandler(tagSvc, log)
 	postH := handler.NewPostHandler(postSvc, log)
 	commentH := handler.NewCommentHandler(commentSvc, log)
+	mediaH := handler.NewMediaHandler(mediaSvc, log)
 	rbacH := handler.NewRBACHandler(rbacSvc, log)
 
 	if cfg.Env == "prod" {
@@ -161,6 +169,11 @@ func Serve(ctx context.Context) error {
 			auth.POST("/tags", tagH.Create)
 			auth.PUT("/tags/:id", tagH.Update)
 			auth.DELETE("/tags/:id", tagH.Delete)
+
+			auth.POST("/media", mediaH.UploadMedia)
+			auth.GET("/media", mediaH.ListMedia)
+			auth.GET("/media/:id", mediaH.GetMediaByID)
+			auth.DELETE("/media/:id", mediaH.DeleteMedia)
 
 			auth.GET("/users", userH.List)
 			auth.GET("/users/:id", userH.GetByID)

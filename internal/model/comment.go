@@ -15,6 +15,8 @@ type Comment struct {
 
 	Tags []Tag `json:"tags,omitempty" gorm:"many2many:comment_tags"`
 
+	Media []Media `json:"media,omitempty" gorm:"many2many:comment_media;"`
+
 	CreatedBy uint  `json:"createdBy" gorm:"not null;index"`
 	UpdatedBy uint  `json:"updatedBy" gorm:"not null;index"`
 	DeletedBy *uint `json:"deletedBy,omitempty" gorm:"index"`
@@ -23,4 +25,3 @@ type Comment struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
-
