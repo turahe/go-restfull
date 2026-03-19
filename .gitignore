@@ -1,3 +1,25 @@
 .env
 *.log
 
+# Environment and secrets
+.env.*
+!.env.example
+keys/
+
+# Go build artifacts
+bin/
+dist/
+*.out
+coverage.out
+coverage.html
+
+# Runtime data
+uploads/
+tmp/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

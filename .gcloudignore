@@ -1,0 +1,28 @@
+# Exclude VCS and local tooling metadata
+.git
+.gitignore
+.github
+.cursor
+agent-tools
+terminals
+
+# Exclude local env/secrets (keep sample env)
+.env
+.env.*
+!.env.example
+
+# Exclude local build/test/runtime outputs
+bin
+dist
+tmp
+uploads
+coverage.out
+coverage.html
+*.log
+*.out
+
+# Exclude editor/OS files
+.vscode
+.idea
+.DS_Store
+Thumbs.db

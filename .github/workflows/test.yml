@@ -22,6 +22,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Generate JWT keys
+        run: |
+          mkdir -p keys
+          openssl genrsa -out keys/jwtRS256.key 2048
+          openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
+
       - name: Build
         run: go build -v ./...
 
@@ -36,6 +42,12 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+
+      - name: Generate JWT keys
+        run: |
+          mkdir -p keys
+          openssl genrsa -out keys/jwtRS256.key 2048
+          openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
 
       - name: Run unit tests
         run: go test -v -count=1 ./...
@@ -65,6 +77,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Generate JWT keys
+        run: |
+          mkdir -p keys
+          openssl genrsa -out keys/jwtRS256.key 2048
+          openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
+
       - name: Run integration tests
         env:
           DB_HOST: 127.0.0.1
@@ -72,7 +90,7 @@ jobs:
           DB_USER: root
           DB_PASSWORD: root
           DB_NAME: blog_test
-        run: go test -v -count=1 -tags=integration ./internal/repository/...
+        run: go test -v -count=1 -tags=integration ./...
 
   rate-limiter:
     name: Rate limiter (Redis)
@@ -96,6 +114,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Generate JWT keys
+        run: |
+          mkdir -p keys
+          openssl genrsa -out keys/jwtRS256.key 2048
+          openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
+
       - name: Run rate limiter tests
         env:
           REDIS_ADDR: 127.0.0.1:6379
@@ -113,6 +137,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Generate JWT keys
+        run: |
+          mkdir -p keys
+          openssl genrsa -out keys/jwtRS256.key 2048
+          openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
+
       - name: Run tests with race detector
-        run: go test -race -count=1 ./internal/repository/... ./internal/service/...
+        run: go test -race -count=1 ./...
 

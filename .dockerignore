@@ -1,0 +1,32 @@
+.git
+.gitignore
+.github
+.cursor
+agent-tools
+terminals
+
+# Local env / secrets files (except sample env)
+.env
+.env.*
+!.env.example
+
+# Build/test outputs
+bin
+dist
+tmp
+uploads
+coverage.out
+coverage.html
+*.log
+*.out
+
+# Editor / OS files
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs and local metadata not required for runtime image
+README.md
+cloudbuild.yaml
+docker-compose.yml

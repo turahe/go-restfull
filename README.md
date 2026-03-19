@@ -73,15 +73,19 @@ git clone git@github.com:turahe/go-restfull.git
 cd go-rest
 go mod tidy
 cp .env.example .env
+mkdir -p keys
+openssl genrsa -out keys/jwtRS256.key 2048
+openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
 go run cmd/main.go
 ```
 
 ### Local run notes
 
 1. Create a MySQL database (default: `blog`) or set `DB_NAME` in `.env`.
-2. Update `.env` for DB, Redis, JWT keys, and optional MinIO.
-3. Auto-migration runs on startup.
-4. Swagger UI is available at `http://localhost:8080/swagger/index.html`.
+2. Generate JWT keys in `keys/` (or set custom key paths in `.env`).
+3. Update `.env` for DB, Redis, JWT keys, and optional MinIO.
+4. Auto-migration runs on startup.
+5. Swagger UI is available at `http://localhost:8080/swagger/index.html`.
 
 ## Configuration
 
