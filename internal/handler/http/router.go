@@ -57,9 +57,11 @@ func NewRouter(d Deps) *gin.Engine {
 	if d.Cfg.Env == "local" {
 		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 	}
-	r.GET("/healthz", func(c *gin.Context) {
+	healthHandler := func(c *gin.Context) {
 		response.OK(c, 2000001, "ok", gin.H{"status": "ok"})
-	})
+	}
+	r.GET("/healthz", healthHandler)
+	r.GET("/health", healthHandler)
 
 	api := r.Group("/api/v1")
 	{

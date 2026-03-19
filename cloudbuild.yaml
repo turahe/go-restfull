@@ -1,0 +1,65 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$SHORT_SHA
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:latest
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$SHORT_SHA
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --${_AUTH_FLAG}
+      - --port
+      - "8080"
+      - --cpu
+      - ${_CPU}
+      - --memory
+      - ${_MEMORY}
+      - --min-instances
+      - ${_MIN_INSTANCES}
+      - --max-instances
+      - ${_MAX_INSTANCES}
+      - --concurrency
+      - ${_CONCURRENCY}
+      - --timeout
+      - ${_TIMEOUT}
+      - --set-env-vars
+      - ${_ENV_VARS}
+
+substitutions:
+  _SERVICE: go-rest-api
+  _REGION: asia-southeast2
+  _REPOSITORY: go-rest
+  _AUTH_FLAG: allow-unauthenticated
+  _CPU: "1"
+  _MEMORY: 512Mi
+  _MIN_INSTANCES: "0"
+  _MAX_INSTANCES: "10"
+  _CONCURRENCY: "80"
+  _TIMEOUT: 300s
+  _ENV_VARS: APP_ENV=prod
+
+options:
+  logging: CLOUD_LOGGING_ONLY

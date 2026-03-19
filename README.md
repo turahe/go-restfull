@@ -111,6 +111,34 @@ docker compose up -d --build
 docker compose down
 ```
 
+## Google Cloud Run
+
+This project supports Cloud Run container deployment.
+
+### Why it works
+
+- The app now honors Cloud Run's injected `PORT` variable (with fallback to `SERVER_PORT`).
+- `Dockerfile` already builds a Linux container and starts the API (`/app/api serve`).
+
+### Deploy with gcloud
+
+```bash
+gcloud run deploy go-rest-api \
+  --source . \
+  --region asia-southeast2 \
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars "APP_ENV=prod,DB_HOST=<db-host>,DB_PORT=3306,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
+```
+
+### Deploy via Cloud Build
+
+`cloudbuild.yaml` is included for CI/CD deployment to Cloud Run:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml
+```
+
 ## Makefile Commands
 
 ```bash

@@ -60,7 +60,8 @@ func Load() (Config, error) {
 
 	cfg := Config{
 		Env:                strings.TrimSpace(os.Getenv("APP_ENV")),
-		ServerPort:         strings.TrimSpace(getEnvDefault("SERVER_PORT", "8080")),
+		// Cloud Run injects PORT; prefer it over SERVER_PORT when present.
+		ServerPort:         strings.TrimSpace(getEnvFirstNonEmpty("PORT", "SERVER_PORT", "8080")),
 		RateLimitRPS:       getEnvFloatDefault("RATE_LIMIT_RPS", 5),
 		RateLimitBurst:     getEnvIntDefault("RATE_LIMIT_BURST", 10),
 		RedisAddr:          strings.TrimSpace(os.Getenv("REDIS_ADDR")),
@@ -149,6 +150,16 @@ func getEnvDefault(key, def string) string {
 		return def
 	}
 	return v
+}
+
+func getEnvFirstNonEmpty(keys ...string) string {
+	for _, k := range keys[:len(keys)-1] {
+		v := strings.TrimSpace(os.Getenv(k))
+		if v != "" {
+			return v
+		}
+	}
+	return keys[len(keys)-1]
 }
 
 func getEnvIntDefault(key string, def int) int {
