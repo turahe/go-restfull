@@ -1,4 +1,4 @@
-package app
+package http
 
 import (
 	"context"
@@ -12,27 +12,23 @@ import (
 	"go-rest/internal/config"
 	"go-rest/internal/database"
 	"go-rest/internal/handler"
-	"go-rest/internal/middleware"
 	"go-rest/internal/rbac"
 	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/logger"
-	"go-rest/pkg/response"
 
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	swaggerfiles "github.com/swaggo/files"
-	ginswagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 )
 
+// Serve is the HTTP entrypoint for the application.
+// It owns process-level wiring: config, infra connections, DI, router, and graceful shutdown.
 func Serve(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	// Ensure media upload directory exists inside the container/host.
 	if err := os.MkdirAll(cfg.MediaUploadDir, 0o755); err != nil {
 		return err
 	}
@@ -49,7 +45,6 @@ func Serve(ctx context.Context) error {
 	}
 	defer func() { _ = db.SQL.Close() }()
 
-	var rdbCloser func()
 	var rdb *redis.Client
 	if cfg.RedisAddr != "" {
 		rr, err := database.ConnectRedis(cfg)
@@ -57,11 +52,8 @@ func Serve(ctx context.Context) error {
 			log.Warn("redis connect failed (rate limiter will be disabled)", zap.Error(err))
 		} else {
 			rdb = rr
-			rdbCloser = func() { _ = rdb.Close() }
+			defer func() { _ = rdb.Close() }()
 		}
-	}
-	if rdbCloser != nil {
-		defer rdbCloser()
 	}
 
 	if err := database.AutoMigrate(db.Gorm); err != nil {
@@ -114,84 +106,25 @@ func Serve(ctx context.Context) error {
 	mediaH := handler.NewMediaHandler(mediaSvc, log)
 	rbacH := handler.NewRBACHandler(rbacSvc, log)
 
-	if cfg.Env == "prod" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	r := gin.New()
-	r.Use(middleware.Recovery(log))
-	r.Use(middleware.RequestLogger(log))
-	if rdb != nil {
-		r.Use(middleware.RateLimiterRedis(rdb, cfg.RateLimitKeyPrefix, cfg.RateLimitRPS, cfg.RateLimitBurst, log))
-	} else {
-		r.Use(middleware.RateLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst))
-	}
-
-	if cfg.Env == "local" {
-		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
-	}
-	r.GET("/healthz", func(c *gin.Context) {
-		response.OK(c, 2000001, "ok", gin.H{"status": "ok"})
+	r := NewRouter(Deps{
+		Cfg:      cfg,
+		Log:      log,
+		Redis:    rdb,
+		JWT:      jwtm,
+		RBAC:     rbacSvc,
+		AuthRepo: authRepo,
+		Handlers: Handlers{
+			Auth:     authH,
+			User:     userH,
+			Role:     roleH,
+			Category: categoryH,
+			Tag:      tagH,
+			Post:     postH,
+			Comment:  commentH,
+			Media:    mediaH,
+			RBAC:     rbacH,
+		},
 	})
-
-	api := r.Group("/api/v1")
-	{
-		api.POST("auth/register", authH.Register)
-		api.POST("auth/login", authH.Login)
-		api.POST("auth/refresh", authH.Refresh)
-
-		api.GET("/posts", postH.List)
-		// NOTE: Gin can't disambiguate /posts/:slug from /posts/:id/comments.
-		api.GET("/posts/slug/:slug", postH.GetBySlug)
-		api.GET("/categories", categoryH.List)
-		api.GET("/categories/:slug", categoryH.GetBySlug)
-		api.GET("/tags", tagH.List)
-		api.GET("/tags/:slug", tagH.GetBySlug)
-
-		auth := api.Group("")
-		auth.Use(middleware.JWTAuth(jwtm, authRepo, log))
-		auth.Use(middleware.RBAC(rbacSvc, log))
-		{
-			auth.GET("/auth/profile", authH.Profile)
-			auth.POST("/auth/password/change", authH.ChangePassword)
-			auth.POST("/auth/email/change", authH.ChangeEmail)
-			auth.POST("/auth/2fa/setup", authH.TwoFASetup)
-			auth.POST("/auth/2fa/enable", authH.TwoFAEnable)
-			auth.POST("/auth/impersonate", authH.Impersonate)
-			auth.POST("/posts", postH.Create)
-			auth.PUT("/posts/:id", postH.Update)
-			auth.DELETE("/posts/:id", postH.Delete)
-
-			auth.POST("/posts/:id/comments", commentH.Create)
-
-			auth.POST("/categories", categoryH.Create)
-			auth.PUT("/categories/:id", categoryH.Update)
-			auth.DELETE("/categories/:id", categoryH.Delete)
-
-			auth.POST("/tags", tagH.Create)
-			auth.PUT("/tags/:id", tagH.Update)
-			auth.DELETE("/tags/:id", tagH.Delete)
-
-			auth.POST("/media", mediaH.UploadMedia)
-			auth.GET("/media", mediaH.ListMedia)
-			auth.GET("/media/:id", mediaH.GetMediaByID)
-			auth.DELETE("/media/:id", mediaH.DeleteMedia)
-
-			auth.GET("/users", userH.List)
-			auth.GET("/users/:id", userH.GetByID)
-
-			auth.GET("/roles", roleH.List)
-			auth.POST("/roles", roleH.Create)
-			auth.DELETE("/roles/:id", roleH.Delete)
-
-			auth.POST("/rbac/assign-role", rbacH.AssignRole)
-			auth.POST("/rbac/add-permission", rbacH.AddPermission)
-		}
-
-		api.GET("/posts/:id/comments", commentH.List)
-
-		api.POST("/auth/2fa/verify", authH.TwoFAVerify)
-	}
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
@@ -228,3 +161,4 @@ func Serve(ctx context.Context) error {
 	log.Info("server stopped")
 	return nil
 }
+

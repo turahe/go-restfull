@@ -1,9 +1,12 @@
-.PHONY: help tidy test swagger run serve seed-rbac env local-serve local-seed-rbac local-deps docker-up docker-down docker-build docker-logs db-up db-down
+.PHONY: help tidy test test-unit test-cover test-ci swagger run serve seed-rbac env local-serve local-seed-rbac local-deps docker-up docker-down docker-build docker-logs db-up db-down
 
 help:
 	@echo "Targets:"
 	@echo "  tidy        - go mod tidy"
 	@echo "  test        - run go test ./..."
+	@echo "  test-unit   - run unit tests (no cache, verbose)"
+	@echo "  test-cover  - run tests with coverage report"
+	@echo "  test-ci     - tidy + test (CI-like)"
 	@echo "  swagger     - regenerate swagger docs"
 	@echo "  env         - create .env from .env.example (if missing)"
 	@echo ""
@@ -26,13 +29,22 @@ tidy:
 test:
 	go test ./...
 
+test-unit:
+	go test -count=1 -v ./...
+
+test-cover:
+	go test -count=1 ./... -coverprofile=tmp/coverage.out
+	go tool cover -func=tmp/coverage.out
+
+test-ci: tidy test
+
 swagger:
 	# Swag scans the provided directories for annotations; this avoids running `go list ./` in
 	# the module root (which contains no Go files).
 	# When `-d` is set, `-g/--generalInfo` must be relative to the first directory in `-d`.
 	# `internal/` has no top-level Go files, only subpackages, so scan only concrete package dirs
 	# that contain .go files (avoid `./internal` itself, which triggers `go list` warnings).
-	swag init -g main.go -o docs -d ./cmd,./internal/app,./internal/config,./internal/database,./internal/handler,./internal/middleware,./internal/model,./internal/rbac,./internal/repository,./internal/seeder,./internal/service,./pkg/logger,./pkg/response
+	swag init -g main.go -o docs -d ./cmd,./internal/config,./internal/database,./internal/handler,./internal/middleware,./internal/model,./internal/rbac,./internal/repository,./internal/seeder,./internal/service,./pkg/logger,./pkg/response
 
 run:
 	go run ./cmd

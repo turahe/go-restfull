@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"go-rest/internal/model"
-	"go-rest/internal/repository"
 
 	"gorm.io/gorm"
 )
@@ -15,11 +14,16 @@ var (
 	ErrInvalidUserID = errors.New("invalid user id")
 )
 
-type UserService struct {
-	users *repository.UserRepository
+type UserRepo interface {
+	List(ctx context.Context, limit int) ([]model.User, error)
+	FindByID(ctx context.Context, id uint) (*model.User, error)
 }
 
-func NewUserService(users *repository.UserRepository) *UserService {
+type UserService struct {
+	users UserRepo
+}
+
+func NewUserService(users UserRepo) *UserService {
 	return &UserService{users: users}
 }
 

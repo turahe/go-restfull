@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -15,10 +17,15 @@ import (
 
 type UserHandler struct {
 	BaseHandler
-	users *service.UserService
+	users UserService
 }
 
-func NewUserHandler(users *service.UserService, log *zap.Logger) *UserHandler {
+type UserService interface {
+	List(ctx context.Context, limit int) ([]model.User, error)
+	GetByID(ctx context.Context, id uint) (*model.User, error)
+}
+
+func NewUserHandler(users UserService, log *zap.Logger) *UserHandler {
 	return &UserHandler{BaseHandler: BaseHandler{Log: log}, users: users}
 }
 

@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -16,10 +18,15 @@ import (
 
 type CommentHandler struct {
 	BaseHandler
-	comments *service.CommentService
+	comments CommentService
 }
 
-func NewCommentHandler(comments *service.CommentService, log *zap.Logger) *CommentHandler {
+type CommentService interface {
+	Create(ctx context.Context, postID uint, userID uint, content string, tagIDs []uint) (*model.Comment, error)
+	List(ctx context.Context, postID uint, limit int) ([]model.Comment, error)
+}
+
+func NewCommentHandler(comments CommentService, log *zap.Logger) *CommentHandler {
 	return &CommentHandler{BaseHandler: BaseHandler{Log: log}, comments: comments}
 }
 

@@ -1,0 +1,137 @@
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"go-rest/internal/middleware"
+	"go-rest/internal/model"
+	"go-rest/pkg/response"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+type mockUserService struct {
+	mock.Mock
+}
+
+func (m *mockUserService) List(ctx context.Context, limit int) ([]model.User, error) {
+	args := m.Called(ctx, limit)
+	return args.Get(0).([]model.User), args.Error(1)
+}
+
+func (m *mockUserService) GetByID(ctx context.Context, id uint) (*model.User, error) {
+	args := m.Called(ctx, id)
+	u, _ := args.Get(0).(*model.User)
+	return u, args.Error(1)
+}
+
+func withAuth(role string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("auth_claims", middleware.AuthClaims{Role: role, UserID: 1})
+		c.Next()
+	}
+}
+
+func decodeEnvelope(t *testing.T, rr *httptest.ResponseRecorder) response.Envelope {
+	t.Helper()
+	var env response.Envelope
+	if err := json.Unmarshal(rr.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v body=%s", err, rr.Body.String())
+	}
+	return env
+}
+
+func TestUserHandler_List(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	svc := &mockUserService{}
+	h := NewUserHandler(svc, nil)
+
+	r := gin.New()
+	r.Use(withAuth("admin"))
+	r.GET("/api/v1/users", h.List)
+
+	svc.On("List", mock.Anything, 100).Return([]model.User{{ID: 1}}, nil).Once()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	env := decodeEnvelope(t, rr)
+	assert.Equal(t, "ok", env.Message)
+	svc.AssertExpectations(t)
+}
+
+func TestUserHandler_List_Forbidden(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	svc := &mockUserService{}
+	h := NewUserHandler(svc, nil)
+
+	r := gin.New()
+	r.Use(withAuth("user"))
+	r.GET("/api/v1/users", h.List)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestUserHandler_GetByID(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	svc := &mockUserService{}
+	h := NewUserHandler(svc, nil)
+
+	r := gin.New()
+	r.Use(withAuth("admin"))
+	r.GET("/api/v1/users/:id", h.GetByID)
+
+	svc.On("GetByID", mock.Anything, uint(10)).Return(&model.User{ID: 10}, nil).Once()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/10", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	env := decodeEnvelope(t, rr)
+	assert.Equal(t, "ok", env.Message)
+	svc.AssertExpectations(t)
+}
+
+func TestUserHandler_GetByID_NotFound(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	svc := &mockUserService{}
+	h := NewUserHandler(svc, nil)
+
+	r := gin.New()
+	r.Use(withAuth("admin"))
+	r.GET("/api/v1/users/:id", h.GetByID)
+
+	svc.On("GetByID", mock.Anything, uint(10)).Return((*model.User)(nil), errors.New("user not found")).Once()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/10", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	// handler maps only service.ErrUserNotFound to 404; generic error -> 500
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	svc.AssertExpectations(t)
+}
+

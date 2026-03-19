@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/service"
 	"go-rest/internal/service/dto"
 	"go-rest/pkg/response"
@@ -15,10 +17,24 @@ import (
 
 type AuthHandler struct {
 	BaseHandler
-	auth *service.AuthService
+	auth AuthService
 }
 
-func NewAuthHandler(auth *service.AuthService, log *zap.Logger) *AuthHandler {
+type AuthService interface {
+	Register(ctx context.Context, name, email, password string) (*model.User, error)
+	Login(ctx context.Context, email, password string, meta dto.LoginMeta) (dto.LoginResult, error)
+	Refresh(ctx context.Context, refreshToken string, meta dto.LoginMeta) (dto.RefreshResult, error)
+	Profile(ctx context.Context, userID uint) (dto.AuthUser, error)
+	SetupTwoFA(ctx context.Context, userID uint, email string) (dto.TwoFactorSetupResult, error)
+	EnableTwoFA(ctx context.Context, userID uint, code string) error
+	VerifyTwoFAChallenge(ctx context.Context, challengeID string, deviceID string, code string) (dto.LoginResult, error)
+	ChangePassword(ctx context.Context, userID uint, currentPassword, newPassword string) error
+	ChangeEmail(ctx context.Context, userID uint, currentPassword, newEmail string) error
+	Logout(ctx context.Context, sessionID string, accessJTI string, accessExp time.Time, userID uint) error
+	Impersonate(ctx context.Context, impersonatorID uint, targetUserID uint, reason string, meta dto.LoginMeta) (dto.ImpersonationResult, error)
+}
+
+func NewAuthHandler(auth AuthService, log *zap.Logger) *AuthHandler {
 	return &AuthHandler{BaseHandler: BaseHandler{Log: log}, auth: auth}
 }
 

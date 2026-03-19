@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
@@ -16,10 +18,18 @@ import (
 
 type PostHandler struct {
 	BaseHandler
-	posts *service.PostService
+	posts PostService
 }
 
-func NewPostHandler(posts *service.PostService, log *zap.Logger) *PostHandler {
+type PostService interface {
+	List(ctx context.Context, cursor *uint, limit int, dir repository.CursorDirection) (repository.CursorPage, error)
+	GetBySlug(ctx context.Context, slug string) (*model.Post, error)
+	Create(ctx context.Context, userID uint, title, content string, categoryID uint, tagIDs []uint) (*model.Post, error)
+	Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryID *uint, tagIDs []uint) (*model.Post, error)
+	Delete(ctx context.Context, id uint, actorUserID uint) error
+}
+
+func NewPostHandler(posts PostService, log *zap.Logger) *PostHandler {
 	return &PostHandler{BaseHandler: BaseHandler{Log: log}, posts: posts}
 }
 

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"go-rest/internal/model"
-	"go-rest/internal/repository"
 	"go-rest/internal/service/dto"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -21,13 +21,57 @@ var (
 	ErrInvalidCurrentPass = errors.New("invalid current password")
 )
 
+type AuthUserRepo interface {
+	Create(ctx context.Context, u *model.User) error
+	FindByEmail(ctx context.Context, email string) (*model.User, error)
+	FindByID(ctx context.Context, id uint) (*model.User, error)
+	UpdatePassword(ctx context.Context, userID uint, newHash string) error
+	UpdateEmail(ctx context.Context, userID uint, newEmail string) error
+}
+
+type AuthRepo interface {
+	CreateSession(ctx context.Context, s *model.AuthSession) error
+	SessionActive(ctx context.Context, sessionID string) (bool, error)
+
+	CreateRefreshToken(ctx context.Context, t *model.RefreshToken) error
+	FindRefreshTokenByHash(ctx context.Context, hash string) (*model.RefreshToken, error)
+	MarkRefreshTokenUsed(ctx context.Context, refreshTokenID uint, usedAt time.Time) error
+	RevokeRefreshFamily(ctx context.Context, family string, reason string) error
+	RevokeSession(ctx context.Context, sessionID string, revokedBy *uint) error
+	RevokeRefreshBySessionID(ctx context.Context, sessionID string, reason string) error
+	CreateRevokedJTI(ctx context.Context, r *model.RevokedJTI) error
+}
+
+type AuthJWT interface {
+	DefaultRegistered(subject string, ttl time.Duration) jwt.RegisteredClaims
+	IssueAccessToken(cl dto.AccessClaims) (string, error)
+}
+
+type AuthRBAC interface {
+	AssignRole(ctx context.Context, userID uint, role string) (bool, error)
+	RolesForUser(ctx context.Context, userID uint) ([]string, error)
+	PermissionsForUser(ctx context.Context, userID uint) ([]string, error)
+}
+
+type AuthTwoFA interface {
+	IsEnabled(ctx context.Context, userID uint) (bool, error)
+	Setup(ctx context.Context, userID uint, email string) (dto.SetupResult, error)
+	Enable(ctx context.Context, userID uint, code string) error
+	NewLoginChallenge(ctx context.Context, userID uint, deviceID string, ttl time.Duration) (string, time.Time, error)
+	VerifyChallenge(ctx context.Context, challengeID string, deviceID string, code string, maxAttempts int) (uint, error)
+}
+
+type AuthAudit interface {
+	CreateImpersonation(ctx context.Context, a *model.ImpersonationAudit) error
+}
+
 type AuthService struct {
-	users *repository.UserRepository
-	auth  *repository.AuthRepository
-	jwt   *JWTService
-	audit *repository.AuditRepository
-	rbac  *RBACService
-	twoFA *TwoFactorService
+	users AuthUserRepo
+	auth  AuthRepo
+	jwt   AuthJWT
+	audit AuthAudit
+	rbac  AuthRBAC
+	twoFA AuthTwoFA
 
 	accessTTL      time.Duration
 	refreshTTLDays int
@@ -35,7 +79,7 @@ type AuthService struct {
 	refreshPepper  string
 }
 
-func NewAuthService(users *repository.UserRepository, authRepo *repository.AuthRepository, auditRepo *repository.AuditRepository, rbacSvc *RBACService, jwtm *JWTService, twoFA *TwoFactorService, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string) *AuthService {
+func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, rbacSvc AuthRBAC, jwtm AuthJWT, twoFA AuthTwoFA, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string) *AuthService {
 	return &AuthService{
 		users:          users,
 		auth:           authRepo,

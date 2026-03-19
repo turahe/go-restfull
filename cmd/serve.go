@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go-rest/internal/app"
+	httpserver "go-rest/internal/handler/http"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +12,7 @@ func newServeCmd() *cobra.Command {
 		Short:        "Run the HTTP API server",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return app.Serve(cmd.Context())
+			return httpserver.Serve(cmd.Context())
 		},
 	}
 }

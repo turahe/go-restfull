@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -16,10 +18,18 @@ import (
 
 type CategoryHandler struct {
 	BaseHandler
-	categories *service.CategoryService
+	categories CategoryService
 }
 
-func NewCategoryHandler(categories *service.CategoryService, log *zap.Logger) *CategoryHandler {
+type CategoryService interface {
+	List(ctx context.Context, limit int) ([]model.Category, error)
+	GetBySlug(ctx context.Context, slug string) (*model.Category, error)
+	Create(ctx context.Context, actorUserID uint, name string) (*model.Category, error)
+	Update(ctx context.Context, id uint, actorUserID uint, name string) (*model.Category, error)
+	Delete(ctx context.Context, id uint, actorUserID uint) error
+}
+
+func NewCategoryHandler(categories CategoryService, log *zap.Logger) *CategoryHandler {
 	return &CategoryHandler{BaseHandler: BaseHandler{Log: log}, categories: categories}
 }
 

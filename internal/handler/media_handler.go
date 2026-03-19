@@ -1,13 +1,16 @@
 package handler
 
 import (
+	"context"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"go-rest/internal/middleware"
+	"go-rest/internal/model"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -17,10 +20,18 @@ import (
 
 type MediaHandler struct {
 	BaseHandler
-	mediaSvc *service.MediaService
+	mediaSvc MediaService
 }
 
-func NewMediaHandler(mediaSvc *service.MediaService, log *zap.Logger) *MediaHandler {
+type MediaService interface {
+	Upload(ctx context.Context, actorUserID uint, mediaableType string, mediaableID *uint, fh *multipart.FileHeader) (*model.Media, error)
+	List(ctx context.Context, actorUserID uint, limit int) ([]model.Media, error)
+	GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error)
+	Delete(ctx context.Context, actorUserID, id uint) error
+	PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error)
+}
+
+func NewMediaHandler(mediaSvc MediaService, log *zap.Logger) *MediaHandler {
 	return &MediaHandler{BaseHandler: BaseHandler{Log: log}, mediaSvc: mediaSvc}
 }
 
