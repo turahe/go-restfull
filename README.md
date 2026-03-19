@@ -10,7 +10,7 @@
 ## 2. Description
 
 This project provides a secure, modular, and testable backend for blog-style platforms.  
-It includes authentication, RBAC authorization, content management (posts, categories, comments), media uploads, and operational tooling (testing, CI, SonarQube).
+It includes authentication, RBAC authorization, content management (posts, categories, comments), media uploads, and operational tooling (testing and CI).
 
 It is designed for:
 
@@ -30,7 +30,7 @@ It is designed for:
 - **Object Storage:** MinIO (S3-compatible)
 - **API Docs:** Swagger (swaggo)
 - **Testing:** Go test, integration tests, race detector, benchmarks
-- **CI:** GitHub Actions + SonarQube
+- **CI:** GitHub Actions
 
 ## 4. Features
 
@@ -230,7 +230,7 @@ Core tables include:
   ```
   > Requires CGO-enabled Go toolchain.
 
-## CI and Code Quality (SonarQube)
+## CI
 
 GitHub Actions runs:
 
@@ -239,19 +239,6 @@ GitHub Actions runs:
 - integration tests (MySQL)
 - Redis rate limiter test
 - race checks
-- SonarQube scan + quality gate
-
-Configure repository secrets for SonarQube:
-
-- `SONAR_HOST_URL` — your SonarQube server URL **including scheme** (e.g. `https://sonarqube.example.com`)
-- `SONAR_TOKEN` — token with analysis permissions
-
-Local Sonar scan example:
-
-```bash
-go test -covermode=atomic -coverprofile=coverage.out ./...
-sonar-scanner
-```
 
 ## Windows Note
 
