@@ -23,7 +23,7 @@ func BenchmarkAuthService_Register(b *testing.B) {
 		u.ID = 1
 	})
 	// nil rbac so we don't benchmark AssignRole
-	svc := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
+	svc := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, nil, 10, 30, 5, "pepper", zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = svc.Register(ctx, "Bench", "bench@example.com", "password123")
@@ -47,7 +47,7 @@ func BenchmarkAuthService_Login(b *testing.B) {
 	j := &mockJWT{}
 	j.On("DefaultRegistered", "1", 10*time.Minute).Return(jwt.RegisteredClaims{})
 	j.On("IssueAccessToken", mock.AnythingOfType("dto.AccessClaims")).Return("token", nil)
-	svc := NewAuthService(users, authRepo, nil, rbac, j, nil, 10, 30, 5, "pepper", zap.NewNop())
+	svc := NewAuthService(users, authRepo, nil, rbac, j, nil, nil, 10, 30, 5, "pepper", zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = svc.Login(ctx, "login@example.com", "password", dto.LoginMeta{DeviceID: "dev1"})

@@ -16,7 +16,7 @@ func BenchmarkUserService_GetByID(b *testing.B) {
 	ctx := context.Background()
 	repo := &mockUserRepo{}
 	repo.On("FindByID", mock.Anything, uint(123)).Return(&model.User{ID: 123, Email: "a@b.com", Name: "A"}, nil)
-	svc := NewUserService(repo, zap.NewNop())
+	svc := NewUserService(repo, nil, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = svc.GetByID(ctx, 123)
@@ -33,7 +33,7 @@ func BenchmarkUserService_List(b *testing.B) {
 	repo.On("List", mock.Anything, request.UserListRequest{Limit: 20}).Return(repository.CursorPage{
 		Items: users,
 	}, nil)
-	svc := NewUserService(repo, zap.NewNop())
+	svc := NewUserService(repo, nil, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = svc.List(ctx, request.UserListRequest{Limit: 20})

@@ -18,7 +18,7 @@ import (
 
 func BenchmarkUserRepository_Create(b *testing.B) {
 	ctx := context.Background()
-	db := openBenchDB(b, &model.User{}, &model.Media{})
+	db := openBenchDB(b, &model.User{}, &model.Media{}, &model.UserMedia{})
 	repo := NewUserRepository(db, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -29,7 +29,7 @@ func BenchmarkUserRepository_Create(b *testing.B) {
 
 func BenchmarkUserRepository_FindByID(b *testing.B) {
 	ctx := context.Background()
-	db := openBenchDB(b, &model.User{}, &model.Media{})
+	db := openBenchDB(b, &model.User{}, &model.Media{}, &model.UserMedia{})
 	repo := NewUserRepository(db, zap.NewNop())
 	u := &model.User{Name: "B", Email: "findbyid@b.com", Password: "x"}
 	if err := repo.Create(ctx, u); err != nil {
@@ -44,7 +44,7 @@ func BenchmarkUserRepository_FindByID(b *testing.B) {
 
 func BenchmarkUserRepository_FindByEmail(b *testing.B) {
 	ctx := context.Background()
-	db := openBenchDB(b, &model.User{}, &model.Media{})
+	db := openBenchDB(b, &model.User{}, &model.Media{}, &model.UserMedia{})
 	repo := NewUserRepository(db, zap.NewNop())
 	u := &model.User{Name: "B", Email: "findbyemail@b.com", Password: "x"}
 	if err := repo.Create(ctx, u); err != nil {
@@ -58,7 +58,7 @@ func BenchmarkUserRepository_FindByEmail(b *testing.B) {
 
 func BenchmarkUserRepository_List(b *testing.B) {
 	ctx := context.Background()
-	db := openBenchDB(b, &model.User{}, &model.Media{})
+	db := openBenchDB(b, &model.User{}, &model.Media{}, &model.UserMedia{})
 	repo := NewUserRepository(db, zap.NewNop())
 	for i := 0; i < 50; i++ {
 		_ = repo.Create(ctx, &model.User{Name: "B", Email: fmt.Sprintf("list%d@b.com", i), Password: "x"})

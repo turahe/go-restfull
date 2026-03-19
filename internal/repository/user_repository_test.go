@@ -14,7 +14,7 @@ import (
 
 func TestUserRepository_Create_FindByEmail_FindByID(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.UserMedia{}, &model.Role{}, &model.UserRole{})
 	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 
@@ -34,7 +34,7 @@ func TestUserRepository_Create_FindByEmail_FindByID(t *testing.T) {
 
 func TestUserRepository_List_LimitClamp(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.UserMedia{}, &model.Role{}, &model.UserRole{})
 	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 
@@ -60,7 +60,7 @@ func TestUserRepository_List_LimitClamp(t *testing.T) {
 // Run with: go test -race -run TestUserRepository_ConcurrentCreate_SameEmail ./internal/repository/...
 func TestUserRepository_ConcurrentCreate_SameEmail(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.UserMedia{}, &model.Role{}, &model.UserRole{})
 	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 	const concurrency = 20

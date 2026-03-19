@@ -6,4 +6,5 @@ type AuthUser struct {
 	Email       string   `json:"email"`
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
+	Avatar      *string  `json:"avatar"`
 }

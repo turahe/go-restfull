@@ -112,7 +112,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				s.On("Register", mock.Anything, "abcd", "a@b.com", "12345678").Return(&model.User{ID: 1, Name: "abcd", Email: "a@b.com"}, nil).Once()
 			},
 			wantStatus: http.StatusCreated,
-			wantMsg:    "registered",
+			wantMsg:    "Successfully registered user",
 		},
 	}
 

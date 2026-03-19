@@ -71,7 +71,7 @@ func TestUserHandler_List(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	env := decodeEnvelope(t, rr)
-	assert.Equal(t, "ok", env.Message)
+	assert.Equal(t, "Successfully retrieved users", env.Message)
 	svc.AssertExpectations(t)
 }
 
@@ -109,7 +109,7 @@ func TestUserHandler_GetByID(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	env := decodeEnvelope(t, rr)
-	assert.Equal(t, "ok", env.Message)
+	assert.Equal(t, "Successfully retrieved user", env.Message)
 	svc.AssertExpectations(t)
 }
 

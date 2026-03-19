@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
@@ -19,6 +20,25 @@ func NewUserRepository(db *gorm.DB, log *zap.Logger) *UserRepository {
 	return &UserRepository{db: db, log: log}
 }
 
+func (r *UserRepository) loadAvatar(ctx context.Context, user *model.User) (*model.Media, error) {
+	var avatar model.Media
+	err := r.db.WithContext(ctx).
+		Model(&model.Media{}).
+		Joins("INNER JOIN user_media ON media.id = user_media.media_id").
+		Where("user_media.user_id = ? AND user_media.type = ?", user.ID, "avatar").
+		Limit(1).
+		First(&avatar).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Fallback when a user has no avatar row in `user_media`.
+			fallback := "https://ui-avatars.com/api/?name=" + user.Name
+			return &model.Media{DownloadURL: fallback}, nil
+		}
+		return nil, err
+	}
+	return &avatar, nil
+}
+
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 	err := r.db.WithContext(ctx).Create(u).Error
 	if err != nil {
@@ -31,7 +51,6 @@ func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	var u model.User
 	err := r.db.WithContext(ctx).
-		Preload("Media").
 		Preload("Roles").
 		Where("email = ?", email).
 		First(&u).Error
@@ -39,19 +58,34 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 		r.log.Error("failed to find user by email", zap.Error(err))
 		return nil, err
 	}
+
+	avatar, err := r.loadAvatar(ctx, &u)
+	if err != nil {
+		r.log.Error("failed to load user avatar", zap.Error(err))
+		return nil, err
+	}
+	u.Avatar = &avatar.DownloadURL
+
 	return &u, nil
 }
 
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var u model.User
 	err := r.db.WithContext(ctx).
-		Preload("Media").
 		Preload("Roles").
 		First(&u, id).Error
 	if err != nil {
 		r.log.Error("failed to find user by id", zap.Error(err))
 		return nil, err
 	}
+
+	avatar, err := r.loadAvatar(ctx, &u)
+	if err != nil {
+		r.log.Error("failed to load user avatar", zap.Error(err))
+		return nil, err
+	}
+	u.Avatar = &avatar.DownloadURL
+
 	return &u, nil
 }
 
@@ -120,6 +154,16 @@ func (r *UserRepository) List(ctx context.Context, req request.UserListRequest) 
 	if page > 1 {
 		tmp := rows[0].ID
 		prevCursor = &tmp
+	}
+
+	// Attach avatar for each returned user row.
+	for i := range rows {
+		avatar, err := r.loadAvatar(ctx, &rows[i])
+		if err != nil {
+			r.log.Error("failed to load user avatar", zap.Error(err))
+			return CursorPage{}, err
+		}
+		rows[i].Avatar = &avatar.DownloadURL
 	}
 
 	return CursorPage{Items: rows, NextCursor: nextCursor, PrevCursor: prevCursor}, nil

@@ -67,7 +67,13 @@ func (h *UserHandler) List(c *gin.Context) {
 	}
 	next := page.NextCursor != nil
 	prev := page.PrevCursor != nil
-	response.OKPaginated(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeListRetrieved), "ok", page.Items, next, prev)
+	response.OKPaginated(c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeListRetrieved),
+		"Successfully retrieved users",
+		page.Items,
+		next,
+		prev,
+	)
 }
 
 // GetUserByID godoc
@@ -110,5 +116,9 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		}
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeRetrieved), "ok", u)
+	response.OK(c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeRetrieved),
+		"Successfully retrieved user",
+		u,
+	)
 }

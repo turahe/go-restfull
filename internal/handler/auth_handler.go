@@ -67,11 +67,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeAuth, response.CaseCodeCreated), "registered", gin.H{
-		"id":    u.ID,
-		"name":  u.Name,
-		"email": u.Email,
-	})
+	response.Created(c,
+		response.BuildResponseCode(http.StatusCreated, response.ServiceCodeAuth, response.CaseCodeCreated),
+		"Successfully registered user",
+		gin.H{
+			"id":    u.ID,
+			"name":  u.Name,
+			"email": u.Email,
+		})
 }
 
 // Login godoc
@@ -108,7 +111,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeLoginSuccess), "ok", res)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeLoginSuccess), "Successfully logged in", res)
 }
 
 // TwoFASetup godoc
@@ -136,7 +139,7 @@ func (h *AuthHandler) TwoFASetup(c *gin.Context) {
 		h.internalError(c, response.ServiceCodeAuth, err, "2fa setup failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "Successfully initialized 2FA", res)
 }
 
 // TwoFAEnable godoc
@@ -168,7 +171,7 @@ func (h *AuthHandler) TwoFAEnable(c *gin.Context) {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeInvalidValue), "invalid 2fa code", err.Error())
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "enabled", nil)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "Successfully enabled 2FA", nil)
 }
 
 // TwoFAVerify godoc
@@ -196,7 +199,7 @@ func (h *AuthHandler) TwoFAVerify(c *gin.Context) {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeInvalidValue), "invalid 2fa verification", err.Error())
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "Successfully verified 2FA challenge", res)
 }
 
 // Refresh godoc
@@ -231,7 +234,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		h.internalError(c, response.ServiceCodeAuth, err, "refresh failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "Successfully refreshed token", res)
 }
 
 // Profile godoc
@@ -255,7 +258,10 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 		h.internalError(c, response.ServiceCodeAuth, err, "profile failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeRetrieved), "ok", profile)
+	response.OK(c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeRetrieved),
+		"Successfully retrieved profile",
+		profile)
 }
 
 // ChangePassword godoc
@@ -295,7 +301,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	_ = h.auth.Logout(c.Request.Context(), auth.SessionID, "", time.Time{}, auth.UserID)
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "password changed", nil)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "Successfully changed password", nil)
 }
 
 // ChangeEmail godoc
@@ -339,7 +345,7 @@ func (h *AuthHandler) ChangeEmail(c *gin.Context) {
 	}
 
 	_ = h.auth.Logout(c.Request.Context(), auth.SessionID, "", time.Time{}, auth.UserID)
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "email changed", nil)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeUpdated), "Successfully changed email", nil)
 }
 
 // Impersonate godoc
@@ -381,5 +387,5 @@ func (h *AuthHandler) Impersonate(c *gin.Context) {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeAuth, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "ok", res)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeAuth, response.CaseCodeSuccess), "Successfully impersonated user", res)
 }

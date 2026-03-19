@@ -86,14 +86,26 @@ func Serve(ctx context.Context) error {
 
 	// Services
 	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer, log)
-	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, twoFASvc, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper, log)
-	userSvc := service.NewUserService(userRepo, log)
+	mediaSvc := service.NewMediaService(mediaRepo, cfg, log)
+	authSvc := service.NewAuthService(userRepo,
+		authRepo,
+		auditRepo,
+		rbacSvc,
+		jwtm,
+		twoFASvc,
+		mediaSvc,
+		cfg.AccessTokenTTLMinutes,
+		cfg.RefreshTokenTTLDays,
+		cfg.ImpersonationTTLMinutes,
+		cfg.RefreshTokenPepper,
+		log,
+	)
+	userSvc := service.NewUserService(userRepo, mediaSvc, log)
 	roleSvc := service.NewRoleService(roleRepo, log)
 	categorySvc := service.NewCategoryService(categoryRepo, log)
 	tagSvc := service.NewTagService(tagRepo, log)
 	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo, log)
 	commentSvc := service.NewCommentService(commentRepo, tagRepo, log)
-	mediaSvc := service.NewMediaService(mediaRepo, cfg, log)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc, log)

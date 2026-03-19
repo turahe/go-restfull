@@ -212,3 +212,27 @@ func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, mediaab
 		return errors.New("invalid mediaableType")
 	}
 }
+
+func (r *MediaRepository) UserAvatar(ctx context.Context, user *model.User) (*string, error) {
+	if user == nil {
+		return nil, errors.New("invalid user id")
+	}
+
+	var avatar model.Media
+	err := r.db.WithContext(ctx).
+		Model(&model.Media{}).
+		Joins("INNER JOIN user_media ON media.id = user_media.media_id").
+		Where("user_media.user_id = ? AND user_media.type = ?", user.ID, "avatar").
+		Limit(1).
+		First(&avatar).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Fallback avatar when a user hasn't uploaded an avatar.
+			fallback := "https://ui-avatars.com/api/?name=" + user.Name
+			return &fallback, nil
+		}
+		return nil, err
+	}
+
+	return &avatar.DownloadURL, nil
+}

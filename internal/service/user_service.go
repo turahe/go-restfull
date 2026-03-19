@@ -24,11 +24,12 @@ type UserRepo interface {
 
 type UserService struct {
 	users UserRepo
+	media *MediaService
 	log   *zap.Logger
 }
 
-func NewUserService(users UserRepo, log *zap.Logger) *UserService {
-	return &UserService{users: users, log: log}
+func NewUserService(users UserRepo, media *MediaService, log *zap.Logger) *UserService {
+	return &UserService{users: users, media: media, log: log}
 }
 
 func (s *UserService) List(ctx context.Context, req request.UserListRequest) (repository.CursorPage, error) {
@@ -54,5 +55,17 @@ func (s *UserService) GetByID(ctx context.Context, id uint) (*model.User, error)
 		s.log.Error("failed to find user by id", zap.Error(err))
 		return nil, err
 	}
+
+	// Avatar is already loaded by the repository (with fallback).
+	// If media service wiring is present, refresh it to keep behavior consistent.
+	if s.media != nil {
+		avatar, err := s.media.UserAvatar(ctx, u)
+		if err != nil {
+			s.log.Error("failed to get user avatar", zap.Error(err))
+			return nil, err
+		}
+		u.Avatar = avatar
+	}
+
 	return u, nil
 }

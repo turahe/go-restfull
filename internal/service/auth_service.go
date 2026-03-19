@@ -67,21 +67,32 @@ type AuthAudit interface {
 }
 
 type AuthService struct {
-	log   *zap.Logger
-	users AuthUserRepo
-	auth  AuthRepo
-	jwt   AuthJWT
-	audit AuthAudit
-	rbac  AuthRBAC
-	twoFA AuthTwoFA
-
+	log            *zap.Logger
+	users          AuthUserRepo
+	auth           AuthRepo
+	jwt            AuthJWT
+	audit          AuthAudit
+	rbac           AuthRBAC
+	twoFA          AuthTwoFA
+	mediaSvc       *MediaService
 	accessTTL      time.Duration
 	refreshTTLDays int
 	impersonateTTL time.Duration
 	refreshPepper  string
 }
 
-func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, rbacSvc AuthRBAC, jwtm AuthJWT, twoFA AuthTwoFA, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string, log *zap.Logger) *AuthService {
+func NewAuthService(users AuthUserRepo,
+	authRepo AuthRepo,
+	auditRepo AuthAudit,
+	rbacSvc AuthRBAC,
+	jwtm AuthJWT,
+	twoFA AuthTwoFA,
+	mediaSvc *MediaService,
+	accessTTLMinutes int,
+	refreshTTLDays int,
+	impersonationTTLMinutes int,
+	refreshPepper string,
+	log *zap.Logger) *AuthService {
 	return &AuthService{
 		users:          users,
 		auth:           authRepo,
@@ -93,6 +104,7 @@ func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, 
 		refreshTTLDays: refreshTTLDays,
 		impersonateTTL: time.Duration(impersonationTTLMinutes) * time.Minute,
 		refreshPepper:  refreshPepper,
+		mediaSvc:       mediaSvc,
 		log:            log,
 	}
 }
@@ -149,12 +161,18 @@ func (s *AuthService) Profile(ctx context.Context, userID uint) (dto.AuthUser, e
 		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.AuthUser{}, err
 	}
+	avatar, err := s.mediaSvc.UserAvatar(ctx, u)
+	if err != nil {
+		s.log.Error("failed to get user avatar", zap.Error(err))
+		return dto.AuthUser{}, err
+	}
 	return dto.AuthUser{
 		ID:          u.ID,
 		Name:        u.Name,
 		Email:       u.Email,
 		Role:        role,
 		Permissions: perms,
+		Avatar:      avatar,
 	}, nil
 }
 
@@ -544,9 +562,6 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uint, sessio
 	if err != nil {
 		return "", nil, err
 	}
-	if err != nil {
-		return "", nil, err
-	}
 	exp := time.Now().Add(time.Duration(s.refreshTTLDays) * 24 * time.Hour)
 	m := &model.RefreshToken{
 		SessionID:     sessionID,
@@ -592,10 +607,6 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
-	if err != nil {
-		s.log.Error("failed to generate new uuid", zap.Error(err))
-		return dto.ImpersonationResult{}, err
-	}
 	now := time.Now()
 	sess := &model.AuthSession{
 		ID:         sessionID,
@@ -612,10 +623,6 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 	}
 
 	jti, err := newUUIDLike(s.log)
-	if err != nil {
-		s.log.Error("failed to generate new uuid", zap.Error(err))
-		return dto.ImpersonationResult{}, err
-	}
 	if err != nil {
 		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.ImpersonationResult{}, err
@@ -641,15 +648,16 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 	}
 
 	if s.audit != nil {
-		s.log.Error("failed to create impersonation audit", zap.Error(err))
-		return dto.ImpersonationResult{}, err
-		_ = s.audit.CreateImpersonation(ctx, &model.ImpersonationAudit{
+		if err := s.audit.CreateImpersonation(ctx, &model.ImpersonationAudit{
 			ImpersonatorID:     impersonatorID,
 			ImpersonatedUserID: target.ID,
 			Reason:             reason,
 			IPAddress:          meta.IPAddress,
 			UserAgent:          meta.UserAgent,
-		})
+		}); err != nil {
+			s.log.Error("failed to create impersonation audit", zap.Error(err))
+			return dto.ImpersonationResult{}, err
+		}
 	}
 
 	return dto.ImpersonationResult{AccessToken: accessToken, ExpiresAt: rc.ExpiresAt.Time}, nil

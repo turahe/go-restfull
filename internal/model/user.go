@@ -12,9 +12,9 @@ type User struct {
 	Email    string `json:"email" gorm:"type:varchar(190);not null;uniqueIndex"`
 	Password string `json:"-" gorm:"type:varchar(255);not null"`
 
-	Media []Media `json:"media,omitempty" gorm:"many2many:user_media;"`
-	Roles []Role  `json:"roles,omitempty" gorm:"many2many:user_roles;"`
-	// Avatar *Media  `json:"avatar,omitempty" gorm:"foreignKey:ID;references:AvatarID"`
+	Media  []Media `json:"media,omitempty" gorm:"many2many:user_media;"`
+	Roles  []Role  `json:"roles,omitempty" gorm:"many2many:user_roles;"`
+	Avatar *string `json:"avatar,omitempty" gorm:"-"`
 
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`

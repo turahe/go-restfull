@@ -260,6 +260,13 @@ func (s *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*mode
 	return m, nil
 }
 
+func (s *MediaService) UserAvatar(ctx context.Context, user *model.User) (*string, error) {
+	if user == nil {
+		return nil, ErrInvalidMediaUserID
+	}
+	return s.repo.UserAvatar(ctx, user)
+}
+
 func (s *MediaService) Delete(ctx context.Context, actorUserID, id uint) error {
 	if actorUserID == 0 || id == 0 {
 		return ErrInvalidMedia

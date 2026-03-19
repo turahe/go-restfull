@@ -85,7 +85,7 @@ func TestUserService_GetByID(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(repo)
 			}
-			svc := NewUserService(repo, zap.NewNop())
+			svc := NewUserService(repo, nil, zap.NewNop())
 
 			u, err := svc.GetByID(ctx, tc.id)
 
@@ -115,7 +115,7 @@ func TestUserService_List(t *testing.T) {
 		Items: []model.User{{ID: 1}},
 	}, nil).Once()
 
-	svc := NewUserService(repo, zap.NewNop())
+	svc := NewUserService(repo, nil, zap.NewNop())
 	page, err := svc.List(ctx, request.UserListRequest{Limit: 10})
 
 	assert.NoError(t, err)
