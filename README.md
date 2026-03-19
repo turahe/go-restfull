@@ -1,6 +1,6 @@
 # Go REST Blog API
 
-[![Test](https://github.com/turahe/go-rest/actions/workflows/test.yml/badge.svg)](https://github.com/turahe/go-rest/actions/workflows/test.yml)
+[![Test](https://github.com/turahe/go-restfull/actions/workflows/test.yml/badge.svg)](https://github.com/turahe/go-restfull/actions/workflows/test.yml)
 ![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)
 
 ## 1. Project Title
@@ -69,7 +69,7 @@ It is designed for:
 ## 6. Installation & Setup
 
 ```bash
-git clone <your-repo-url>
+git clone git@github.com:turahe/go-restfull.git
 cd go-rest
 go mod tidy
 cp .env.example .env
