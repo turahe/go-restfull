@@ -14,33 +14,36 @@ import (
 	"time"
 
 	"go-rest/internal/config"
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 	"go-rest/internal/repository"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 var (
-	ErrInvalidMedia     = errors.New("invalid media")
-	ErrMediaTooLarge   = errors.New("media too large")
-	ErrMediaNotFound   = errors.New("media not found")
-	ErrInvalidMediaUserID   = errors.New("invalid media user id")
-	ErrInvalidActorID  = errors.New("invalid actor id")
-	ErrInvalidUploadDir = errors.New("invalid upload dir")
+	ErrInvalidMedia       = errors.New("invalid media")
+	ErrMediaTooLarge      = errors.New("media too large")
+	ErrMediaNotFound      = errors.New("media not found")
+	ErrInvalidMediaUserID = errors.New("invalid media user id")
+	ErrInvalidActorID     = errors.New("invalid actor id")
+	ErrInvalidUploadDir   = errors.New("invalid upload dir")
 )
 
 type MediaService struct {
-	repo     *repository.MediaRepository
+	repo      *repository.MediaRepository
 	uploadDir string
 	maxBytes  int64
 
 	minioClient *minio.Client
 	minioBucket string
+	log         *zap.Logger
 }
 
-func NewMediaService(repo *repository.MediaRepository, cfg config.Config) *MediaService {
+func NewMediaService(repo *repository.MediaRepository, cfg config.Config, log *zap.Logger) *MediaService {
 	var minioClient *minio.Client
 	var minioBucket string
 	if cfg.MinioEndpoint != "" && cfg.MinioAccessKey != "" && cfg.MinioSecretKey != "" {
@@ -49,17 +52,20 @@ func NewMediaService(repo *repository.MediaRepository, cfg config.Config) *Media
 			Creds:  credentials.NewStaticV4(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
 			Secure: cfg.MinioUseSSL,
 		})
-		if err == nil {
-			minioClient = client
+		if err != nil {
+			log.Error("failed to create minio client", zap.Error(err))
+			return nil
 		}
+		minioClient = client
 	}
 
 	return &MediaService{
-		repo:      repo,
-		uploadDir: cfg.MediaUploadDir,
-		maxBytes:  cfg.MediaMaxUploadBytes,
+		repo:        repo,
+		uploadDir:   cfg.MediaUploadDir,
+		maxBytes:    cfg.MediaMaxUploadBytes,
 		minioClient: minioClient,
 		minioBucket: minioBucket,
+		log:         log,
 	}
 }
 
@@ -71,9 +77,11 @@ func (s *MediaService) PresignGet(ctx context.Context, objectKey string, expiry 
 	}
 	u, err := s.minioClient.PresignedGetObject(ctx, s.minioBucket, objectKey, expiry, nil)
 	if err != nil {
-		return "", err
+		s.log.Error("failed to presign get object", zap.Error(err))
+		return "", errors.New("failed to presign get object")
 	}
 	if u == nil {
+		s.log.Error("failed to presign get object")
 		return "", errors.New("failed to presign get object")
 	}
 	return u.String(), nil
@@ -140,8 +148,9 @@ func (s *MediaService) Upload(
 	}
 	defer func() { _ = f.Close() }()
 
-	id, err := newUUIDLike()
+	id, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return nil, err
 	}
 
@@ -195,7 +204,7 @@ func (s *MediaService) Upload(
 	}
 
 	m := &model.Media{
-		UserID:        actorUserID,
+		UserID:       actorUserID,
 		MediaType:    mediaType,
 		OriginalName: origName,
 		MimeType:     mimeType,
@@ -230,11 +239,11 @@ func (s *MediaService) Upload(
 	return m, nil
 }
 
-func (s *MediaService) List(ctx context.Context, actorUserID uint, limit int) ([]model.Media, error) {
+func (s *MediaService) List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error) {
 	if actorUserID == 0 {
-		return nil, ErrInvalidMediaUserID
+		return repository.CursorPage{}, ErrInvalidMediaUserID
 	}
-	return s.repo.ListByUserID(ctx, actorUserID, limit)
+	return s.repo.List(ctx, actorUserID, req)
 }
 
 func (s *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error) {
@@ -293,4 +302,3 @@ func (s *MediaService) Delete(ctx context.Context, actorUserID, id uint) error {
 	}
 	return nil
 }
-

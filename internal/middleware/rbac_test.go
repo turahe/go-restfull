@@ -7,23 +7,27 @@ import (
 
 	"go-rest/internal/rbac"
 	"go-rest/internal/service"
+	"go-rest/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestRBAC(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	log := zap.NewNop()
 
-	db, err := gorm.Open(sqlite.Open("file:rbac_mw_test?mode=memory&cache=private"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:rbac_mw_test?mode=memory&cache=private"), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	require.NoError(t, err)
 	e, err := rbac.NewEnforcer(db, "../../configs/casbin_model.conf")
 	require.NoError(t, err)
-	rbacSvc := service.NewRBACService(e, db)
+	rbacSvc := service.NewRBACService(e, db, log)
 
 	t.Run("no auth returns 401", func(t *testing.T) {
 		r := gin.New()

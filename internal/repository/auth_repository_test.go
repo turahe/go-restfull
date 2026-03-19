@@ -8,13 +8,14 @@ import (
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestAuthRepository_SessionActive_Revoke_Touch(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.AuthSession{}, &model.RefreshToken{}, &model.RevokedJTI{})
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 
 	sess := &model.AuthSession{
 		ID:         "s1",
@@ -47,7 +48,7 @@ func TestAuthRepository_RefreshToken_Find_MarkUsed_Revoke(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.AuthSession{}, &model.RefreshToken{}, &model.RevokedJTI{})
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 
 	rt := &model.RefreshToken{
 		SessionID:   "s1",
@@ -83,7 +84,7 @@ func TestAuthRepository_RevokeRefreshBySessionID(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.AuthSession{}, &model.RefreshToken{}, &model.RevokedJTI{})
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 
 	rt := &model.RefreshToken{
 		SessionID:   "s1",
@@ -106,7 +107,7 @@ func TestAuthRepository_JTIRevocation(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.AuthSession{}, &model.RefreshToken{}, &model.RevokedJTI{})
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 
 	ok, err := repo.IsJTIRevoked(ctx, "j1")
 	assert.NoError(t, err)

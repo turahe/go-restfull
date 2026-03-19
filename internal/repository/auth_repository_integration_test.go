@@ -12,13 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 func TestAuthRepository_Integration_Session_RefreshToken_JTI(t *testing.T) {
 	RunWithTx(t, func(tx *gorm.DB) {
-		userRepo := NewUserRepository(tx)
-		authRepo := NewAuthRepository(tx)
+		userRepo := NewUserRepository(tx, zap.NewNop())
+		authRepo := NewAuthRepository(tx, zap.NewNop())
 		ctx := context.Background()
 
 		u := &model.User{Name: "Auth User", Email: "auth@example.com", Password: "secret"}

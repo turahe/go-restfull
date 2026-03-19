@@ -44,9 +44,9 @@ func NewAuthHandler(auth AuthService, log *zap.Logger) *AuthHandler {
 // @Accept       json
 // @Produce      json
 // @Param        body  body      request.RegisterRequest  true  "Register payload"
-// @Success      201   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      201   {object}  response.Created
+// @Failure      400   {object}  response.BadRequest
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req request.RegisterRequest
@@ -80,10 +80,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body  body      request.LoginRequest  true  "Login payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req request.LoginRequest
@@ -116,9 +116,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Tags         Auth
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/2fa/setup [post]
 func (h *AuthHandler) TwoFASetup(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -146,10 +146,10 @@ func (h *AuthHandler) TwoFASetup(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.TwoFAEnableRequest  true  "Enable 2FA payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/2fa/enable [post]
 func (h *AuthHandler) TwoFAEnable(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -177,10 +177,10 @@ func (h *AuthHandler) TwoFAEnable(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body  body      request.TwoFAVerifyRequest  true  "Verify 2FA payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/2fa/verify [post]
 func (h *AuthHandler) TwoFAVerify(c *gin.Context) {
 	var req request.TwoFAVerifyRequest
@@ -205,10 +205,10 @@ func (h *AuthHandler) TwoFAVerify(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body  body      request.RefreshRequest  true  "Refresh payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req request.RefreshRequest
@@ -239,9 +239,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 // @Tags         Auth
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/profile [get]
 func (h *AuthHandler) Profile(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -265,10 +265,10 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.ChangePasswordRequest  true  "Change password payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/password/change [post]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -305,10 +305,10 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.ChangeEmailRequest  true  "Change email payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/email/change [post]
 func (h *AuthHandler) ChangeEmail(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -349,11 +349,11 @@ func (h *AuthHandler) ChangeEmail(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.ImpersonateRequest  true  "Impersonate payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      403   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      403   {object}  response.Forbidden
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/auth/impersonate [post]
 func (h *AuthHandler) Impersonate(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

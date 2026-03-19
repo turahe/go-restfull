@@ -31,3 +31,18 @@ type Post struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
+
+func (Post) TableName() string {
+	return "posts"
+}
+
+func (p *Post) BeforeCreate(tx *gorm.DB) error {
+	p.CreatedAt = time.Now()
+	p.UpdatedAt = time.Now()
+	return nil
+}
+
+func (p *Post) BeforeUpdate(tx *gorm.DB) error {
+	p.UpdatedAt = time.Now()
+	return nil
+}

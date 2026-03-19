@@ -4,16 +4,18 @@ import (
 	"context"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestTagRepository_CRUD_SlugExists_FindByIDs(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.Tag{})
-	repo := NewTagRepository(db)
+	repo := NewTagRepository(db, zap.NewNop())
 
 	tag := &model.Tag{Name: "Go", Slug: "go"}
 	assert.NoError(t, repo.Create(ctx, tag))
@@ -34,9 +36,11 @@ func TestTagRepository_CRUD_SlugExists_FindByIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Golang", got2.Name)
 
-	rows, err := repo.List(ctx, 10)
+	page, err := repo.List(ctx, request.TagListRequest{Limit: 10, Name: "", Page: 1})
 	assert.NoError(t, err)
-	assert.Len(t, rows, 1)
+	items, ok := page.Items.([]model.Tag)
+	assert.True(t, ok)
+	assert.Len(t, items, 1)
 
 	idsRows, err := repo.FindByIDs(ctx, []uint{tag.ID})
 	assert.NoError(t, err)

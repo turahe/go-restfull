@@ -15,3 +15,17 @@ type Role struct {
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 
+func (Role) TableName() string {
+	return "roles"
+}
+
+func (r *Role) BeforeCreate(tx *gorm.DB) error {
+	r.CreatedAt = time.Now()
+	r.UpdatedAt = time.Now()
+	return nil
+}
+
+func (r *Role) BeforeUpdate(tx *gorm.DB) error {
+	r.UpdatedAt = time.Now()
+	return nil
+}

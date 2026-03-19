@@ -20,6 +20,10 @@ func RequestLogger(log *zap.Logger) gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
+		if id, ok := GetRequestID(c); ok && id != "" {
+			log = log.With(zap.String("request_id", id))
+		}
+
 		log.Info("request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),

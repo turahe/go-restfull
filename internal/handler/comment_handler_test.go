@@ -8,9 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
 	"go-rest/internal/service"
+	"go-rest/internal/repository"
 	"go-rest/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -20,14 +22,14 @@ import (
 
 type mockCommentService struct{ mock.Mock }
 
-func (m *mockCommentService) Create(ctx context.Context, postID uint, userID uint, content string, tagIDs []uint) (*model.Comment, error) {
-	args := m.Called(ctx, postID, userID, content, tagIDs)
+func (m *mockCommentService) Create(ctx context.Context, postID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error) {
+	args := m.Called(ctx, postID, userID, req)
 	c, _ := args.Get(0).(*model.Comment)
 	return c, args.Error(1)
 }
-func (m *mockCommentService) List(ctx context.Context, postID uint, limit int) ([]model.Comment, error) {
-	args := m.Called(ctx, postID, limit)
-	return args.Get(0).([]model.Comment), args.Error(1)
+func (m *mockCommentService) List(ctx context.Context, req request.CommentListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 
 func decodeEnvCmt(t *testing.T, rr *httptest.ResponseRecorder) response.Envelope {
@@ -85,7 +87,7 @@ func TestCommentHandler_Create_PostMissing(t *testing.T) {
 	t.Parallel()
 
 	svc := &mockCommentService{}
-	svc.On("Create", mock.Anything, uint(1), uint(1), "hi", ([]uint)(nil)).
+	svc.On("Create", mock.Anything, uint(1), uint(1), request.CreateCommentRequest{Content: "hi", TagIDs: nil}).
 		Return((*model.Comment)(nil), service.ErrPostMissing).Once()
 
 	h := NewCommentHandler(svc, nil)

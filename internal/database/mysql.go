@@ -7,9 +7,9 @@ import (
 
 	"go-rest/internal/config"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type DB struct {
@@ -17,7 +17,7 @@ type DB struct {
 	SQL  *sql.DB
 }
 
-func ConnectMySQL(cfg config.Config) (DB, error) {
+func ConnectMySQL(cfg config.Config, log *zap.Logger) (DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
 		cfg.DBUser,
 		cfg.DBPassword,
@@ -27,7 +27,7 @@ func ConnectMySQL(cfg config.Config) (DB, error) {
 	)
 
 	gormDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: NewZapGormLogger(log),
 	})
 	if err != nil {
 		return DB{}, err

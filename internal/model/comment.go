@@ -25,3 +25,18 @@ type Comment struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
+
+func (Comment) TableName() string {
+	return "comments"
+}
+
+func (c *Comment) BeforeCreate(tx *gorm.DB) error {
+	c.CreatedAt = time.Now()
+	c.UpdatedAt = time.Now()
+	return nil
+}
+
+func (c *Comment) BeforeUpdate(tx *gorm.DB) error {
+	c.UpdatedAt = time.Now()
+	return nil
+}

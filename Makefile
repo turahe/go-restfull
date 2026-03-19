@@ -27,6 +27,7 @@ tidy:
 	go mod tidy
 
 test:
+	go clean -testcache
 	go test ./...
 
 test-unit:

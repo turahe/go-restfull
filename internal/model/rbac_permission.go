@@ -16,3 +16,17 @@ type Permission struct {
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 
+func (Permission) TableName() string {
+	return "permissions"
+}
+
+func (p *Permission) BeforeCreate(tx *gorm.DB) error {
+	p.CreatedAt = time.Now()
+	p.UpdatedAt = time.Now()
+	return nil
+}
+
+func (p *Permission) BeforeUpdate(tx *gorm.DB) error {
+	p.UpdatedAt = time.Now()
+	return nil
+}

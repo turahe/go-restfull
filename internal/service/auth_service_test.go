@@ -8,6 +8,7 @@ import (
 
 	"go-rest/internal/model"
 	"go-rest/internal/service/dto"
+	"go-rest/internal/testutil"
 
 	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
@@ -15,6 +16,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"go.uber.org/zap"
 )
 
 type mockAuthUserRepo struct{ mock.Mock }
@@ -129,7 +132,7 @@ func TestAuthService_Register(t *testing.T) {
 		users := &mockAuthUserRepo{}
 		users.On("FindByEmail", mock.Anything, "a@b.com").Return(&model.User{ID: 1}, nil).Once()
 
-		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper")
+		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
 		_, err := s.Register(ctx, "n", "A@B.com", "pass")
 		assert.ErrorIs(t, err, ErrEmailTaken)
 		users.AssertExpectations(t)
@@ -147,7 +150,7 @@ func TestAuthService_Register(t *testing.T) {
 		}).Once()
 		rbac.On("AssignRole", mock.Anything, uint(99), "user").Return(true, nil).Once()
 
-		s := NewAuthService(users, &mockAuthRepo{}, nil, rbac, &mockJWT{}, nil, 10, 30, 5, "pepper")
+		s := NewAuthService(users, &mockAuthRepo{}, nil, rbac, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
 		u, err := s.Register(ctx, " Name ", "A@B.com", "password")
 		assert.NoError(t, err)
 		assert.Equal(t, uint(99), u.ID)
@@ -169,7 +172,7 @@ func TestAuthService_Login(t *testing.T) {
 		t.Parallel()
 		users := &mockAuthUserRepo{}
 		users.On("FindByEmail", mock.Anything, "a@b.com").Return((*model.User)(nil), gorm.ErrRecordNotFound).Once()
-		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper")
+		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
 
 		_, err := s.Login(ctx, "a@b.com", "12345678", dto.LoginMeta{DeviceID: "dev1"})
 		assert.ErrorIs(t, err, ErrInvalidCredentials)
@@ -180,7 +183,7 @@ func TestAuthService_Login(t *testing.T) {
 		t.Parallel()
 		users := &mockAuthUserRepo{}
 		users.On("FindByEmail", mock.Anything, "a@b.com").Return(&model.User{ID: 1, Email: "a@b.com", Password: hash}, nil).Once()
-		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper")
+		s := NewAuthService(users, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
 
 		_, err := s.Login(ctx, "a@b.com", "12345678", dto.LoginMeta{})
 		assert.Error(t, err)
@@ -200,7 +203,7 @@ func TestAuthService_Login(t *testing.T) {
 		exp := time.Now().Add(5 * time.Minute)
 		twoFA.On("NewLoginChallenge", mock.Anything, uint(1), "dev1", 5*time.Minute).Return("ch", exp, nil).Once()
 
-		s := NewAuthService(users, authRepo, nil, nil, &mockJWT{}, twoFA, 10, 30, 5, "pepper")
+		s := NewAuthService(users, authRepo, nil, nil, &mockJWT{}, twoFA, 10, 30, 5, "pepper", zap.NewNop())
 		res, err := s.Login(ctx, "a@b.com", "12345678", dto.LoginMeta{DeviceID: "dev1"})
 		assert.NoError(t, err)
 		assert.True(t, res.TwoFactorRequired)
@@ -238,7 +241,7 @@ func TestAuthService_Login(t *testing.T) {
 		j.On("IssueAccessToken", mock.AnythingOfType("dto.AccessClaims")).Return("access", nil).Once()
 		authRepo.On("CreateRefreshToken", mock.Anything, mock.AnythingOfType("*model.RefreshToken")).Return(nil).Once()
 
-		s := NewAuthService(users, authRepo, nil, rbac, j, nil, 10, 30, 5, "pepper")
+		s := NewAuthService(users, authRepo, nil, rbac, j, nil, 10, 30, 5, "pepper", zap.NewNop())
 		res, err := s.Login(ctx, "a@b.com", "12345678", dto.LoginMeta{DeviceID: "dev1"})
 		assert.NoError(t, err)
 		assert.False(t, res.TwoFactorRequired)
@@ -272,7 +275,7 @@ func TestAuthService_Register_ConcurrentSameEmail(t *testing.T) {
 	db := openAuthServiceTestDB(t)
 	userRepo := newAuthServiceUserRepoFromDB(db)
 	// No RBAC so Register only does FindByEmail + Create
-	svc := NewAuthService(userRepo, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper")
+	svc := NewAuthService(userRepo, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper", zap.NewNop())
 
 	const concurrency = 15
 	email := "concurrent-register@example.com"
@@ -297,7 +300,9 @@ func TestAuthService_Register_ConcurrentSameEmail(t *testing.T) {
 func openAuthServiceTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := "file:" + url.QueryEscape(t.Name()) + "?mode=memory&cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}

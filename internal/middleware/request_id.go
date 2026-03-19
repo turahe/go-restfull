@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,9 @@ func RequestID() gin.HandlerFunc {
 		}
 		if rid != "" {
 			c.Set(ctxRequestIDKey, rid)
+			// Make request-id available to any logger using Go's request context
+			// (e.g. GORM logger's Trace(ctx, ...)).
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), ctxRequestIDKey, rid))
 			c.Header(RequestIDHeader, rid)
 		}
 		c.Next()

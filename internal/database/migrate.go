@@ -24,7 +24,5 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.Post{},
 		&model.Comment{},
 		&model.Media{},
-		&model.Mediable{},
 	)
 }
-

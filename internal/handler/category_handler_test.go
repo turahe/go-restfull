@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"go-rest/internal/middleware"
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -19,22 +21,24 @@ import (
 
 type mockCategoryService struct{ mock.Mock }
 
-func (m *mockCategoryService) List(ctx context.Context, limit int) ([]model.Category, error) {
-	args := m.Called(ctx, limit)
-	return args.Get(0).([]model.Category), args.Error(1)
+func (m *mockCategoryService) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 func (m *mockCategoryService) GetBySlug(ctx context.Context, slug string) (*model.Category, error) {
 	args := m.Called(ctx, slug)
 	c, _ := args.Get(0).(*model.Category)
 	return c, args.Error(1)
 }
-func (m *mockCategoryService) Create(ctx context.Context, actorUserID uint, name string) (*model.Category, error) {
-	args := m.Called(ctx, actorUserID, name)
+
+func (m *mockCategoryService) Create(ctx context.Context, actorUserID uint, req request.CreateCategoryRequest) (*model.Category, error) {
+	args := m.Called(ctx, actorUserID, req)
 	c, _ := args.Get(0).(*model.Category)
 	return c, args.Error(1)
 }
-func (m *mockCategoryService) Update(ctx context.Context, id uint, actorUserID uint, name string) (*model.Category, error) {
-	args := m.Called(ctx, id, actorUserID, name)
+
+func (m *mockCategoryService) Update(ctx context.Context, id uint, actorUserID uint, req request.UpdateCategoryRequest) (*model.Category, error) {
+	args := m.Called(ctx, id, actorUserID, req)
 	c, _ := args.Get(0).(*model.Category)
 	return c, args.Error(1)
 }

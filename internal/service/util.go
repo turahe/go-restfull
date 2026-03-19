@@ -1,6 +1,6 @@
 package service
 
-func uniqueUint(in []uint) []uint {
+func UniqueUint(in []uint) []uint {
 	if len(in) == 0 {
 		return in
 	}
@@ -18,4 +18,3 @@ func uniqueUint(in []uint) []uint {
 	}
 	return out
 }
-

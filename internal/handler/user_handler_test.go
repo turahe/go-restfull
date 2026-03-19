@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"go-rest/internal/middleware"
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -21,9 +23,9 @@ type mockUserService struct {
 	mock.Mock
 }
 
-func (m *mockUserService) List(ctx context.Context, limit int) ([]model.User, error) {
-	args := m.Called(ctx, limit)
-	return args.Get(0).([]model.User), args.Error(1)
+func (m *mockUserService) List(ctx context.Context, req request.UserListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 
 func (m *mockUserService) GetByID(ctx context.Context, id uint) (*model.User, error) {
@@ -57,7 +59,11 @@ func TestUserHandler_List(t *testing.T) {
 	r.Use(withAuth("admin"))
 	r.GET("/api/v1/users", h.List)
 
-	svc.On("List", mock.Anything, 100).Return([]model.User{{ID: 1}}, nil).Once()
+	svc.On("List", mock.Anything, mock.Anything).Return(repository.CursorPage{
+		Items:      []model.User{{ID: 1}},
+		NextCursor: nil,
+		PrevCursor: nil,
+	}, nil).Once()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
 	rr := httptest.NewRecorder()

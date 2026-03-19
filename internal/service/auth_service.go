@@ -11,6 +11,7 @@ import (
 	"go-rest/internal/service/dto"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -66,6 +67,7 @@ type AuthAudit interface {
 }
 
 type AuthService struct {
+	log   *zap.Logger
 	users AuthUserRepo
 	auth  AuthRepo
 	jwt   AuthJWT
@@ -79,7 +81,7 @@ type AuthService struct {
 	refreshPepper  string
 }
 
-func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, rbacSvc AuthRBAC, jwtm AuthJWT, twoFA AuthTwoFA, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string) *AuthService {
+func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, rbacSvc AuthRBAC, jwtm AuthJWT, twoFA AuthTwoFA, accessTTLMinutes int, refreshTTLDays int, impersonationTTLMinutes int, refreshPepper string, log *zap.Logger) *AuthService {
 	return &AuthService{
 		users:          users,
 		auth:           authRepo,
@@ -91,6 +93,7 @@ func NewAuthService(users AuthUserRepo, authRepo AuthRepo, auditRepo AuthAudit, 
 		refreshTTLDays: refreshTTLDays,
 		impersonateTTL: time.Duration(impersonationTTLMinutes) * time.Minute,
 		refreshPepper:  refreshPepper,
+		log:            log,
 	}
 }
 
@@ -102,6 +105,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 
 	_, err := s.users.FindByEmail(ctx, email)
 	if err == nil {
+		s.log.Error("email already registered", zap.String("email", email))
 		return nil, ErrEmailTaken
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -110,6 +114,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		s.log.Error("failed to generate password hash", zap.Error(err))
 		return nil, err
 	}
 
@@ -119,12 +124,14 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 		Password: string(hash),
 	}
 	if err := s.users.Create(ctx, u); err != nil {
+		s.log.Error("failed to create user", zap.Error(err))
 		return nil, err
 	}
 
 	// Assign default RBAC role.
 	if s.rbac != nil {
 		if _, err := s.rbac.AssignRole(ctx, u.ID, "user"); err != nil {
+			s.log.Error("failed to assign role", zap.Error(err))
 			return nil, err
 		}
 	}
@@ -134,10 +141,12 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 func (s *AuthService) Profile(ctx context.Context, userID uint) (dto.AuthUser, error) {
 	u, err := s.users.FindByID(ctx, userID)
 	if err != nil {
+		s.log.Error("failed to find by id", zap.Error(err))
 		return dto.AuthUser{}, err
 	}
 	role, perms, err := s.loadRoleAndPerms(ctx, u.ID)
 	if err != nil {
+		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.AuthUser{}, err
 	}
 	return dto.AuthUser{
@@ -152,13 +161,16 @@ func (s *AuthService) Profile(ctx context.Context, userID uint) (dto.AuthUser, e
 func (s *AuthService) ChangePassword(ctx context.Context, userID uint, currentPassword, newPassword string) error {
 	u, err := s.users.FindByID(ctx, userID)
 	if err != nil {
+		s.log.Error("failed to find by id", zap.Error(err))
 		return err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(currentPassword)); err != nil {
+		s.log.Error("invalid current password", zap.Error(err))
 		return ErrInvalidCurrentPass
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
+		s.log.Error("failed to generate password hash", zap.Error(err))
 		return err
 	}
 	return s.users.UpdatePassword(ctx, userID, string(hash))
@@ -171,6 +183,7 @@ func (s *AuthService) ChangeEmail(ctx context.Context, userID uint, currentPassw
 		return err
 	}
 	if newEmail == "" {
+		s.log.Error("new email is required")
 		return errors.New("newEmail is required")
 	}
 	if newEmail == u.Email {
@@ -178,12 +191,14 @@ func (s *AuthService) ChangeEmail(ctx context.Context, userID uint, currentPassw
 	}
 	_, err = s.users.FindByEmail(ctx, newEmail)
 	if err == nil {
+		s.log.Error("email already registered", zap.String("email", newEmail))
 		return ErrEmailTaken
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(currentPassword)); err != nil {
+		s.log.Error("invalid current password", zap.Error(err))
 		return ErrInvalidCurrentPass
 	}
 	return s.users.UpdateEmail(ctx, userID, newEmail)
@@ -191,10 +206,12 @@ func (s *AuthService) ChangeEmail(ctx context.Context, userID uint, currentPassw
 
 func (s *AuthService) SetupTwoFA(ctx context.Context, userID uint, email string) (dto.TwoFactorSetupResult, error) {
 	if s.twoFA == nil {
+		s.log.Error("2fa service not configured")
 		return dto.TwoFactorSetupResult{}, errors.New("2fa service not configured")
 	}
 	setup, err := s.twoFA.Setup(ctx, userID, email)
 	if err != nil {
+		s.log.Error("failed to setup two factor", zap.Error(err))
 		return dto.TwoFactorSetupResult{}, err
 	}
 	return dto.TwoFactorSetupResult{
@@ -205,6 +222,7 @@ func (s *AuthService) SetupTwoFA(ctx context.Context, userID uint, email string)
 
 func (s *AuthService) EnableTwoFA(ctx context.Context, userID uint, code string) error {
 	if s.twoFA == nil {
+		s.log.Error("2fa service not configured")
 		return errors.New("2fa service not configured")
 	}
 	return s.twoFA.Enable(ctx, userID, code)
@@ -212,20 +230,24 @@ func (s *AuthService) EnableTwoFA(ctx context.Context, userID uint, code string)
 
 func (s *AuthService) VerifyTwoFAChallenge(ctx context.Context, challengeID string, deviceID string, code string) (dto.LoginResult, error) {
 	if s.twoFA == nil {
+		s.log.Error("2fa service not configured")
 		return dto.LoginResult{}, errors.New("2fa service not configured")
 	}
 	userID, err := s.twoFA.VerifyChallenge(ctx, challengeID, deviceID, code, 5)
 	if err != nil {
+		s.log.Error("failed to verify challenge", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	u, err := s.users.FindByID(ctx, userID)
 	if err != nil {
+		s.log.Error("failed to find by id", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
 	// Create session
-	sessionID, err := newUUIDLike()
+	sessionID, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	now := time.Now()
@@ -241,12 +263,14 @@ func (s *AuthService) VerifyTwoFAChallenge(ctx context.Context, challengeID stri
 		return dto.LoginResult{}, err
 	}
 
-	accessJTI, err := newUUIDLike()
+	accessJTI, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	role, perms, err := s.loadRoleAndPerms(ctx, u.ID)
 	if err != nil {
+		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	rc := s.jwt.DefaultRegistered(fmt.Sprintf("%d", u.ID), s.accessTTL)
@@ -261,10 +285,12 @@ func (s *AuthService) VerifyTwoFAChallenge(ctx context.Context, challengeID stri
 	}
 	accessToken, err := s.jwt.IssueAccessToken(claims)
 	if err != nil {
+		s.log.Error("failed to issue access token", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	refreshToken, rtModel, err := s.issueRefreshToken(ctx, u.ID, sessionID, nil)
 	if err != nil {
+		s.log.Error("failed to issue refresh token", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
@@ -295,16 +321,19 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta dt
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+		s.log.Error("invalid credentials", zap.Error(err))
 		return dto.LoginResult{}, ErrInvalidCredentials
 	}
 
 	if meta.DeviceID == "" {
+		s.log.Error("deviceId is required")
 		return dto.LoginResult{}, errors.New("deviceId is required")
 	}
 
 	// Create session
-	sessionID, err := newUUIDLike()
+	sessionID, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 	now := time.Now()
@@ -317,6 +346,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta dt
 		LastSeenAt: now,
 	}
 	if err := s.auth.CreateSession(ctx, sess); err != nil {
+		s.log.Error("failed to create session", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
@@ -324,11 +354,13 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta dt
 	if s.twoFA != nil {
 		enabled, err := s.twoFA.IsEnabled(ctx, u.ID)
 		if err != nil {
+			s.log.Error("failed to check if 2fa is enabled", zap.Error(err))
 			return dto.LoginResult{}, err
 		}
 		if enabled {
 			chID, exp, err := s.twoFA.NewLoginChallenge(ctx, u.ID, meta.DeviceID, 5*time.Minute)
 			if err != nil {
+				s.log.Error("failed to create login challenge", zap.Error(err))
 				return dto.LoginResult{}, err
 			}
 			return dto.LoginResult{
@@ -345,13 +377,15 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta dt
 		}
 	}
 
-	accessJTI, err := newUUIDLike()
+	accessJTI, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
 	role, perms, err := s.loadRoleAndPerms(ctx, u.ID)
 	if err != nil {
+		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
@@ -367,11 +401,13 @@ func (s *AuthService) Login(ctx context.Context, email, password string, meta dt
 	}
 	accessToken, err := s.jwt.IssueAccessToken(claims)
 	if err != nil {
+		s.log.Error("failed to issue access token", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
 	refreshToken, rtModel, err := s.issueRefreshToken(ctx, u.ID, sessionID, nil)
 	if err != nil {
+		s.log.Error("failed to issue refresh token", zap.Error(err))
 		return dto.LoginResult{}, err
 	}
 
@@ -395,7 +431,11 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string, meta dto
 	if refreshToken == "" {
 		return dto.RefreshResult{}, errors.New("refresh_token is required")
 	}
-	hash := hashRefreshToken(refreshToken, s.refreshPepper)
+	hash, err := hashRefreshToken(refreshToken, s.refreshPepper, s.log)
+	if err != nil {
+		s.log.Error("failed to hash refresh token", zap.Error(err))
+		return dto.RefreshResult{}, err
+	}
 	rt, err := s.auth.FindRefreshTokenByHash(ctx, hash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -406,6 +446,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string, meta dto
 
 	now := time.Now()
 	if rt.RevokedAt != nil || rt.ExpiresAt.Before(now) {
+		s.log.Error("refresh token revoked or expired")
 		return dto.RefreshResult{}, ErrInvalidCredentials
 	}
 	if rt.UsedAt != nil {
@@ -443,8 +484,10 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string, meta dto
 		return dto.RefreshResult{}, err
 	}
 
-	jti, err := newUUIDLike()
+	jti, err := newUUIDLike(s.log)
+	s.log.Error("failed to generate new uuid", zap.Error(err))
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.RefreshResult{}, err
 	}
 	rc := s.jwt.DefaultRegistered(fmt.Sprintf("%d", u.ID), s.accessTTL)
@@ -488,15 +531,22 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uint, sessio
 	if s.refreshPepper == "" {
 		return "", nil, errors.New("REFRESH_TOKEN_PEPPER is required")
 	}
-	raw, err := newUUIDLike()
+	raw, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return "", nil, err
 	}
 	family := sessionID
 	if rotatedFrom != nil {
 		family = sessionID // keep one family per session for simplicity
 	}
-	hash := hashRefreshToken(raw, s.refreshPepper)
+	hash, err := hashRefreshToken(raw, s.refreshPepper, s.log)
+	if err != nil {
+		return "", nil, err
+	}
+	if err != nil {
+		return "", nil, err
+	}
 	exp := time.Now().Add(time.Duration(s.refreshTTLDays) * 24 * time.Hour)
 	m := &model.RefreshToken{
 		SessionID:     sessionID,
@@ -515,14 +565,17 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uint, sessio
 func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targetUserID uint, reason string, meta dto.LoginMeta) (dto.ImpersonationResult, error) {
 	impRole, _, err := s.loadRoleAndPerms(ctx, impersonatorID)
 	if err != nil {
+		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 	if impRole != "admin" && impRole != "support" {
+		s.log.Error("impersonate role not allowed")
 		return dto.ImpersonationResult{}, errors.New("forbidden")
 	}
 	target, err := s.users.FindByID(ctx, targetUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.log.Error("target user not found")
 			return dto.ImpersonationResult{}, errors.New("target user not found")
 		}
 		return dto.ImpersonationResult{}, err
@@ -530,11 +583,17 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 
 	role, perms, err := s.loadRoleAndPerms(ctx, target.ID)
 	if err != nil {
+		s.log.Error("failed to load role and permissions", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 
-	sessionID, err := newUUIDLike()
+	sessionID, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
+		return dto.ImpersonationResult{}, err
+	}
+	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 	now := time.Now()
@@ -548,11 +607,17 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 		RevokedBy:  &impersonatorID, // can be used to track admin-driven session
 	}
 	if err := s.auth.CreateSession(ctx, sess); err != nil {
+		s.log.Error("failed to create session", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 
-	jti, err := newUUIDLike()
+	jti, err := newUUIDLike(s.log)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
+		return dto.ImpersonationResult{}, err
+	}
+	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 	rc := s.jwt.DefaultRegistered(fmt.Sprintf("%d", target.ID), s.impersonateTTL)
@@ -571,10 +636,13 @@ func (s *AuthService) Impersonate(ctx context.Context, impersonatorID uint, targ
 	}
 	accessToken, err := s.jwt.IssueAccessToken(claims)
 	if err != nil {
+		s.log.Error("failed to issue access token", zap.Error(err))
 		return dto.ImpersonationResult{}, err
 	}
 
 	if s.audit != nil {
+		s.log.Error("failed to create impersonation audit", zap.Error(err))
+		return dto.ImpersonationResult{}, err
 		_ = s.audit.CreateImpersonation(ctx, &model.ImpersonationAudit{
 			ImpersonatorID:     impersonatorID,
 			ImpersonatedUserID: target.ID,
@@ -594,6 +662,7 @@ func (s *AuthService) loadRoleAndPerms(ctx context.Context, userID uint) (string
 	}
 	roles, err := s.rbac.RolesForUser(ctx, userID)
 	if err != nil {
+		s.log.Error("failed to generate new uuid", zap.Error(err))
 		return "", nil, err
 	}
 	role := "user"

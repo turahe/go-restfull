@@ -1,15 +1,34 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // UserTwoFactor stores TOTP configuration for a user.
 type UserTwoFactor struct {
-	UserID    uint      `json:"userId" gorm:"primaryKey;index"`
-	SecretEnc string    `json:"-" gorm:"type:varbinary(255);not null"`
-	Enabled   bool      `json:"enabled"`
+	UserID     uint       `json:"userId" gorm:"primaryKey;index"`
+	SecretEnc  string     `json:"-" gorm:"type:varbinary(255);not null"`
+	Enabled    bool       `json:"enabled"`
 	VerifiedAt *time.Time `json:"verifiedAt,omitempty"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+}
+
+func (UserTwoFactor) TableName() string {
+	return "user_two_factors"
+}
+
+func (ut *UserTwoFactor) BeforeCreate(tx *gorm.DB) error {
+	ut.CreatedAt = time.Now()
+	ut.UpdatedAt = time.Now()
+	return nil
+}
+
+func (ut *UserTwoFactor) BeforeUpdate(tx *gorm.DB) error {
+	ut.UpdatedAt = time.Now()
+	return nil
 }
 
 // TwoFactorChallenge represents a pending login challenge for 2FA-enabled users.
@@ -23,3 +42,11 @@ type TwoFactorChallenge struct {
 	CreatedAt  time.Time  `json:"createdAt"`
 }
 
+func (TwoFactorChallenge) TableName() string {
+	return "two_factor_challenges"
+}
+
+func (tc *TwoFactorChallenge) BeforeCreate(tx *gorm.DB) error {
+	tc.CreatedAt = time.Now()
+	return nil
+}

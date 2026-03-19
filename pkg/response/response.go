@@ -2,13 +2,18 @@ package response
 
 import "net/http"
 
+// Envelope is the canonical API response format.
+// Tests (and handler clients) unmarshal into this type.
 type Envelope struct {
-	Code       int     `json:"code"`
-	Message    string  `json:"message"`
-	Data       any     `json:"data"`
+	Code    int     `json:"code"`
+	Message string  `json:"message"`
+	Data    any     `json:"data"`
+	Next    *bool   `json:"next,omitempty"`
+	Prev    *bool   `json:"prev,omitempty"`
+	// Cursor-specific fields are optional and used by some pagination styles.
 	NextCursor *string `json:"nextCursor,omitempty"`
 	PrevCursor *string `json:"prevCursor,omitempty"`
-	Error      any     `json:"error,omitempty"`
+	Error   any    `json:"error,omitempty"`
 }
 
 func JSON(c Context, httpStatus int, code int, message string, data any, err any) {
@@ -20,14 +25,14 @@ func JSON(c Context, httpStatus int, code int, message string, data any, err any
 	})
 }
 
-func JSONCursor(c Context, httpStatus int, code int, message string, data any, nextCursor *string, prevCursor *string) {
+func JSONPaginated(c Context, httpStatus int, code int, message string, data any, next bool, prev bool) {
 	c.JSON(httpStatus, Envelope{
-		Code:       code,
-		Message:    message,
-		Data:       data,
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		Error:      nil,
+		Code:    code,
+		Message: message,
+		Data:    data,
+		Next:    &next,
+		Prev:    &prev,
+		Error:   nil,
 	})
 }
 
@@ -35,8 +40,8 @@ func OK(c Context, code int, message string, data any) {
 	JSON(c, http.StatusOK, code, message, data, nil)
 }
 
-func OKCursor(c Context, code int, message string, data any, nextCursor *string, prevCursor *string) {
-	JSONCursor(c, http.StatusOK, code, message, data, nextCursor, prevCursor)
+func OKPaginated(c Context, code int, message string, data any, next bool, prev bool) {
+	JSONPaginated(c, http.StatusOK, code, message, data, next, prev)
 }
 
 func Created(c Context, code int, message string, data any) {

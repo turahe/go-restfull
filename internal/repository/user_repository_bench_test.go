@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
+	"go-rest/internal/testutil"
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func BenchmarkUserRepository_Create(b *testing.B) {
 	ctx := context.Background()
 	db := openBenchDB(b, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		u := &model.User{Name: "B", Email: fmt.Sprintf("bench%d@b.com", i), Password: "x"}
@@ -26,7 +30,7 @@ func BenchmarkUserRepository_Create(b *testing.B) {
 func BenchmarkUserRepository_FindByID(b *testing.B) {
 	ctx := context.Background()
 	db := openBenchDB(b, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, zap.NewNop())
 	u := &model.User{Name: "B", Email: "findbyid@b.com", Password: "x"}
 	if err := repo.Create(ctx, u); err != nil {
 		b.Fatal(err)
@@ -41,7 +45,7 @@ func BenchmarkUserRepository_FindByID(b *testing.B) {
 func BenchmarkUserRepository_FindByEmail(b *testing.B) {
 	ctx := context.Background()
 	db := openBenchDB(b, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, zap.NewNop())
 	u := &model.User{Name: "B", Email: "findbyemail@b.com", Password: "x"}
 	if err := repo.Create(ctx, u); err != nil {
 		b.Fatal(err)
@@ -55,13 +59,13 @@ func BenchmarkUserRepository_FindByEmail(b *testing.B) {
 func BenchmarkUserRepository_List(b *testing.B) {
 	ctx := context.Background()
 	db := openBenchDB(b, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, zap.NewNop())
 	for i := 0; i < 50; i++ {
 		_ = repo.Create(ctx, &model.User{Name: "B", Email: fmt.Sprintf("list%d@b.com", i), Password: "x"})
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = repo.List(ctx, 20)
+		_, _ = repo.List(ctx, request.UserListRequest{Limit: 20, Page: 1})
 	}
 }
 
@@ -70,7 +74,9 @@ func BenchmarkUserRepository_List(b *testing.B) {
 func openBenchDB(b *testing.B, migrate ...any) *gorm.DB {
 	b.Helper()
 	dsn := "file:bench_" + uuid.New().String() + "?mode=memory&cache=private"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	if err != nil {
 		b.Fatalf("open db: %v", err)
 	}

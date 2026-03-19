@@ -8,6 +8,7 @@ import (
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,7 @@ func TestTwoFactorRepository_UserConfig_Upsert_Get(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.UserTwoFactor{})
-	repo := NewTwoFactorRepository(db)
+	repo := NewTwoFactorRepository(db, zap.NewNop())
 
 	got, err := repo.GetUserConfig(ctx, 1)
 	assert.NoError(t, err)
@@ -35,7 +36,7 @@ func TestTwoFactorRepository_ChallengeLifecycle(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.TwoFactorChallenge{})
-	repo := NewTwoFactorRepository(db)
+	repo := NewTwoFactorRepository(db, zap.NewNop())
 
 	now := time.Now()
 	ch := &model.TwoFactorChallenge{

@@ -9,9 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
 	"go-rest/internal/service"
+	"go-rest/internal/repository"
 	"go-rest/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -26,9 +28,9 @@ func (m *mockMediaService) Upload(ctx context.Context, actorUserID uint, mediaab
 	med, _ := args.Get(0).(*model.Media)
 	return med, args.Error(1)
 }
-func (m *mockMediaService) List(ctx context.Context, actorUserID uint, limit int) ([]model.Media, error) {
-	args := m.Called(ctx, actorUserID, limit)
-	return args.Get(0).([]model.Media), args.Error(1)
+func (m *mockMediaService) List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, actorUserID, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 func (m *mockMediaService) GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error) {
 	args := m.Called(ctx, actorUserID, id)

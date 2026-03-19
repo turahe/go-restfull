@@ -7,16 +7,18 @@ import (
 	"fmt"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 func TestUserRepository_Integration_Create_FindByEmail_FindByID_List(t *testing.T) {
 	RunWithTx(t, func(tx *gorm.DB) {
-		repo := NewUserRepository(tx)
+		repo := NewUserRepository(tx, zap.NewNop())
 		ctx := context.Background()
 
 		u := &model.User{Name: "Integration User", Email: "int@example.com", Password: "secret"}
@@ -34,15 +36,17 @@ func TestUserRepository_Integration_Create_FindByEmail_FindByID_List(t *testing.
 		assert.Equal(t, u.ID, byID.ID)
 		assert.Equal(t, "int@example.com", byID.Email)
 
-		list, err := repo.List(ctx, 10)
+		page, err := repo.List(ctx, request.UserListRequest{Limit: 10, Page: 1})
 		require.NoError(t, err)
-		assert.GreaterOrEqual(t, len(list), 1)
+		items, ok := page.Items.([]model.User)
+		require.True(t, ok)
+		assert.GreaterOrEqual(t, len(items), 1)
 	})
 }
 
 func TestUserRepository_Integration_List_LimitClamp(t *testing.T) {
 	RunWithTx(t, func(tx *gorm.DB) {
-		repo := NewUserRepository(tx)
+		repo := NewUserRepository(tx, zap.NewNop())
 		ctx := context.Background()
 
 		for i := 0; i < 3; i++ {
@@ -51,12 +55,16 @@ func TestUserRepository_Integration_List_LimitClamp(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		rows, err := repo.List(ctx, 2)
+		page, err := repo.List(ctx, request.UserListRequest{Limit: 2, Page: 1})
 		require.NoError(t, err)
-		assert.Len(t, rows, 2)
+		items, ok := page.Items.([]model.User)
+		require.True(t, ok)
+		assert.Len(t, items, 2)
 
-		rowsDefault, err := repo.List(ctx, -1)
+		pageDefault, err := repo.List(ctx, request.UserListRequest{Limit: -1, Page: 1})
 		require.NoError(t, err)
-		assert.GreaterOrEqual(t, len(rowsDefault), 3)
+		itemsDefault, ok := pageDefault.Items.([]model.User)
+		require.True(t, ok)
+		assert.GreaterOrEqual(t, len(itemsDefault), 3)
 	})
 }

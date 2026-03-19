@@ -23,3 +23,18 @@ type Category struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
+
+func (Category) TableName() string {
+	return "categories"
+}
+
+func (c *Category) BeforeCreate(tx *gorm.DB) error {
+	c.CreatedAt = time.Now()
+	c.UpdatedAt = time.Now()
+	return nil
+}
+
+func (c *Category) BeforeUpdate(tx *gorm.DB) error {
+	c.UpdatedAt = time.Now()
+	return nil
+}

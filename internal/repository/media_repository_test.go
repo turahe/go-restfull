@@ -8,6 +8,7 @@ import (
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
@@ -22,7 +23,7 @@ func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 	assert.NoError(t, db.Exec("CREATE TABLE IF NOT EXISTS category_media (category_id integer, media_id integer)").Error)
 	assert.NoError(t, db.Exec("CREATE TABLE IF NOT EXISTS comment_media (comment_id integer, media_id integer)").Error)
 
-	repo := NewMediaRepository(db)
+	repo := NewMediaRepository(db, zap.NewNop())
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)

@@ -18,7 +18,7 @@ func newSeedRBACCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			db, err := database.ConnectMySQL(cfg)
+			db, err := database.ConnectMySQL(cfg, nil)
 			if err != nil {
 				return err
 			}

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 	"go-rest/internal/repository"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -20,19 +22,26 @@ var (
 
 type CategoryService struct {
 	categories *repository.CategoryRepository
+	log        *zap.Logger
 }
 
-func NewCategoryService(categories *repository.CategoryRepository) *CategoryService {
-	return &CategoryService{categories: categories}
+func NewCategoryService(categories *repository.CategoryRepository, log *zap.Logger) *CategoryService {
+	return &CategoryService{categories: categories, log: log}
 }
 
-func (s *CategoryService) List(ctx context.Context, limit int) ([]model.Category, error) {
-	return s.categories.List(ctx, limit)
+func (s *CategoryService) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+	page, err := s.categories.List(ctx, req)
+	if err != nil {
+		s.log.Error("failed to list categories", zap.Error(err))
+		return repository.CursorPage{}, err
+	}
+	return page, nil
 }
 
 func (s *CategoryService) GetBySlug(ctx context.Context, slug string) (*model.Category, error) {
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
+		s.log.Error("invalid slug")
 		return nil, ErrInvalidSlug
 	}
 	c, err := s.categories.FindBySlug(ctx, slug)
@@ -45,36 +54,34 @@ func (s *CategoryService) GetBySlug(ctx context.Context, slug string) (*model.Ca
 	return c, nil
 }
 
-func (s *CategoryService) Create(ctx context.Context, actorUserID uint, name string) (*model.Category, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return nil, ErrInvalidCategoryReq
-	}
-
-	base := slugify(name)
+func (s *CategoryService) Create(ctx context.Context, actorUserID uint, req request.CreateCategoryRequest) (*model.Category, error) {
+	base := slugify(req.Name)
 	if base == "" {
 		base = "category"
 	}
 
 	slug, err := s.uniqueSlug(ctx, base)
 	if err != nil {
+		s.log.Error("failed to generate unique slug", zap.Error(err))
 		return nil, err
 	}
 
 	c := &model.Category{
-		Name:      name,
+		Name:      req.Name,
 		Slug:      slug,
 		CreatedBy: actorUserID,
 		UpdatedBy: actorUserID,
 	}
 	if err := s.categories.Create(ctx, c); err != nil {
+		s.log.Error("failed to create category", zap.Error(err))
 		return nil, err
 	}
 	return c, nil
 }
 
-func (s *CategoryService) Update(ctx context.Context, id uint, actorUserID uint, name string) (*model.Category, error) {
+func (s *CategoryService) Update(ctx context.Context, id uint, actorUserID uint, req request.UpdateCategoryRequest) (*model.Category, error) {
 	if id == 0 {
+		s.log.Error("invalid category id")
 		return nil, ErrInvalidCategoryID
 	}
 	c, err := s.categories.FindByID(ctx, id)
@@ -85,13 +92,13 @@ func (s *CategoryService) Update(ctx context.Context, id uint, actorUserID uint,
 		return nil, err
 	}
 
-	name = strings.TrimSpace(name)
-	if name != "" {
-		c.Name = name
+	if req.Name != "" {
+		c.Name = req.Name
 	}
 	c.UpdatedBy = actorUserID
 
 	if err := s.categories.Update(ctx, c); err != nil {
+		s.log.Error("failed to update category", zap.Error(err))
 		return nil, err
 	}
 	return c, nil
@@ -99,6 +106,7 @@ func (s *CategoryService) Update(ctx context.Context, id uint, actorUserID uint,
 
 func (s *CategoryService) Delete(ctx context.Context, id uint, actorUserID uint) error {
 	if id == 0 {
+		s.log.Error("invalid category id")
 		return ErrInvalidCategoryID
 	}
 	_, err := s.categories.FindByID(ctx, id)
@@ -112,7 +120,12 @@ func (s *CategoryService) Delete(ctx context.Context, id uint, actorUserID uint)
 }
 
 func (s *CategoryService) FindByIDs(ctx context.Context, ids []uint) ([]model.Category, error) {
-	return s.categories.FindByIDs(ctx, ids)
+	cats, err := s.categories.FindByIDs(ctx, ids)
+	if err != nil {
+		s.log.Error("failed to find categories by ids", zap.Error(err))
+		return nil, err
+	}
+	return cats, nil
 }
 
 func (s *CategoryService) uniqueSlug(ctx context.Context, base string) (string, error) {
@@ -120,13 +133,15 @@ func (s *CategoryService) uniqueSlug(ctx context.Context, base string) (string, 
 	for i := 1; i <= 50; i++ {
 		exists, err := s.categories.SlugExists(ctx, slug)
 		if err != nil {
+			s.log.Error("failed to check if slug exists", zap.Error(err))
 			return "", err
 		}
 		if !exists {
+			s.log.Error("slug already exists")
 			return slug, nil
 		}
 		slug = fmt.Sprintf("%s-%d", base, i+1)
 	}
+	s.log.Error("could not generate unique slug")
 	return "", errors.New("could not generate unique slug")
 }
-

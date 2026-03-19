@@ -5,20 +5,23 @@ import (
 	"errors"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
+	"go.uber.org/zap"
 )
 
 type mockUserRepo struct {
 	mock.Mock
 }
 
-func (m *mockUserRepo) List(ctx context.Context, limit int) ([]model.User, error) {
-	args := m.Called(ctx, limit)
-	return args.Get(0).([]model.User), args.Error(1)
+func (m *mockUserRepo) List(ctx context.Context, req request.UserListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 
 func (m *mockUserRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
@@ -82,7 +85,7 @@ func TestUserService_GetByID(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(repo)
 			}
-			svc := NewUserService(repo)
+			svc := NewUserService(repo, zap.NewNop())
 
 			u, err := svc.GetByID(ctx, tc.id)
 
@@ -108,14 +111,18 @@ func TestUserService_List(t *testing.T) {
 
 	ctx := context.Background()
 	repo := &mockUserRepo{}
-	repo.On("List", mock.Anything, 10).Return([]model.User{{ID: 1}}, nil).Once()
+	repo.On("List", mock.Anything, request.UserListRequest{Limit: 10}).Return(repository.CursorPage{
+		Items: []model.User{{ID: 1}},
+	}, nil).Once()
 
-	svc := NewUserService(repo)
-	rows, err := svc.List(ctx, 10)
+	svc := NewUserService(repo, zap.NewNop())
+	page, err := svc.List(ctx, request.UserListRequest{Limit: 10})
 
 	assert.NoError(t, err)
-	assert.Len(t, rows, 1)
-	assert.Equal(t, uint(1), rows[0].ID)
+	items, ok := page.Items.([]model.User)
+	assert.True(t, ok)
+	assert.Len(t, items, 1)
+	assert.Equal(t, uint(1), items[0].ID)
 	repo.AssertExpectations(t)
 }
 

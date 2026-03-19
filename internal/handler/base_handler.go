@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"go-rest/internal/middleware"
 	"go-rest/pkg/response"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -49,7 +52,11 @@ func (h BaseHandler) validate(c *gin.Context, serviceCode string, req any) bool 
 
 func (h BaseHandler) internalError(c *gin.Context, serviceCode string, err error, message string) {
 	if h.Log != nil && err != nil {
-		h.Log.Error(message, zap.Error(err))
+		reqLog := h.Log
+		if id, ok := middleware.GetRequestID(c); ok {
+			reqLog = reqLog.With(zap.String("request_id", id))
+		}
+		reqLog.Error(message, zap.Error(err))
 	}
 	response.InternalServerError(c,
 		response.BuildResponseCode(500, serviceCode, response.CaseCodeInternalError),
@@ -58,3 +65,23 @@ func (h BaseHandler) internalError(c *gin.Context, serviceCode string, err error
 	)
 }
 
+func (h BaseHandler) ParseIntDefault(s string, def int) int {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return def
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	return n
+}
+
+func (h BaseHandler) ParseUintParam(c *gin.Context, name string) (uint, error) {
+	s := strings.TrimSpace(c.Param(name))
+	n, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return uint(n), nil
+}

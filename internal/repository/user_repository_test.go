@@ -5,15 +5,17 @@ import (
 	"sync"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestUserRepository_Create_FindByEmail_FindByID(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
@@ -32,21 +34,25 @@ func TestUserRepository_Create_FindByEmail_FindByID(t *testing.T) {
 
 func TestUserRepository_List_LimitClamp(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
 		assert.NoError(t, repo.Create(ctx, &model.User{Name: "N", Email: string(rune('a'+i)) + "@b.com", Password: "x"}))
 	}
 
-	rows, err := repo.List(ctx, 2)
+	page, err := repo.List(ctx, request.UserListRequest{Limit: 2, Page: 1})
 	assert.NoError(t, err)
-	assert.Len(t, rows, 2)
+	items, ok := page.Items.([]model.User)
+	assert.True(t, ok)
+	assert.Len(t, items, 2)
 
-	rows2, err := repo.List(ctx, -1)
+	page2, err := repo.List(ctx, request.UserListRequest{Limit: -1, Page: 1})
 	assert.NoError(t, err)
-	assert.Len(t, rows2, 3)
+	items2, ok := page2.Items.([]model.User)
+	assert.True(t, ok)
+	assert.Len(t, items2, 3)
 }
 
 // TestUserRepository_ConcurrentCreate_SameEmail runs concurrent Creates with the same email.
@@ -54,8 +60,8 @@ func TestUserRepository_List_LimitClamp(t *testing.T) {
 // Run with: go test -race -run TestUserRepository_ConcurrentCreate_SameEmail ./internal/repository/...
 func TestUserRepository_ConcurrentCreate_SameEmail(t *testing.T) {
 	t.Parallel()
-	db := openTestDB(t, &model.User{}, &model.Media{})
-	repo := NewUserRepository(db)
+	db := openTestDB(t, &model.User{}, &model.Media{}, &model.Role{}, &model.UserRole{})
+	repo := NewUserRepository(db, zap.NewNop())
 	ctx := context.Background()
 	const concurrency = 20
 	email := "concurrent-same@example.com"

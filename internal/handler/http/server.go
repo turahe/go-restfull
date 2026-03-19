@@ -39,7 +39,7 @@ func Serve(ctx context.Context) error {
 	}
 	defer func() { _ = log.Sync() }()
 
-	db, err := database.ConnectMySQL(cfg)
+	db, err := database.ConnectMySQL(cfg, log)
 	if err != nil {
 		log.Fatal("db connect failed", zap.Error(err))
 	}
@@ -61,7 +61,7 @@ func Serve(ctx context.Context) error {
 	}
 	log.Info("db migrated")
 
-	jwtm, err := service.NewJWTService(cfg.JWTPrivateKeyPath, cfg.JWTPublicKeyPath, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTKeyID)
+	jwtm, err := service.NewJWTService(cfg.JWTPrivateKeyPath, cfg.JWTPublicKeyPath, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTKeyID, log)
 	if err != nil {
 		log.Fatal("jwt keys load failed", zap.Error(err))
 	}
@@ -70,30 +70,30 @@ func Serve(ctx context.Context) error {
 	if err != nil {
 		log.Fatal("casbin init failed", zap.Error(err))
 	}
-	rbacSvc := service.NewRBACService(enf, db.Gorm)
+	rbacSvc := service.NewRBACService(enf, db.Gorm, log)
 
 	// Repositories
-	userRepo := repository.NewUserRepository(db.Gorm)
-	authRepo := repository.NewAuthRepository(db.Gorm)
-	auditRepo := repository.NewAuditRepository(db.Gorm)
-	categoryRepo := repository.NewCategoryRepository(db.Gorm)
-	tagRepo := repository.NewTagRepository(db.Gorm)
-	roleRepo := repository.NewRoleRepository(db.Gorm)
-	postRepo := repository.NewPostRepository(db.Gorm)
-	commentRepo := repository.NewCommentRepository(db.Gorm)
-	twoFARepo := repository.NewTwoFactorRepository(db.Gorm)
-	mediaRepo := repository.NewMediaRepository(db.Gorm)
+	userRepo := repository.NewUserRepository(db.Gorm, log)
+	authRepo := repository.NewAuthRepository(db.Gorm, log)
+	auditRepo := repository.NewAuditRepository(db.Gorm, log)
+	categoryRepo := repository.NewCategoryRepository(db.Gorm, log)
+	tagRepo := repository.NewTagRepository(db.Gorm, log)
+	roleRepo := repository.NewRoleRepository(db.Gorm, log)
+	postRepo := repository.NewPostRepository(db.Gorm, log)
+	commentRepo := repository.NewCommentRepository(db.Gorm, log)
+	twoFARepo := repository.NewTwoFactorRepository(db.Gorm, log)
+	mediaRepo := repository.NewMediaRepository(db.Gorm, log)
 
 	// Services
-	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer)
-	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, twoFASvc, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper)
-	userSvc := service.NewUserService(userRepo)
-	roleSvc := service.NewRoleService(roleRepo)
-	categorySvc := service.NewCategoryService(categoryRepo)
-	tagSvc := service.NewTagService(tagRepo)
-	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo)
-	commentSvc := service.NewCommentService(commentRepo, tagRepo)
-	mediaSvc := service.NewMediaService(mediaRepo, cfg)
+	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer, log)
+	authSvc := service.NewAuthService(userRepo, authRepo, auditRepo, rbacSvc, jwtm, twoFASvc, cfg.AccessTokenTTLMinutes, cfg.RefreshTokenTTLDays, cfg.ImpersonationTTLMinutes, cfg.RefreshTokenPepper, log)
+	userSvc := service.NewUserService(userRepo, log)
+	roleSvc := service.NewRoleService(roleRepo, log)
+	categorySvc := service.NewCategoryService(categoryRepo, log)
+	tagSvc := service.NewTagService(tagRepo, log)
+	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo, log)
+	commentSvc := service.NewCommentService(commentRepo, tagRepo, log)
+	mediaSvc := service.NewMediaService(mediaRepo, cfg, log)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc, log)
@@ -161,4 +161,3 @@ func Serve(ctx context.Context) error {
 	log.Info("server stopped")
 	return nil
 }
-

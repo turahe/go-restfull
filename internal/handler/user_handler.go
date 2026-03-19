@@ -3,11 +3,11 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strconv"
-	"strings"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -21,7 +21,7 @@ type UserHandler struct {
 }
 
 type UserService interface {
-	List(ctx context.Context, limit int) ([]model.User, error)
+	List(ctx context.Context, req request.UserListRequest) (repository.CursorPage, error)
 	GetByID(ctx context.Context, id uint) (*model.User, error)
 }
 
@@ -35,10 +35,10 @@ func NewUserHandler(users UserService, log *zap.Logger) *UserHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.Envelope
-// @Failure      401    {object}  response.Envelope
-// @Failure      403    {object}  response.Envelope
-// @Failure      500    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
+// @Failure      401    {object}  response.Unauthorized
+// @Failure      403    {object}  response.Forbidden
+// @Failure      500    {object}  response.InternalServerError
 // @Router       /api/v1/users [get]
 func (h *UserHandler) List(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -51,22 +51,23 @@ func (h *UserHandler) List(c *gin.Context) {
 		return
 	}
 
-	limit := 100
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeUsers, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.UserListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeUsers, response.CaseCodeInvalidFormat), "invalid request", err.Error())
+		return
+	}
+	if !h.validate(c, response.ServiceCodeUsers, req) {
+		return
 	}
 
-	rows, err := h.users.List(c.Request.Context(), limit)
+	page, err := h.users.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeUsers, err, "list failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeListRetrieved), "ok", rows)
+	next := page.NextCursor != nil
+	prev := page.PrevCursor != nil
+	response.OKPaginated(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeListRetrieved), "ok", page.Items, next, prev)
 }
 
 // GetUserByID godoc
@@ -75,12 +76,12 @@ func (h *UserHandler) List(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "User ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      403 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      403 {object}  response.Forbidden
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/users/{id} [get]
 func (h *UserHandler) GetByID(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -93,13 +94,13 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeUsers, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	u, err := h.users.GetByID(c.Request.Context(), uint(id))
+	u, err := h.users.GetByID(c.Request.Context(), id)
 	if err != nil {
 		switch err {
 		case service.ErrUserNotFound:
@@ -111,4 +112,3 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeUsers, response.CaseCodeRetrieved), "ok", u)
 }
-

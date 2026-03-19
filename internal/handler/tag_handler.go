@@ -2,8 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
@@ -28,26 +26,38 @@ func NewTagHandler(tags *service.TagService, log *zap.Logger) *TagHandler {
 // @Tags         Tags
 // @Produce      json
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/tags [get]
 func (h *TagHandler) List(c *gin.Context) {
-	limit := 200
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeTags, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.TagListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c,
+			response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeTags, response.CaseCodeInvalidFormat),
+			"invalid request",
+			err.Error(),
+		)
+		return
+	}
+	if !h.validate(c, response.ServiceCodeTags, req) {
+		return
 	}
 
-	rows, err := h.tags.List(c.Request.Context(), limit)
+	page, err := h.tags.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeTags, err, "list failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeTags, response.CaseCodeListRetrieved), "ok", rows)
+	next := page.NextCursor != nil
+	prev := page.PrevCursor != nil
+	response.OKPaginated(
+		c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeTags, response.CaseCodeListRetrieved),
+		"ok",
+		page.Items,
+		next,
+		prev,
+	)
 }
 
 // GetTagBySlug godoc
@@ -55,9 +65,9 @@ func (h *TagHandler) List(c *gin.Context) {
 // @Tags         Tags
 // @Produce      json
 // @Param        slug  path      string  true  "Tag slug"
-// @Success      200   {object}  response.Envelope
-// @Failure      404   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      404   {object}  response.NotFound
+// @Failure      400   {object}  response.BadRequest
 // @Router       /api/v1/tags/{slug} [get]
 func (h *TagHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
@@ -81,10 +91,10 @@ func (h *TagHandler) GetBySlug(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateTagRequest  true  "Create tag payload"
-// @Success      201   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      201   {object}  response.Created
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/tags [post]
 func (h *TagHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -100,7 +110,7 @@ func (h *TagHandler) Create(c *gin.Context) {
 		return
 	}
 
-	t, err := h.tags.Create(c.Request.Context(), auth.UserID, req.Name)
+	t, err := h.tags.Create(c.Request.Context(), auth.UserID, req)
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeTags, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
@@ -116,11 +126,11 @@ func (h *TagHandler) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id    path      int                       true  "Tag ID"
 // @Param        body  body      request.UpdateTagRequest   true  "Update tag payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      404   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      404   {object}  response.NotFound
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/tags/{id} [put]
 func (h *TagHandler) Update(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -128,7 +138,7 @@ func (h *TagHandler) Update(c *gin.Context) {
 		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeTags, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeTags, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
@@ -141,7 +151,7 @@ func (h *TagHandler) Update(c *gin.Context) {
 		return
 	}
 
-	t, err := h.tags.Update(c.Request.Context(), uint(id), auth.UserID, req.Name)
+	t, err := h.tags.Update(c.Request.Context(), uint(id), auth.UserID, req)
 	if err != nil {
 		switch err {
 		case service.ErrTagNotFound:
@@ -160,25 +170,25 @@ func (h *TagHandler) Update(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Tag ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/tags/{id} [delete]
 func (h *TagHandler) Delete(c *gin.Context) {
-	_, ok := middleware.GetAuth(c)
+	auth, ok := middleware.GetAuth(c)
 	if !ok {
 		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeTags, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeTags, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	err = h.tags.Delete(c.Request.Context(), uint(id), 0)
+	err = h.tags.Delete(c.Request.Context(), id, auth.UserID)
 	if err != nil {
 		switch err {
 		case service.ErrTagNotFound:
@@ -190,4 +200,3 @@ func (h *TagHandler) Delete(c *gin.Context) {
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeTags, response.CaseCodeDeleted), "deleted", gin.H{"id": uint(id)})
 }
-

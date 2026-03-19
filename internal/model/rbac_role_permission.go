@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type RolePermission struct {
 	ID           uint `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -10,3 +14,11 @@ type RolePermission struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+func (RolePermission) TableName() string {
+	return "role_permissions"
+}
+
+func (rp *RolePermission) BeforeCreate(tx *gorm.DB) error {
+	rp.CreatedAt = time.Now()
+	return nil
+}

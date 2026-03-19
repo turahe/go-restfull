@@ -3,12 +3,11 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -22,10 +21,10 @@ type CategoryHandler struct {
 }
 
 type CategoryService interface {
-	List(ctx context.Context, limit int) ([]model.Category, error)
+	List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error)
 	GetBySlug(ctx context.Context, slug string) (*model.Category, error)
-	Create(ctx context.Context, actorUserID uint, name string) (*model.Category, error)
-	Update(ctx context.Context, id uint, actorUserID uint, name string) (*model.Category, error)
+	Create(ctx context.Context, actorUserID uint, req request.CreateCategoryRequest) (*model.Category, error)
+	Update(ctx context.Context, id uint, actorUserID uint, req request.UpdateCategoryRequest) (*model.Category, error)
 	Delete(ctx context.Context, id uint, actorUserID uint) error
 }
 
@@ -38,26 +37,38 @@ func NewCategoryHandler(categories CategoryService, log *zap.Logger) *CategoryHa
 // @Tags         Categories
 // @Produce      json
 // @Param        limit  query     int  false  "Max items (max 200)"
-// @Success      200    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/categories [get]
 func (h *CategoryHandler) List(c *gin.Context) {
-	limit := 100
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.CategoryListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c,
+			response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidFormat),
+			"invalid limit",
+			err.Error(),
+		)
+		return
+	}
+	if !h.validate(c, response.ServiceCodeCategories, req) {
+		return
 	}
 
-	rows, err := h.categories.List(c.Request.Context(), limit)
+	page, err := h.categories.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeCategories, err, "list failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeCategories, response.CaseCodeListRetrieved), "ok", rows)
+	next := page.NextCursor != nil
+	prev := page.PrevCursor != nil
+	response.OKPaginated(
+		c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeCategories, response.CaseCodeListRetrieved),
+		"ok",
+		page.Items,
+		next,
+		prev,
+	)
 }
 
 // GetCategoryBySlug godoc
@@ -65,9 +76,9 @@ func (h *CategoryHandler) List(c *gin.Context) {
 // @Tags         Categories
 // @Produce      json
 // @Param        slug  path      string  true  "Category slug"
-// @Success      200   {object}  response.Envelope
-// @Failure      404   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      404   {object}  response.NotFound
 // @Router       /api/v1/categories/{slug} [get]
 func (h *CategoryHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
@@ -91,10 +102,10 @@ func (h *CategoryHandler) GetBySlug(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateCategoryRequest  true  "Create category payload"
-// @Success      201   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      201   {object}  response.Created
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/categories [post]
 func (h *CategoryHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -110,12 +121,12 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 		return
 	}
 
-	cat, err := h.categories.Create(c.Request.Context(), auth.UserID, req.Name)
+	cat, err := h.categories.Create(c.Request.Context(), auth.UserID, req)
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
 	}
-	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeCategories, response.CaseCodeCreated), "created", cat)
+	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeCategories, response.CaseCodeCreated), "Successfully created category", cat)
 }
 
 // UpdateCategory godoc
@@ -126,11 +137,11 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id    path      int                         true  "Category ID"
 // @Param        body  body      request.UpdateCategoryRequest true  "Update category payload"
-// @Success      200   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      404   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      200   {object}  response.OK
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      404   {object}  response.NotFound
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/categories/{id} [put]
 func (h *CategoryHandler) Update(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -138,7 +149,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeCategories, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
@@ -151,7 +162,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		return
 	}
 
-	cat, err := h.categories.Update(c.Request.Context(), uint(id), auth.UserID, req.Name)
+	cat, err := h.categories.Update(c.Request.Context(), id, auth.UserID, req)
 	if err != nil {
 		switch err {
 		case service.ErrCategoryNotFound:
@@ -170,11 +181,11 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Category ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/categories/{id} [delete]
 func (h *CategoryHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -182,13 +193,13 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeCategories, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	err = h.categories.Delete(c.Request.Context(), uint(id), auth.UserID)
+	err = h.categories.Delete(c.Request.Context(), id, auth.UserID)
 	if err != nil {
 		switch err {
 		case service.ErrCategoryNotFound:
@@ -200,4 +211,3 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeCategories, response.CaseCodeDeleted), "deleted", gin.H{"id": uint(id)})
 }
-

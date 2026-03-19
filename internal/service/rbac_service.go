@@ -10,16 +10,18 @@ import (
 	"go-rest/internal/rbac"
 
 	"github.com/casbin/casbin/v3/util"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type RBACService struct {
-	e  *rbac.Enforcer
-	db *gorm.DB
+	e   *rbac.Enforcer
+	db  *gorm.DB
+	log *zap.Logger
 }
 
-func NewRBACService(e *rbac.Enforcer, db *gorm.DB) *RBACService {
-	return &RBACService{e: e, db: db}
+func NewRBACService(e *rbac.Enforcer, db *gorm.DB, log *zap.Logger) *RBACService {
+	return &RBACService{e: e, db: db, log: log}
 }
 
 func (s *RBACService) RolesForUser(ctx context.Context, userID uint) ([]string, error) {
@@ -34,13 +36,19 @@ func (s *RBACService) RolesForUser(ctx context.Context, userID uint) ([]string, 
 			Order("roles.id asc").
 			Scan(&names).Error
 		if err != nil {
+			s.log.Error("failed to get roles for user", zap.Error(err))
 			return nil, err
 		}
 		return names, nil
 	}
 
 	// Fallback to Casbin grouping policies.
-	return s.e.GetRolesForUser(fmt.Sprintf("%d", userID))
+	roles, err := s.e.GetRolesForUser(fmt.Sprintf("%d", userID))
+	if err != nil {
+		s.log.Error("failed to get roles for user", zap.Error(err))
+		return nil, err
+	}
+	return roles, nil
 }
 
 // PermissionsForUser returns implicit permissions as "obj:act" strings.
@@ -58,6 +66,7 @@ func (s *RBACService) PermissionsForUser(ctx context.Context, userID uint) ([]st
 			Order("permissions.id asc").
 			Scan(&keys).Error
 		if err != nil {
+			s.log.Error("failed to get permissions for user", zap.Error(err))
 			return nil, err
 		}
 		out := make([]string, 0, len(keys))
@@ -74,6 +83,7 @@ func (s *RBACService) PermissionsForUser(ctx context.Context, userID uint) ([]st
 	// Fallback to Casbin (implicit permissions).
 	perms, err := s.e.GetImplicitPermissionsForUser(fmt.Sprintf("%d", userID))
 	if err != nil {
+		s.log.Error("failed to get implicit permissions for user", zap.Error(err))
 		return nil, err
 	}
 	out := make([]string, 0, len(perms))
@@ -94,6 +104,7 @@ func (s *RBACService) Enforce(ctx context.Context, userID uint, obj string, act 
 	if s.db != nil {
 		keys, err := s.PermissionsForUser(ctx, userID)
 		if err != nil {
+			s.log.Error("failed to get permissions for user", zap.Error(err))
 			return false, err
 		}
 		for _, k := range keys {
@@ -114,7 +125,12 @@ func (s *RBACService) Enforce(ctx context.Context, userID uint, obj string, act 
 	}
 
 	// Fallback to Casbin.
-	return s.e.Enforce(fmt.Sprintf("%d", userID), obj, act)
+	allowed, err := s.e.Enforce(fmt.Sprintf("%d", userID), obj, act)
+	if err != nil {
+		s.log.Error("failed to enforce", zap.Error(err))
+		return false, err
+	}
+	return allowed, nil
 }
 
 // Admin helpers
@@ -129,17 +145,29 @@ func (s *RBACService) AssignRole(ctx context.Context, userID uint, role string) 
 		if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			r := model.Role{Name: role}
 			if err := tx.Where("name = ?", role).FirstOrCreate(&r).Error; err != nil {
+				s.log.Error("failed to create role", zap.Error(err))
 				return err
 			}
 			ur := model.UserRole{UserID: userID, RoleID: r.ID}
-			return tx.Where("user_id = ? AND role_id = ?", userID, r.ID).FirstOrCreate(&ur).Error
+			if err := tx.Where("user_id = ? AND role_id = ?", userID, r.ID).FirstOrCreate(&ur).Error; err != nil {
+				s.log.Error("failed to create user role", zap.Error(err))
+				return err
+			}
+			return nil
 		}); err != nil {
+			s.log.Error("failed to assign role", zap.Error(err))
 			return false, err
 		}
+		return true, nil
 	}
 
 	// Also persist to Casbin grouping policy for enforcement.
-	return s.e.AddRoleForUser(fmt.Sprintf("%d", userID), role)
+	added, err := s.e.AddRoleForUser(fmt.Sprintf("%d", userID), role)
+	if err != nil {
+		s.log.Error("failed to add role for user", zap.Error(err))
+		return false, err
+	}
+	return added, nil
 }
 
 func (s *RBACService) AddPermissionToRole(ctx context.Context, role, obj, act string) (bool, error) {
@@ -156,20 +184,31 @@ func (s *RBACService) AddPermissionToRole(ctx context.Context, role, obj, act st
 		if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			r := model.Role{Name: role}
 			if err := tx.Where("name = ?", role).FirstOrCreate(&r).Error; err != nil {
+				s.log.Error("failed to create role", zap.Error(err))
 				return err
 			}
 			p := model.Permission{Key: key}
 			if err := tx.Where("`key` = ?", key).FirstOrCreate(&p).Error; err != nil {
+				s.log.Error("failed to create permission", zap.Error(err))
 				return err
 			}
 			rp := model.RolePermission{RoleID: r.ID, PermissionID: p.ID}
-			return tx.Where("role_id = ? AND permission_id = ?", r.ID, p.ID).FirstOrCreate(&rp).Error
+			if err := tx.Where("role_id = ? AND permission_id = ?", r.ID, p.ID).FirstOrCreate(&rp).Error; err != nil {
+				s.log.Error("failed to create role permission", zap.Error(err))
+				return err
+			}
+			return nil
 		}); err != nil {
+			s.log.Error("failed to add permission to role", zap.Error(err))
 			return false, err
 		}
 	}
 
 	// Also persist to Casbin policy for enforcement.
-	return s.e.AddPolicy(role, obj, act)
+	added, err := s.e.AddPolicy(role, obj, act)
+	if err != nil {
+		s.log.Error("failed to add policy", zap.Error(err))
+		return false, err
+	}
+	return added, nil
 }
-

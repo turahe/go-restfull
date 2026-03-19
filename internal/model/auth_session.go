@@ -23,3 +23,17 @@ type AuthSession struct {
 	DeletedAt  gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 
+func (AuthSession) TableName() string {
+	return "auth_sessions"
+}
+
+func (a *AuthSession) BeforeCreate(tx *gorm.DB) error {
+	a.CreatedAt = time.Now()
+	a.UpdatedAt = time.Now()
+	return nil
+}
+
+func (a *AuthSession) BeforeUpdate(tx *gorm.DB) error {
+	a.UpdatedAt = time.Now()
+	return nil
+}

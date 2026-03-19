@@ -9,6 +9,7 @@ import (
 
 	"go-rest/internal/database"
 	"go-rest/internal/model"
+	"go-rest/internal/testutil"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -27,7 +28,7 @@ func TestMain(m *testing.M) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 	gormDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
 	})
 	if err != nil {
 		os.Exit(0)

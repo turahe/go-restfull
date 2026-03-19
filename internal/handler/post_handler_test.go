@@ -9,6 +9,7 @@ import (
 
 	"go-rest/internal/model"
 	"go-rest/internal/repository"
+	"go-rest/internal/handler/request"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -21,8 +22,8 @@ type mockPostService struct {
 	mock.Mock
 }
 
-func (m *mockPostService) List(ctx context.Context, cursor *uint, limit int, dir repository.CursorDirection) (repository.CursorPage, error) {
-	args := m.Called(ctx, cursor, limit, dir)
+func (m *mockPostService) List(ctx context.Context, req request.PostListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
 	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 func (m *mockPostService) GetBySlug(ctx context.Context, slug string) (*model.Post, error) {
@@ -30,13 +31,15 @@ func (m *mockPostService) GetBySlug(ctx context.Context, slug string) (*model.Po
 	p, _ := args.Get(0).(*model.Post)
 	return p, args.Error(1)
 }
-func (m *mockPostService) Create(ctx context.Context, userID uint, title, content string, categoryID uint, tagIDs []uint) (*model.Post, error) {
-	args := m.Called(ctx, userID, title, content, categoryID, tagIDs)
+
+func (m *mockPostService) Create(ctx context.Context, userID uint, req request.CreatePostRequest) (*model.Post, error) {
+	args := m.Called(ctx, userID, req)
 	p, _ := args.Get(0).(*model.Post)
 	return p, args.Error(1)
 }
-func (m *mockPostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryID *uint, tagIDs []uint) (*model.Post, error) {
-	args := m.Called(ctx, id, actorUserID, title, content, categoryID, tagIDs)
+
+func (m *mockPostService) Update(ctx context.Context, id uint, actorUserID uint, req request.UpdatePostRequest) (*model.Post, error) {
+	args := m.Called(ctx, id, actorUserID, req)
 	p, _ := args.Get(0).(*model.Post)
 	return p, args.Error(1)
 }
@@ -61,13 +64,13 @@ func TestPostHandler_List_InvalidCursor(t *testing.T) {
 	r := gin.New()
 	r.GET("/api/v1/posts", h.List)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/posts?cursor=bad", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/posts?limit=bad", nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	env := decodeEnvelopePost(t, rr)
-	assert.Equal(t, "invalid cursor", env.Message)
+	assert.Equal(t, "invalid request", env.Message)
 	svc.AssertExpectations(t)
 }
 
@@ -84,7 +87,7 @@ func TestPostHandler_List_Success_Defaults(t *testing.T) {
 		NextCursor: nil,
 		PrevCursor: nil,
 	}
-	svc.On("List", mock.Anything, (*uint)(nil), 10, repository.CursorNext).Return(page, nil).Once()
+	svc.On("List", mock.Anything, mock.Anything).Return(page, nil).Once()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/posts", nil)
 	rr := httptest.NewRecorder()
@@ -92,7 +95,7 @@ func TestPostHandler_List_Success_Defaults(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	env := decodeEnvelopePost(t, rr)
-	assert.Equal(t, "ok", env.Message)
+	assert.Equal(t, "Successfully retrieved posts", env.Message)
 	svc.AssertExpectations(t)
 }
 
@@ -131,7 +134,7 @@ func TestPostHandler_GetBySlug(t *testing.T) {
 				s.On("GetBySlug", mock.Anything, "hello").Return(&model.Post{ID: 1, Slug: "hello"}, nil).Once()
 			},
 			wantStatus: http.StatusOK,
-			wantMsg:    "ok",
+			wantMsg:    "Successfully retrieved post by slug",
 		},
 	}
 

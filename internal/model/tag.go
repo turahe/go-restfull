@@ -16,3 +16,17 @@ type Tag struct {
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 
+func (Tag) TableName() string {
+	return "tags"
+}
+
+func (t *Tag) BeforeCreate(tx *gorm.DB) error {
+	t.CreatedAt = time.Now()
+	t.UpdatedAt = time.Now()
+	return nil
+}
+
+func (t *Tag) BeforeUpdate(tx *gorm.DB) error {
+	t.UpdatedAt = time.Now()
+	return nil
+}

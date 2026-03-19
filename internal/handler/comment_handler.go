@@ -3,12 +3,11 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -22,8 +21,8 @@ type CommentHandler struct {
 }
 
 type CommentService interface {
-	Create(ctx context.Context, postID uint, userID uint, content string, tagIDs []uint) (*model.Comment, error)
-	List(ctx context.Context, postID uint, limit int) ([]model.Comment, error)
+	Create(ctx context.Context, postID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error)
+	List(ctx context.Context, req request.CommentListRequest) (repository.CursorPage, error)
 }
 
 func NewCommentHandler(comments CommentService, log *zap.Logger) *CommentHandler {
@@ -51,7 +50,7 @@ func (h *CommentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	postID, err := parseUintParam(c, "id")
+	postID, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid post id", "id must be uint")
 		return
@@ -65,7 +64,7 @@ func (h *CommentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	cmt, err := h.comments.Create(c.Request.Context(), postID, auth.UserID, req.Content, req.TagIDs)
+	cmt, err := h.comments.Create(c.Request.Context(), postID, auth.UserID, req)
 	if err != nil {
 		switch err {
 		case service.ErrPostMissing:
@@ -85,32 +84,41 @@ func (h *CommentHandler) Create(c *gin.Context) {
 // @Produce      json
 // @Param        id     path      int  true   "Post ID"
 // @Param        limit  query     int  false  "Max comments (max 200)"
-// @Success      200    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
 // @Failure      400    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/posts/{id}/comments [get]
 func (h *CommentHandler) List(c *gin.Context) {
-	postID, err := parseUintParam(c, "id")
+	postID, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid post id", "id must be uint")
 		return
 	}
 
-	limit := 50
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.CommentListRequest
+	req.PostID = postID
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidFormat), "invalid request", err.Error())
+		return
+	}
+	// Ensure path param always wins over any query value.
+	req.PostID = postID
+	if !h.validate(c, response.ServiceCodeComments, req) {
+		return
 	}
 
-	rows, err := h.comments.List(c.Request.Context(), postID, limit)
+	page, err := h.comments.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeComments, err, "list failed")
 		return
 	}
 
-	response.OK(c, response.BuildResponseCode(200, response.ServiceCodeComments, response.CaseCodeListRetrieved), "ok", rows)
+	response.OKPaginated(
+		c,
+		response.BuildResponseCode(200, response.ServiceCodeComments, response.CaseCodeListRetrieved),
+		"ok",
+		page.Items,
+		page.NextCursor != nil,
+		page.PrevCursor != nil,
+	)
 }

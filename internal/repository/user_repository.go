@@ -3,27 +3,40 @@ package repository
 import (
 	"context"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type UserRepository struct {
-	db *gorm.DB
+	db  *gorm.DB
+	log *zap.Logger
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *gorm.DB, log *zap.Logger) *UserRepository {
+	return &UserRepository{db: db, log: log}
 }
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
-	return r.db.WithContext(ctx).Create(u).Error
+	err := r.db.WithContext(ctx).Create(u).Error
+	if err != nil {
+		r.log.Error("failed to create user", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	var u model.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	err := r.db.WithContext(ctx).
+		Preload("Media").
+		Preload("Roles").
+		Where("email = ?", email).
+		First(&u).Error
 	if err != nil {
+		r.log.Error("failed to find user by email", zap.Error(err))
 		return nil, err
 	}
 	return &u, nil
@@ -31,38 +44,107 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 
 func (r *UserRepository) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var u model.User
-	err := r.db.WithContext(ctx).Preload("Media").First(&u, id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Media").
+		Preload("Roles").
+		First(&u, id).Error
 	if err != nil {
+		r.log.Error("failed to find user by id", zap.Error(err))
 		return nil, err
 	}
 	return &u, nil
 }
 
-func (r *UserRepository) List(ctx context.Context, limit int) ([]model.User, error) {
+func (r *UserRepository) List(ctx context.Context, req request.UserListRequest) (CursorPage, error) {
+	limit := req.Limit
 	if limit <= 0 {
 		limit = 100
 	}
 	if limit > 500 {
 		limit = 500
 	}
-	var rows []model.User
-	if err := r.db.WithContext(ctx).Preload("Media").Order("id asc").Limit(limit).Find(&rows).Error; err != nil {
-		return nil, err
+
+	page := req.Page
+	if page <= 0 {
+		page = 1
 	}
-	return rows, nil
+	offset := (page - 1) * limit
+
+	// Count total rows for pagination existence.
+	countQ := r.db.WithContext(ctx).Model(&model.User{})
+	if req.Name != "" {
+		countQ = countQ.Where("name LIKE ?", "%"+req.Name+"%")
+	}
+	if req.Email != "" {
+		countQ = countQ.Where("email = ?", req.Email)
+	}
+	// req.Role is currently ignored here because User model does not include role directly.
+	var totalRows int64
+	if err := countQ.Count(&totalRows).Error; err != nil {
+		r.log.Error("failed to count users", zap.Error(err))
+		return CursorPage{}, err
+	}
+
+	// Fetch page items.
+	var rows []model.User
+	dataQ := r.db.WithContext(ctx)
+
+	if req.Name != "" {
+		dataQ = dataQ.Where("name LIKE ?", "%"+req.Name+"%")
+	}
+	if req.Email != "" {
+		dataQ = dataQ.Where("email = ?", req.Email)
+	}
+
+	if err := dataQ.
+		Preload("Roles").
+		Order("id asc").
+		Limit(limit).
+		Offset(offset).
+		Find(&rows).Error; err != nil {
+		r.log.Error("failed to list users", zap.Error(err))
+		return CursorPage{}, err
+	}
+
+	if len(rows) == 0 {
+		return CursorPage{Items: []model.User{}, NextCursor: nil, PrevCursor: nil}, nil
+	}
+
+	var nextCursor *uint
+	if int64(offset)+int64(limit) < totalRows {
+		tmp := rows[len(rows)-1].ID
+		nextCursor = &tmp
+	}
+
+	var prevCursor *uint
+	if page > 1 {
+		tmp := rows[0].ID
+		prevCursor = &tmp
+	}
+
+	return CursorPage{Items: rows, NextCursor: nextCursor, PrevCursor: prevCursor}, nil
 }
 
 func (r *UserRepository) UpdatePassword(ctx context.Context, userID uint, newHash string) error {
-	return r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).
 		Model(&model.User{}).
 		Where("id = ?", userID).
 		Update("password", newHash).Error
+	if err != nil {
+		r.log.Error("failed to update password", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (r *UserRepository) UpdateEmail(ctx context.Context, userID uint, newEmail string) error {
-	return r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).
 		Model(&model.User{}).
 		Where("id = ?", userID).
 		Update("email", newEmail).Error
+	if err != nil {
+		r.log.Error("failed to update email", zap.Error(err))
+		return err
+	}
+	return nil
 }
-

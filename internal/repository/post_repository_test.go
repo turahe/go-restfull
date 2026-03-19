@@ -5,16 +5,18 @@ import (
 	"testing"
 	"time"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestPostRepository_CRUD_SlugExists_ListCursor(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.User{}, &model.Category{}, &model.Post{}, &model.Media{})
-	repo := NewPostRepository(db)
+	repo := NewPostRepository(db, zap.NewNop())
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)
@@ -42,8 +44,10 @@ func TestPostRepository_CRUD_SlugExists_ListCursor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, p.ID, got.ID)
 
-	page, err := repo.ListCursor(ctx, nil, 10, CursorNext)
+	page, err := repo.ListCursor(ctx, request.PostListRequest{Limit: 10, Page: 1})
 	assert.NoError(t, err)
-	assert.Len(t, page.Items, 1)
+	items, ok := page.Items.([]model.Post)
+	assert.True(t, ok)
+	assert.Len(t, items, 1)
 }
 

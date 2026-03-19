@@ -8,13 +8,14 @@ import (
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestCommentRepository_Create_ListByPostID_PostExists(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.User{}, &model.Category{}, &model.Post{}, &model.Comment{}, &model.Tag{}, &model.Media{})
-	repo := NewCommentRepository(db)
+	repo := NewCommentRepository(db, zap.NewNop())
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)

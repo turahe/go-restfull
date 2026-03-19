@@ -11,22 +11,36 @@ type Media struct {
 
 	UserID uint `json:"userId" gorm:"not null;index"`
 
-	MediaType     string `json:"mediaType" gorm:"type:varchar(20);not null"` // "image" or "file"
-	OriginalName  string `json:"originalName" gorm:"type:varchar(255);not null"`
-	MimeType      string `json:"mimeType" gorm:"type:varchar(100);not null"`
-	Size          int64  `json:"size" gorm:"not null"`
-	StoragePath   string `json:"storagePath" gorm:"type:varchar(512);not null;index"` // relative path under upload dir
+	MediaType    string `json:"mediaType" gorm:"type:varchar(20);not null"` // "image" or "file"
+	OriginalName string `json:"originalName" gorm:"type:varchar(255);not null"`
+	MimeType     string `json:"mimeType" gorm:"type:varchar(100);not null"`
+	Size         int64  `json:"size" gorm:"not null"`
+	StoragePath  string `json:"storagePath" gorm:"type:varchar(512);not null;index"` // relative path under upload dir
 
 	// DownloadURL is returned to clients for convenience when using MinIO.
 	// It's not persisted in the database.
 	DownloadURL string `json:"downloadUrl,omitempty" gorm:"-"`
 
-	CreatedBy uint      `json:"createdBy" gorm:"not null;index"`
-	UpdatedBy uint      `json:"updatedBy" gorm:"not null;index"`
-	DeletedBy *uint     `json:"deletedBy,omitempty" gorm:"index"`
+	CreatedBy uint           `json:"createdBy" gorm:"not null;index"`
+	UpdatedBy uint           `json:"updatedBy" gorm:"not null;index"`
+	DeletedBy *uint          `json:"deletedBy,omitempty" gorm:"index"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 
-	CreatedAt time.Time      `json:"createdAt" gorm:"index"`
-	UpdatedAt time.Time      `json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt" gorm:"index"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+func (Media) TableName() string {
+	return "media"
+}
+
+func (m *Media) BeforeCreate(tx *gorm.DB) error {
+	m.CreatedAt = time.Now()
+	m.UpdatedAt = time.Now()
+	return nil
+}
+
+func (m *Media) BeforeUpdate(tx *gorm.DB) error {
+	m.UpdatedAt = time.Now()
+	return nil
+}

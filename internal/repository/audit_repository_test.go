@@ -7,13 +7,14 @@ import (
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestAuditRepository_CreateImpersonation(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.ImpersonationAudit{})
-	repo := NewAuditRepository(db)
+	repo := NewAuditRepository(db, zap.NewNop())
 
 	a := &model.ImpersonationAudit{
 		ImpersonatorID:     1,

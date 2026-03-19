@@ -2,8 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
@@ -29,10 +27,10 @@ func NewRoleHandler(roles *service.RoleService, log *zap.Logger) *RoleHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.Envelope
-// @Failure      401    {object}  response.Envelope
-// @Failure      403    {object}  response.Envelope
-// @Failure      500    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
+// @Failure      401    {object}  response.Unauthorized
+// @Failure      403    {object}  response.Forbidden
+// @Failure      500    {object}  response.InternalServerError
 // @Router       /api/v1/roles [get]
 func (h *RoleHandler) List(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -45,22 +43,31 @@ func (h *RoleHandler) List(c *gin.Context) {
 		return
 	}
 
-	limit := 200
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeRoles, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.RoleListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeRoles, response.CaseCodeInvalidValue), "invalid limit", err.Error())
+		return
+	}
+	if !h.validate(c, response.ServiceCodeRoles, req) {
+		return
 	}
 
-	rows, err := h.roles.List(c.Request.Context(), limit)
+	page, err := h.roles.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeRoles, err, "list failed")
 		return
 	}
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeRoles, response.CaseCodeListRetrieved), "ok", rows)
+
+	next := page.NextCursor != nil
+	prev := page.PrevCursor != nil
+	response.OKPaginated(
+		c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeRoles, response.CaseCodeListRetrieved),
+		"ok",
+		page.Items,
+		next,
+		prev,
+	)
 }
 
 // CreateRole godoc
@@ -70,11 +77,11 @@ func (h *RoleHandler) List(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateRoleRequest  true  "Create role payload"
-// @Success      201   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      403   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      201   {object}  response.Created
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      403   {object}  response.Forbidden
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/roles [post]
 func (h *RoleHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -95,7 +102,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 		return
 	}
 
-	role, err := h.roles.Create(c.Request.Context(), req.Name)
+	role, err := h.roles.Create(c.Request.Context(), req)
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeRoles, response.CaseCodeInvalidValue), "invalid request", err.Error())
 		return
@@ -109,12 +116,12 @@ func (h *RoleHandler) Create(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Role ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      403 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      403 {object}  response.Forbidden
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/roles/{id} [delete]
 func (h *RoleHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -127,13 +134,13 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeRoles, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	err = h.roles.Delete(c.Request.Context(), uint(id))
+	err = h.roles.Delete(c.Request.Context(), id)
 	if err != nil {
 		switch err {
 		case service.ErrRoleNotFound:
@@ -145,4 +152,3 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeRoles, response.CaseCodeDeleted), "deleted", gin.H{"id": uint(id)})
 }
-

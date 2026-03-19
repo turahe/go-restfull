@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 // RevokedJTI is a blacklist for revoked access tokens by jti until expiry.
 type RevokedJTI struct {
@@ -12,3 +14,6 @@ type RevokedJTI struct {
 	RevokedAt time.Time `json:"revokedAt" gorm:"autoCreateTime"`
 }
 
+func (RevokedJTI) TableName() string {
+	return "revoked_jtis"
+}

@@ -7,9 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 	"go-rest/internal/repository"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -22,31 +24,29 @@ var (
 )
 
 type PostService struct {
-	posts *repository.PostRepository
+	posts      *repository.PostRepository
 	categories *repository.CategoryRepository
-	tags *repository.TagRepository
+	tags       *repository.TagRepository
+	log        *zap.Logger
 }
 
-func NewPostService(posts *repository.PostRepository, categories *repository.CategoryRepository, tags *repository.TagRepository) *PostService {
-	return &PostService{posts: posts, categories: categories, tags: tags}
+func NewPostService(posts *repository.PostRepository, categories *repository.CategoryRepository, tags *repository.TagRepository, log *zap.Logger) *PostService {
+	return &PostService{posts: posts, categories: categories, tags: tags, log: log}
 }
 
-func (s *PostService) List(ctx context.Context, cursor *uint, limit int, dir repository.CursorDirection) (repository.CursorPage, error) {
-	if limit <= 0 {
-		limit = 10
+func (s *PostService) List(ctx context.Context, req request.PostListRequest) (repository.CursorPage, error) {
+	page, err := s.posts.ListCursor(ctx, req)
+	if err != nil {
+		s.log.Error("failed to list posts", zap.Error(err))
+		return repository.CursorPage{}, err
 	}
-	if limit > 50 {
-		limit = 50
-	}
-	if dir != repository.CursorNext && dir != repository.CursorPrev {
-		dir = repository.CursorNext
-	}
-	return s.posts.ListCursor(ctx, cursor, limit, dir)
+	return page, nil
 }
 
 func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, error) {
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
+		s.log.Error("invalid slug")
 		return nil, ErrInvalidSlug
 	}
 	p, err := s.posts.FindBySlugWithCategory(ctx, slug)
@@ -59,53 +59,54 @@ func (s *PostService) GetBySlug(ctx context.Context, slug string) (*model.Post, 
 	return p, nil
 }
 
-func (s *PostService) Create(ctx context.Context, userID uint, title, content string, categoryID uint, tagIDs []uint) (*model.Post, error) {
-	title = strings.TrimSpace(title)
-	content = strings.TrimSpace(content)
-	if title == "" || content == "" || categoryID == 0 {
-		return nil, ErrInvalidPayload
-	}
-
-	base := slugify(title)
+func (s *PostService) Create(ctx context.Context, userID uint, req request.CreatePostRequest) (*model.Post, error) {
+	base := slugify(req.Title)
 	if base == "" {
 		base = "post"
 	}
 
 	slug, err := s.uniqueSlug(ctx, base)
 	if err != nil {
+		s.log.Error("failed to generate unique slug", zap.Error(err))
 		return nil, err
 	}
 
-	cats, err := s.categories.FindByIDs(ctx, []uint{categoryID})
+	cats, err := s.categories.FindByIDs(ctx, []uint{req.CategoryID})
 	if err != nil {
+		s.log.Error("failed to find categories by ids", zap.Error(err))
 		return nil, err
 	}
 	if len(cats) != 1 {
+		s.log.Error("category not found")
 		return nil, errors.New("category not found")
 	}
 
 	p := &model.Post{
-		Title:      title,
+		Title:      req.Title,
 		Slug:       slug,
-		Content:    content,
+		Content:    req.Content,
 		UserID:     userID,
-		CategoryID: categoryID,
-		CreatedBy: userID,
-		UpdatedBy: userID,
+		CategoryID: req.CategoryID,
+		CreatedBy:  userID,
+		UpdatedBy:  userID,
 	}
 	if err := s.posts.Create(ctx, p); err != nil {
+		s.log.Error("failed to create post", zap.Error(err))
 		return nil, err
 	}
 
-	if len(tagIDs) > 0 && s.tags != nil {
-		tags, err := s.tags.FindByIDs(ctx, uniqueUint(tagIDs))
+	if len(req.TagIDs) > 0 && s.tags != nil {
+		tags, err := s.tags.FindByIDs(ctx, UniqueUint(req.TagIDs))
 		if err != nil {
+			s.log.Error("failed to find tags by ids", zap.Error(err))
 			return nil, err
 		}
-		if len(tags) != len(uniqueUint(tagIDs)) {
+		if len(tags) != len(UniqueUint(req.TagIDs)) {
+			s.log.Error("one or more tags not found")
 			return nil, errors.New("one or more tags not found")
 		}
 		if err := s.posts.ReplaceTags(ctx, p.ID, tags); err != nil {
+			s.log.Error("failed to replace tags", zap.Error(err))
 			return nil, err
 		}
 		p.Tags = tags
@@ -114,7 +115,7 @@ func (s *PostService) Create(ctx context.Context, userID uint, title, content st
 	return p, nil
 }
 
-func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, title, content string, categoryID *uint, tagIDs []uint) (*model.Post, error) {
+func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, req request.UpdatePostRequest) (*model.Post, error) {
 	p, err := s.posts.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -123,45 +124,53 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, tit
 		return nil, err
 	}
 	if p.UserID != actorUserID {
+		s.log.Error("not the post owner")
 		return nil, ErrNotPostOwner
 	}
 
-	if strings.TrimSpace(title) != "" {
-		p.Title = strings.TrimSpace(title)
+	if req.Title != "" {
+		p.Title = strings.TrimSpace(req.Title)
 	}
-	if strings.TrimSpace(content) != "" {
-		p.Content = strings.TrimSpace(content)
+	if req.Content != "" {
+		p.Content = req.Content
 	}
-	if categoryID != nil {
-		if *categoryID == 0 {
+	if req.CategoryID != nil {
+		if *req.CategoryID == 0 {
+			s.log.Error("invalid payload")
 			return nil, ErrInvalidPayload
 		}
-		cats, err := s.categories.FindByIDs(ctx, []uint{*categoryID})
+		cats, err := s.categories.FindByIDs(ctx, []uint{*req.CategoryID})
 		if err != nil {
+			s.log.Error("failed to find categories by ids", zap.Error(err))
 			return nil, err
 		}
 		if len(cats) != 1 {
+			s.log.Error("category not found")
 			return nil, errors.New("category not found")
 		}
-		p.CategoryID = *categoryID
+		p.CategoryID = *req.CategoryID
 	}
 	p.UpdatedBy = actorUserID
 
 	if err := s.posts.Update(ctx, p); err != nil {
+		s.log.Error("failed to update post", zap.Error(err))
 		return nil, err
 	}
 
 	// If tagIds is present in JSON, gin will bind it as either [] (empty) or [..].
 	// If not present, it stays nil. That lets us distinguish "no change" vs "replace/clear".
-	if tagIDs != nil && s.tags != nil {
-		tags, err := s.tags.FindByIDs(ctx, uniqueUint(tagIDs))
+	if req.TagIDs != nil && s.tags != nil {
+		tags, err := s.tags.FindByIDs(ctx, UniqueUint(req.TagIDs))
 		if err != nil {
+			s.log.Error("failed to find tags by ids", zap.Error(err))
 			return nil, err
 		}
-		if len(tags) != len(uniqueUint(tagIDs)) {
+		if len(tags) != len(UniqueUint(req.TagIDs)) {
+			s.log.Error("one or more tags not found")
 			return nil, errors.New("one or more tags not found")
 		}
 		if err := s.posts.ReplaceTags(ctx, p.ID, tags); err != nil {
+			s.log.Error("failed to replace tags", zap.Error(err))
 			return nil, err
 		}
 		p.Tags = tags
@@ -173,15 +182,22 @@ func (s *PostService) Delete(ctx context.Context, id uint, actorUserID uint) err
 	p, err := s.posts.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.log.Error("post not found")
 			return ErrPostNotFound
 		}
+		s.log.Error("failed to find post by id", zap.Error(err))
 		return err
 	}
 	// Safer default: only author can delete.
 	if p.UserID != actorUserID {
+		s.log.Error("not the post owner")
 		return ErrNotPostOwner
 	}
-	return s.posts.SoftDeleteByID(ctx, id, actorUserID)
+	if err := s.posts.SoftDeleteByID(ctx, id, actorUserID); err != nil {
+		s.log.Error("failed to soft delete post by id", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (s *PostService) uniqueSlug(ctx context.Context, base string) (string, error) {
@@ -189,13 +205,16 @@ func (s *PostService) uniqueSlug(ctx context.Context, base string) (string, erro
 	for i := 1; i <= 50; i++ {
 		exists, err := s.posts.SlugExists(ctx, slug)
 		if err != nil {
+			s.log.Error("failed to check if slug exists", zap.Error(err))
 			return "", err
 		}
 		if !exists {
+			s.log.Error("slug already exists")
 			return slug, nil
 		}
 		slug = fmt.Sprintf("%s-%d", base, i+1)
 	}
+	s.log.Error("could not generate unique slug")
 	return "", errors.New("could not generate unique slug")
 }
 
@@ -210,4 +229,3 @@ func slugify(s string) string {
 	}
 	return s
 }
-

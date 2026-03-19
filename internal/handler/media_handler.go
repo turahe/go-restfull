@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/model"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -25,7 +27,7 @@ type MediaHandler struct {
 
 type MediaService interface {
 	Upload(ctx context.Context, actorUserID uint, mediaableType string, mediaableID *uint, fh *multipart.FileHeader) (*model.Media, error)
-	List(ctx context.Context, actorUserID uint, limit int) ([]model.Media, error)
+	List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error)
 	GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error)
 	Delete(ctx context.Context, actorUserID, id uint) error
 	PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error)
@@ -115,7 +117,7 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.Envelope
+// @Success      200    {object}  response.OKPaginated
 // @Failure      401    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/media [get]
@@ -125,24 +127,21 @@ func (h *MediaHandler) ListMedia(c *gin.Context) {
 		response.Unauthorized(c, response.BuildResponseCode(http.StatusUnauthorized, response.ServiceCodeMedia, response.CaseCodeUnauthorized), "unauthorized", "missing auth")
 		return
 	}
-
-	limit := 50
-	if s := strings.TrimSpace(c.Query("limit")); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid limit", "limit must be int")
-			return
-		}
-		limit = n
+	var req request.MediaListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidFormat), "invalid request", err.Error())
+		return
 	}
 
-	rows, err := h.mediaSvc.List(c.Request.Context(), auth.UserID, limit)
+	page, err := h.mediaSvc.List(c.Request.Context(), auth.UserID, req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeMedia, err, "list failed")
 		return
 	}
 
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeListRetrieved), "ok", rows)
+	next := page.NextCursor != nil
+	prev := page.PrevCursor != nil
+	response.OKPaginated(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeListRetrieved), "ok", page.Items, next, prev)
 }
 
 // GetMediaByID godoc
@@ -226,4 +225,3 @@ func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeDeleted), "deleted", gin.H{"id": uint(id)})
 }
-

@@ -6,16 +6,19 @@ import (
 	"time"
 
 	"go-rest/internal/model"
+	"go-rest/internal/testutil"
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func BenchmarkAuthRepository_CreateSession(b *testing.B) {
 	ctx := context.Background()
 	db := openAuthBenchDB(b)
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s := &model.AuthSession{
@@ -33,7 +36,7 @@ func BenchmarkAuthRepository_CreateSession(b *testing.B) {
 func BenchmarkAuthRepository_SessionActive(b *testing.B) {
 	ctx := context.Background()
 	db := openAuthBenchDB(b)
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 	s := &model.AuthSession{
 		ID:         "sess-active",
 		UserID:     1,
@@ -54,7 +57,7 @@ func BenchmarkAuthRepository_SessionActive(b *testing.B) {
 func BenchmarkAuthRepository_FindRefreshTokenByHash(b *testing.B) {
 	ctx := context.Background()
 	db := openAuthBenchDB(b)
-	repo := NewAuthRepository(db)
+	repo := NewAuthRepository(db, zap.NewNop())
 	hash := "hash-" + uuid.New().String()
 	rt := &model.RefreshToken{
 		SessionID:   uuid.New().String(),
@@ -75,7 +78,9 @@ func BenchmarkAuthRepository_FindRefreshTokenByHash(b *testing.B) {
 func openAuthBenchDB(b *testing.B) *gorm.DB {
 	b.Helper()
 	name := "file:authbench_" + uuid.New().String() + "?mode=memory&cache=private"
-	db, err := gorm.Open(sqlite.Open(name), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(name), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	if err != nil {
 		b.Fatalf("open db: %v", err)
 	}

@@ -4,14 +4,18 @@ import (
 	"testing"
 
 	"go-rest/internal/model"
+	"go-rest/internal/testutil"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestAutoMigrate(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:migrate_test?mode=memory&cache=private"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:migrate_test?mode=memory&cache=private"), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	require.NoError(t, err)
 
 	err = AutoMigrate(db)
@@ -25,7 +29,9 @@ func TestAutoMigrate(t *testing.T) {
 }
 
 func TestAutoMigrate_AllModels(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:migrate_models_test?mode=memory&cache=private"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:migrate_models_test?mode=memory&cache=private"), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	require.NoError(t, err)
 
 	err = AutoMigrate(db)

@@ -4,16 +4,18 @@ import (
 	"context"
 	"testing"
 
+	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestCategoryRepository_CRUD_SlugExists_FindByIDs_SoftDelete(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t, &model.Category{}, &model.Media{})
-	repo := NewCategoryRepository(db)
+	repo := NewCategoryRepository(db, zap.NewNop())
 
 	cat := &model.Category{Name: "Tech", Slug: "tech", CreatedBy: 1, UpdatedBy: 1}
 	assert.NoError(t, repo.Create(ctx, cat))
@@ -34,9 +36,15 @@ func TestCategoryRepository_CRUD_SlugExists_FindByIDs_SoftDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Technology", got2.Name)
 
-	rows, err := repo.List(ctx, 10)
+	page, err := repo.List(ctx, request.CategoryListRequest{
+		Limit: 10,
+		Name:  "",
+		Page:  1,
+	})
 	assert.NoError(t, err)
-	assert.Len(t, rows, 1)
+	items, ok := page.Items.([]model.Category)
+	assert.True(t, ok)
+	assert.Len(t, items, 1)
 
 	idsRows, err := repo.FindByIDs(ctx, []uint{cat.ID})
 	assert.NoError(t, err)

@@ -17,6 +17,7 @@ import (
 	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/internal/service/dto"
+	"go-rest/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -26,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestBearerToken(t *testing.T) {
@@ -157,17 +159,19 @@ func stubAuthDeps(t *testing.T) (*service.JWTService, *repository.AuthRepository
 	require.NoError(t, os.WriteFile(privPath, privPEM, 0600))
 	require.NoError(t, os.WriteFile(pubPath, pubPEM, 0644))
 
-	jwtSvc, err := service.NewJWTService(privPath, pubPath, "test", "test", "k1")
+	jwtSvc, err := service.NewJWTService(privPath, pubPath, "test", "test", "k1", zap.NewNop())
 	require.NoError(t, err)
 
 	db := openAuthTestDB(t)
-	authRepo := repository.NewAuthRepository(db)
+	authRepo := repository.NewAuthRepository(db, zap.NewNop())
 	return jwtSvc, authRepo
 }
 
 func openAuthTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:auth_middleware?mode=memory&cache=private"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:auth_middleware?mode=memory&cache=private"), &gorm.Config{
+		Logger: logger.Default.LogMode(testutil.GormLogLevelFromEnv()),
+	})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&model.AuthSession{}, &model.RefreshToken{}, &model.RevokedJTI{}))
 	return db

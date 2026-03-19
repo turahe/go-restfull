@@ -17,25 +17,34 @@ import (
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type TwoFactorService struct {
 	repo   *repository.TwoFactorRepository
 	encKey []byte
 	issuer string
+	log    *zap.Logger
 }
 
-func NewTwoFactorService(repo *repository.TwoFactorRepository, encKey []byte, issuer string) *TwoFactorService {
+func NewTwoFactorService(repo *repository.TwoFactorRepository, encKey []byte, issuer string, log *zap.Logger) *TwoFactorService {
 	return &TwoFactorService{
 		repo:   repo,
 		encKey: encKey,
 		issuer: issuer,
+		log:    log,
 	}
 }
 
 func (s *TwoFactorService) IsEnabled(ctx context.Context, userID uint) (bool, error) {
 	cfg, err := s.repo.GetUserConfig(ctx, userID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		s.log.Error("failed to get user config", zap.Error(err))
+		return false, err
+	}
 	if err != nil {
+		s.log.Error("failed to get user config", zap.Error(err))
 		return false, err
 	}
 	return cfg != nil && cfg.Enabled, nil
@@ -50,11 +59,13 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string)
 		Algorithm:   otp.AlgorithmSHA1,
 	})
 	if err != nil {
+		s.log.Error("failed to encrypt secret", zap.Error(err))
 		return dto.SetupResult{}, err
 	}
 	now := time.Now()
 	enc, err := s.encrypt([]byte(key.Secret()))
 	if err != nil {
+		s.log.Error("failed to decrypt secret", zap.Error(err))
 		return dto.SetupResult{}, err
 	}
 	cfg := &model.UserTwoFactor{
@@ -65,6 +76,7 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string)
 		UpdatedAt: now,
 	}
 	if err := s.repo.UpsertUserConfig(ctx, cfg); err != nil {
+		s.log.Error("failed to upsert user config", zap.Error(err))
 		return dto.SetupResult{}, err
 	}
 	return dto.SetupResult{
@@ -76,29 +88,38 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string)
 func (s *TwoFactorService) Enable(ctx context.Context, userID uint, code string) error {
 	cfg, err := s.repo.GetUserConfig(ctx, userID)
 	if err != nil {
+		s.log.Error("failed to get user config", zap.Error(err))
 		return err
 	}
 	if cfg == nil {
+		s.log.Error("2fa not initialized")
 		return errors.New("2fa not initialized")
 	}
 	secret, err := s.decrypt(cfg.SecretEnc)
 	if err != nil {
+		s.log.Error("failed to decrypt secret", zap.Error(err))
 		return err
 	}
 	if !totp.Validate(code, string(secret)) {
+		s.log.Error("invalid 2fa code", zap.String("code", code))
 		return errors.New("invalid 2fa code")
 	}
 	now := time.Now()
 	cfg.Enabled = true
 	cfg.UpdatedAt = now
 	cfg.VerifiedAt = &now
-	return s.repo.UpsertUserConfig(ctx, cfg)
+	if err := s.repo.UpsertUserConfig(ctx, cfg); err != nil {
+		s.log.Error("failed to upsert user config", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (s *TwoFactorService) NewLoginChallenge(ctx context.Context, userID uint, deviceID string, ttl time.Duration) (string, time.Time, error) {
-	id, err := newUUIDLike()
+	id, err := newUUIDLike(s.log)
 	if err != nil {
-		return "", time.Time{}, err
+		s.log.Error("failed to generate new uuid", zap.Error(err))
+		return "", time.Time{}, errors.New("failed to generate new uuid")
 	}
 	now := time.Now()
 	ch := &model.TwoFactorChallenge{
@@ -109,6 +130,7 @@ func (s *TwoFactorService) NewLoginChallenge(ctx context.Context, userID uint, d
 		CreatedAt: now,
 	}
 	if err := s.repo.CreateChallenge(ctx, ch); err != nil {
+		s.log.Error("failed to create challenge", zap.Error(err))
 		return "", time.Time{}, err
 	}
 	return id, ch.ExpiresAt, nil
@@ -118,10 +140,12 @@ func (s *TwoFactorService) VerifyChallenge(ctx context.Context, challengeID stri
 	now := time.Now()
 	ch, err := s.repo.FindValidChallenge(ctx, challengeID, now, maxAttempts)
 	if err != nil {
+		s.log.Error("failed to find valid challenge", zap.Error(err))
 		return 0, errors.New("invalid or expired challenge")
 	}
 	if ch.DeviceID != deviceID {
 		_ = s.repo.IncrementAttempts(ctx, ch.ID)
+		s.log.Error("invalid challenge", zap.String("challenge_id", challengeID), zap.String("device_id", deviceID))
 		return 0, errors.New("invalid challenge")
 	}
 
@@ -151,14 +175,17 @@ func (s *TwoFactorService) VerifyChallenge(ctx context.Context, challengeID stri
 func (s *TwoFactorService) encrypt(plain []byte) (string, error) {
 	block, err := aes.NewCipher(s.encKey)
 	if err != nil {
-		return "", err
+		s.log.Error("failed to new cipher", zap.Error(err))
+		return "", errors.New("failed to new cipher")
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		s.log.Error("failed to new cipher", zap.Error(err))
+		return "", errors.New("failed to new cipher")
 	}
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		s.log.Error("failed to read full", zap.Error(err))
 		return "", err
 	}
 	ciphertext := gcm.Seal(nonce, nonce, plain, nil)
@@ -168,14 +195,17 @@ func (s *TwoFactorService) encrypt(plain []byte) (string, error) {
 func (s *TwoFactorService) decrypt(enc string) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(enc)
 	if err != nil {
+		s.log.Error("failed to new cipher", zap.Error(err))
 		return nil, err
 	}
 	block, err := aes.NewCipher(s.encKey)
 	if err != nil {
+		s.log.Error("failed to new cipher", zap.Error(err))
 		return nil, err
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
+		s.log.Error("failed to encrypt", zap.Error(err))
 		return nil, err
 	}
 	if len(data) < gcm.NonceSize() {
@@ -184,8 +214,8 @@ func (s *TwoFactorService) decrypt(enc string) ([]byte, error) {
 	nonce, ct := data[:gcm.NonceSize()], data[gcm.NonceSize():]
 	plain, err := gcm.Open(nil, nonce, ct, nil)
 	if err != nil {
+		s.log.Error("failed to decrypt", zap.Error(err))
 		return nil, err
 	}
 	return plain, nil
 }
-

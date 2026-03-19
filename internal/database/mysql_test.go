@@ -5,6 +5,7 @@ import (
 
 	"go-rest/internal/config"
 
+	"go.uber.org/zap"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +18,7 @@ func TestConnectMySQL_InvalidConfig_Fails(t *testing.T) {
 		DBPassword: "",
 		DBName:     "test",
 	}
-	db, err := ConnectMySQL(cfg)
+	db, err := ConnectMySQL(cfg, zap.NewNop())
 	require.Error(t, err)
 	require.Equal(t, DB{}, db)
 }
