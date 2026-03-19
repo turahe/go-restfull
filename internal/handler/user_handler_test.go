@@ -50,8 +50,6 @@ func decodeEnvelope(t *testing.T, rr *httptest.ResponseRecorder) response.Envelo
 
 func TestUserHandler_List(t *testing.T) {
 	t.Parallel()
-
-	gin.SetMode(gin.TestMode)
 	svc := &mockUserService{}
 	h := NewUserHandler(svc, nil)
 
@@ -73,8 +71,6 @@ func TestUserHandler_List(t *testing.T) {
 
 func TestUserHandler_List_Forbidden(t *testing.T) {
 	t.Parallel()
-
-	gin.SetMode(gin.TestMode)
 	svc := &mockUserService{}
 	h := NewUserHandler(svc, nil)
 
@@ -92,8 +88,6 @@ func TestUserHandler_List_Forbidden(t *testing.T) {
 
 func TestUserHandler_GetByID(t *testing.T) {
 	t.Parallel()
-
-	gin.SetMode(gin.TestMode)
 	svc := &mockUserService{}
 	h := NewUserHandler(svc, nil)
 
@@ -115,8 +109,6 @@ func TestUserHandler_GetByID(t *testing.T) {
 
 func TestUserHandler_GetByID_NotFound(t *testing.T) {
 	t.Parallel()
-
-	gin.SetMode(gin.TestMode)
 	svc := &mockUserService{}
 	h := NewUserHandler(svc, nil)
 

@@ -76,7 +76,6 @@ func decodeEnv(t *testing.T, rr *httptest.ResponseRecorder) response.Envelope {
 
 func TestAuthHandler_Register(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
 		name       string
@@ -145,7 +144,6 @@ func TestAuthHandler_Register(t *testing.T) {
 
 func TestAuthHandler_Login(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
 		name       string

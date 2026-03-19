@@ -28,7 +28,6 @@ func decodeEnvBase(t *testing.T, rr *httptest.ResponseRecorder) response.Envelop
 
 func TestBaseHandler_bindJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	h := BaseHandler{}
 	r := gin.New()
@@ -49,7 +48,6 @@ func TestBaseHandler_bindJSON_InvalidJSON(t *testing.T) {
 
 func TestBaseHandler_bindJSON_ValidationError(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	h := BaseHandler{}
 	r := gin.New()

@@ -60,7 +60,6 @@ func withAuthRole(role string) gin.HandlerFunc {
 
 func TestCategoryHandler_List_InvalidLimit(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCategoryService{}
 	h := NewCategoryHandler(svc, nil)
@@ -79,7 +78,6 @@ func TestCategoryHandler_List_InvalidLimit(t *testing.T) {
 
 func TestCategoryHandler_GetBySlug_NotFound(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCategoryService{}
 	svc.On("GetBySlug", mock.Anything, "tech").Return((*model.Category)(nil), service.ErrCategoryNotFound).Once()
@@ -100,7 +98,6 @@ func TestCategoryHandler_GetBySlug_NotFound(t *testing.T) {
 
 func TestCategoryHandler_Create_Unauthorized(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCategoryService{}
 	h := NewCategoryHandler(svc, nil)

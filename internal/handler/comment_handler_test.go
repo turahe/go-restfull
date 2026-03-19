@@ -48,7 +48,6 @@ func withAuthAny() gin.HandlerFunc {
 
 func TestCommentHandler_List_InvalidPostID(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCommentService{}
 	h := NewCommentHandler(svc, nil)
@@ -67,7 +66,6 @@ func TestCommentHandler_List_InvalidPostID(t *testing.T) {
 
 func TestCommentHandler_Create_Unauthorized(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCommentService{}
 	h := NewCommentHandler(svc, nil)
@@ -85,7 +83,6 @@ func TestCommentHandler_Create_Unauthorized(t *testing.T) {
 
 func TestCommentHandler_Create_PostMissing(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockCommentService{}
 	svc.On("Create", mock.Anything, uint(1), uint(1), "hi", ([]uint)(nil)).

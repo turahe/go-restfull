@@ -55,7 +55,6 @@ func decodeEnvelopePost(t *testing.T, rr *httptest.ResponseRecorder) response.En
 
 func TestPostHandler_List_InvalidCursor(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockPostService{}
 	h := NewPostHandler(svc, nil)
@@ -74,7 +73,6 @@ func TestPostHandler_List_InvalidCursor(t *testing.T) {
 
 func TestPostHandler_List_Success_Defaults(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockPostService{}
 	h := NewPostHandler(svc, nil)
@@ -100,7 +98,6 @@ func TestPostHandler_List_Success_Defaults(t *testing.T) {
 
 func TestPostHandler_GetBySlug(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
 		name       string

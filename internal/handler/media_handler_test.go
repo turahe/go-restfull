@@ -61,7 +61,6 @@ func withAuthUser() gin.HandlerFunc {
 
 func TestMediaHandler_List_Unauthorized(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockMediaService{}
 	h := NewMediaHandler(svc, nil)
@@ -78,7 +77,6 @@ func TestMediaHandler_List_Unauthorized(t *testing.T) {
 
 func TestMediaHandler_GetByID_NotFound(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockMediaService{}
 	svc.On("GetByID", mock.Anything, uint(1), uint(10)).Return((*model.Media)(nil), service.ErrMediaNotFound).Once()
@@ -100,7 +98,6 @@ func TestMediaHandler_GetByID_NotFound(t *testing.T) {
 
 func TestMediaHandler_Upload_MissingFile(t *testing.T) {
 	t.Parallel()
-	gin.SetMode(gin.TestMode)
 
 	svc := &mockMediaService{}
 	h := NewMediaHandler(svc, nil)
