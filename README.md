@@ -215,8 +215,8 @@ GitHub Actions runs:
 
 Configure repository secrets for SonarQube:
 
-- `SONAR_HOST_URL`
-- `SONAR_TOKEN`
+- `SONAR_HOST_URL` — your SonarQube server URL **including scheme** (e.g. `https://sonarqube.example.com`)
+- `SONAR_TOKEN` — token with analysis permissions
 
 Local Sonar scan example:
 
