@@ -183,7 +183,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				s.On("Login", mock.Anything, "a@b.com", "12345678", mock.AnythingOfType("dto.LoginMeta")).Return(out, nil).Once()
 			},
 			wantStatus: http.StatusOK,
-			wantMsg:    "ok",
+			wantMsg:    "Successfully logged in",
 		},
 	}
 
