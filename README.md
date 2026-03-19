@@ -49,6 +49,17 @@ make swagger
 make test
 ```
 
+## Testing
+
+- **Unit tests**: `go test ./...` (repository tests use in-memory SQLite; handler/service tests use mocks).
+- **Integration tests** (real MySQL): set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (or `TEST_DB_NAME`), then run:
+  ```bash
+  go test -tags=integration ./internal/repository/...
+  ```
+  Each test runs inside a transaction that is rolled back so the database stays clean.
+- **Benchmarks**: `go test -bench=. -benchmem ./internal/repository/... ./internal/service/...`
+- **Concurrency / race**: `go test -race ./internal/repository/... ./internal/service/...` (requires CGO). Concurrency tests assert that concurrent Create/Register with the same email results in exactly one success.
+
 ## Auth (fintech-style JWT + 2FA)
 
 This API uses **RS256** access tokens and **refresh token rotation**.

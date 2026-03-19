@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"net/url"
 	"testing"
 	"time"
 
 	"go-rest/internal/model"
 	"go-rest/internal/service/dto"
 
+	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -258,5 +260,84 @@ func bcryptHash(pw string) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// TestAuthService_Register_ConcurrentSameEmail runs concurrent Register with the same email
+// using a real UserRepository (in-memory SQLite). Expect exactly one success; others get ErrEmailTaken or DB duplicate.
+// Run with: go test -race -run TestAuthService_Register_ConcurrentSameEmail ./internal/service/...
+func TestAuthService_Register_ConcurrentSameEmail(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	// Real in-memory DB so unique constraint is enforced
+	db := openAuthServiceTestDB(t)
+	userRepo := newAuthServiceUserRepoFromDB(db)
+	// No RBAC so Register only does FindByEmail + Create
+	svc := NewAuthService(userRepo, &mockAuthRepo{}, nil, nil, &mockJWT{}, nil, 10, 30, 5, "pepper")
+
+	const concurrency = 15
+	email := "concurrent-register@example.com"
+	results := make(chan error, concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			_, err := svc.Register(ctx, "User", email, "password123")
+			results <- err
+		}()
+	}
+	var successCount int
+	for i := 0; i < concurrency; i++ {
+		err := <-results
+		if err == nil {
+			successCount++
+		}
+	}
+	assert.Equal(t, 1, successCount, "expected exactly one successful Register with same email")
+}
+
+// openAuthServiceTestDB opens in-memory SQLite for auth service tests that need a real DB.
+func openAuthServiceTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	dsn := "file:" + url.QueryEscape(t.Name()) + "?mode=memory&cache=shared"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	if err := db.AutoMigrate(&model.User{}); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	return db
+}
+
+func newAuthServiceUserRepoFromDB(db *gorm.DB) AuthUserRepo {
+	return &authServiceUserRepoAdapter{db: db}
+}
+
+type authServiceUserRepoAdapter struct {
+	db *gorm.DB
+}
+
+func (a *authServiceUserRepoAdapter) Create(ctx context.Context, u *model.User) error {
+	return a.db.WithContext(ctx).Create(u).Error
+}
+func (a *authServiceUserRepoAdapter) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+	var u model.User
+	err := a.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+func (a *authServiceUserRepoAdapter) FindByID(ctx context.Context, id uint) (*model.User, error) {
+	var u model.User
+	err := a.db.WithContext(ctx).First(&u, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+func (a *authServiceUserRepoAdapter) UpdatePassword(ctx context.Context, userID uint, newHash string) error {
+	return a.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("password", newHash).Error
+}
+func (a *authServiceUserRepoAdapter) UpdateEmail(ctx context.Context, userID uint, newEmail string) error {
+	return a.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("email", newEmail).Error
 }
 

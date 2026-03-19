@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"go-rest/internal/model"
@@ -46,5 +47,37 @@ func TestUserRepository_List_LimitClamp(t *testing.T) {
 	rows2, err := repo.List(ctx, -1)
 	assert.NoError(t, err)
 	assert.Len(t, rows2, 3)
+}
+
+// TestUserRepository_ConcurrentCreate_SameEmail runs concurrent Creates with the same email.
+// Expect exactly one success; others must get a duplicate/unique constraint error.
+// Run with: go test -race -run TestUserRepository_ConcurrentCreate_SameEmail ./internal/repository/...
+func TestUserRepository_ConcurrentCreate_SameEmail(t *testing.T) {
+	t.Parallel()
+	db := openTestDB(t, &model.User{}, &model.Media{})
+	repo := NewUserRepository(db)
+	ctx := context.Background()
+	const concurrency = 20
+	email := "concurrent-same@example.com"
+
+	done := make(chan struct{}, concurrency)
+	var successCount int
+	var successMu sync.Mutex
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			u := &model.User{Name: "Concurrent", Email: email, Password: "x"}
+			err := repo.Create(ctx, u)
+			if err == nil {
+				successMu.Lock()
+				successCount++
+				successMu.Unlock()
+			}
+			done <- struct{}{}
+		}()
+	}
+	for i := 0; i < concurrency; i++ {
+		<-done
+	}
+	assert.Equal(t, 1, successCount, "expected exactly one successful Create with same email")
 }
 
