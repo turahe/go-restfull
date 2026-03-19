@@ -31,6 +31,33 @@ definitions:
     - role
     - userId
     type: object
+  request.ChangeEmailRequest:
+    properties:
+      currentPassword:
+        maxLength: 72
+        minLength: 8
+        type: string
+      newEmail:
+        maxLength: 190
+        type: string
+    required:
+    - currentPassword
+    - newEmail
+    type: object
+  request.ChangePasswordRequest:
+    properties:
+      currentPassword:
+        maxLength: 72
+        minLength: 8
+        type: string
+      newPassword:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - currentPassword
+    - newPassword
+    type: object
   request.CreateCategoryRequest:
     properties:
       name:
@@ -46,25 +73,50 @@ definitions:
         maxLength: 2000
         minLength: 1
         type: string
+      tagIds:
+        items:
+          type: integer
+        type: array
     required:
     - content
     type: object
   request.CreatePostRequest:
     properties:
-      categoryIds:
-        items:
-          type: integer
-        type: array
+      categoryId:
+        type: integer
       content:
         minLength: 1
         type: string
+      tagIds:
+        items:
+          type: integer
+        type: array
       title:
         maxLength: 200
         minLength: 3
         type: string
     required:
+    - categoryId
     - content
     - title
+    type: object
+  request.CreateRoleRequest:
+    properties:
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  request.CreateTagRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - name
     type: object
   request.ImpersonateRequest:
     properties:
@@ -133,6 +185,28 @@ definitions:
     - name
     - password
     type: object
+  request.TwoFAEnableRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  request.TwoFAVerifyRequest:
+    properties:
+      challengeId:
+        type: string
+      code:
+        type: string
+      deviceId:
+        maxLength: 64
+        minLength: 4
+        type: string
+    required:
+    - challengeId
+    - code
+    - deviceId
+    type: object
   request.UpdateCategoryRequest:
     properties:
       name:
@@ -142,16 +216,25 @@ definitions:
     type: object
   request.UpdatePostRequest:
     properties:
-      categoryIds:
-        items:
-          type: integer
-        type: array
+      categoryId:
+        type: integer
       content:
         minLength: 1
         type: string
+      tagIds:
+        items:
+          type: integer
+        type: array
       title:
         maxLength: 200
         minLength: 3
+        type: string
+    type: object
+  request.UpdateTagRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 2
         type: string
     type: object
   response.Envelope:
@@ -162,9 +245,9 @@ definitions:
       error: {}
       message:
         type: string
-      next:
+      nextCursor:
         type: string
-      prev:
+      prevCursor:
         type: string
     type: object
 info:
@@ -173,6 +256,131 @@ info:
   title: Blog REST API
   version: "1.0"
 paths:
+  /api/v1/auth/2fa/enable:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Enable 2FA payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.TwoFAEnableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Enable TOTP 2FA for current user
+      tags:
+      - Auth
+  /api/v1/auth/2fa/setup:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Initialize TOTP 2FA for current user
+      tags:
+      - Auth
+  /api/v1/auth/2fa/verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Verify 2FA payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.TwoFAVerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: Verify 2FA challenge and issue tokens
+      tags:
+      - Auth
+  /api/v1/auth/email/change:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Change email payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.ChangeEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Change email for current user
+      tags:
+      - Auth
   /api/v1/auth/impersonate:
     post:
       consumes:
@@ -243,6 +451,63 @@ paths:
           schema:
             $ref: '#/definitions/response.Envelope'
       summary: Login and get JWT
+      tags:
+      - Auth
+  /api/v1/auth/password/change:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Change password payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Change password for current user
+      tags:
+      - Auth
+  /api/v1/auth/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
       tags:
       - Auth
   /api/v1/auth/refresh:
@@ -467,6 +732,137 @@ paths:
       summary: Get category by slug
       tags:
       - Categories
+  /api/v1/media:
+    get:
+      parameters:
+      - description: Max items (max 500)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: List my media
+      tags:
+      - Media
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Upload file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Upload media (image/file)
+      tags:
+      - Media
+  /api/v1/media/{id}:
+    delete:
+      parameters:
+      - description: Media ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Delete my media
+      tags:
+      - Media
+    get:
+      parameters:
+      - description: Media ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get my media by id
+      tags:
+      - Media
   /api/v1/posts:
     get:
       parameters:
@@ -799,6 +1195,346 @@ paths:
       summary: Assign role to user
       tags:
       - RBAC
+  /api/v1/roles:
+    get:
+      parameters:
+      - description: Max items (max 500)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create role payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Create role
+      tags:
+      - Roles
+  /api/v1/roles/{id}:
+    delete:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - Roles
+  /api/v1/tags:
+    get:
+      parameters:
+      - description: Max items (max 500)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: List tags
+      tags:
+      - Tags
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create tag payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Create a tag
+      tags:
+      - Tags
+  /api/v1/tags/{id}:
+    delete:
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Delete a tag
+      tags:
+      - Tags
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update tag payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Update a tag
+      tags:
+      - Tags
+  /api/v1/tags/{slug}:
+    get:
+      parameters:
+      - description: Tag slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: Get tag by slug
+      tags:
+      - Tags
+  /api/v1/users:
+    get:
+      parameters:
+      - description: Max items (max 500)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - Users
+  /api/v1/users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get user by id
+      tags:
+      - Users
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

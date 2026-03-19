@@ -13,6 +13,7 @@ import (
 
 	"go-rest/internal/model"
 	"go-rest/internal/repository"
+	"go-rest/internal/service/dto"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -32,11 +33,6 @@ func NewTwoFactorService(repo *repository.TwoFactorRepository, encKey []byte, is
 	}
 }
 
-type SetupResult struct {
-	Secret     string `json:"secret"`
-	OtpauthURL string `json:"otpauthUrl"`
-}
-
 func (s *TwoFactorService) IsEnabled(ctx context.Context, userID uint) (bool, error) {
 	cfg, err := s.repo.GetUserConfig(ctx, userID)
 	if err != nil {
@@ -45,7 +41,7 @@ func (s *TwoFactorService) IsEnabled(ctx context.Context, userID uint) (bool, er
 	return cfg != nil && cfg.Enabled, nil
 }
 
-func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string) (SetupResult, error) {
+func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string) (dto.SetupResult, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      s.issuer,
 		AccountName: email,
@@ -54,12 +50,12 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string)
 		Algorithm:   otp.AlgorithmSHA1,
 	})
 	if err != nil {
-		return SetupResult{}, err
+		return dto.SetupResult{}, err
 	}
 	now := time.Now()
 	enc, err := s.encrypt([]byte(key.Secret()))
 	if err != nil {
-		return SetupResult{}, err
+		return dto.SetupResult{}, err
 	}
 	cfg := &model.UserTwoFactor{
 		UserID:    userID,
@@ -69,9 +65,9 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID uint, email string)
 		UpdatedAt: now,
 	}
 	if err := s.repo.UpsertUserConfig(ctx, cfg); err != nil {
-		return SetupResult{}, err
+		return dto.SetupResult{}, err
 	}
-	return SetupResult{
+	return dto.SetupResult{
 		Secret:     key.Secret(),
 		OtpauthURL: key.URL(),
 	}, nil

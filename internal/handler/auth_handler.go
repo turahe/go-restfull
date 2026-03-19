@@ -4,7 +4,7 @@ import (
 	"go-rest/internal/handler/request"
 	"go-rest/internal/middleware"
 	"go-rest/internal/service"
-	svcresp "go-rest/internal/service/response"
+	"go-rest/internal/service/dto"
 	"go-rest/pkg/response"
 	"net/http"
 	"time"
@@ -78,7 +78,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	res, err := h.auth.Login(c.Request.Context(), req.Email, req.Password, svcresp.LoginMeta{
+	res, err := h.auth.Login(c.Request.Context(), req.Email, req.Password, dto.LoginMeta{
 		DeviceID:  req.DeviceID,
 		IPAddress: c.ClientIP(),
 		UserAgent: c.GetHeader("User-Agent"),
@@ -202,7 +202,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	if !h.validate(c, response.ServiceCodeAuth, req) {
 		return
 	}
-	res, err := h.auth.Refresh(c.Request.Context(), req.RefreshToken, svcresp.LoginMeta{
+	res, err := h.auth.Refresh(c.Request.Context(), req.RefreshToken, dto.LoginMeta{
 		DeviceID:  req.DeviceID,
 		IPAddress: c.ClientIP(),
 		UserAgent: c.GetHeader("User-Agent"),
@@ -352,7 +352,7 @@ func (h *AuthHandler) Impersonate(c *gin.Context) {
 	if !h.validate(c, response.ServiceCodeAuth, req) {
 		return
 	}
-	res, err := h.auth.Impersonate(c.Request.Context(), auth.UserID, req.UserID, req.Reason, svcresp.LoginMeta{
+	res, err := h.auth.Impersonate(c.Request.Context(), auth.UserID, req.UserID, req.Reason, dto.LoginMeta{
 		DeviceID:  req.DeviceID,
 		IPAddress: c.ClientIP(),
 		UserAgent: c.GetHeader("User-Agent"),

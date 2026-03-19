@@ -1,20 +1,6 @@
-package svcresp
+package dto
 
 import "time"
-
-type LoginMeta struct {
-	DeviceID  string `json:"deviceId"`
-	IPAddress string `json:"ipAddress"`
-	UserAgent string `json:"userAgent"`
-}
-
-type AuthUser struct {
-	ID          uint     `json:"id"`
-	Name        string   `json:"name"`
-	Email       string   `json:"email"`
-	Role        string   `json:"role"`
-	Permissions []string `json:"permissions"`
-}
 
 type LoginResult struct {
 	TwoFactorRequired bool      `json:"twoFactorRequired"`
@@ -37,4 +23,3 @@ type ImpersonationResult struct {
 	AccessToken string    `json:"accessToken"`
 	ExpiresAt   time.Time `json:"expiresAt"`
 }
-

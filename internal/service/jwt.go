@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"go-rest/internal/service/dto"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,21 +19,6 @@ type JWTService struct {
 	issuer   string
 	audience string
 	keyID    string
-}
-
-type AccessClaims struct {
-	jwt.RegisteredClaims
-
-	UserID      uint     `json:"user_id"`
-	Role        string   `json:"role"`
-	Permissions []string `json:"permissions"`
-	SessionID   string   `json:"session_id"`
-	DeviceID    string   `json:"device_id"`
-
-	Impersonation           bool   `json:"impersonation,omitempty"`
-	ImpersonatedUserID      *uint  `json:"impersonated_user_id,omitempty"`
-	ImpersonatorID          *uint  `json:"impersonator_id,omitempty"`
-	ImpersonationReason     string `json:"impersonation_reason,omitempty"`
 }
 
 func NewJWTService(privateKeyPath, publicKeyPath, issuer, audience, keyID string) (*JWTService, error) {
@@ -64,7 +51,7 @@ func NewJWTService(privateKeyPath, publicKeyPath, issuer, audience, keyID string
 	}, nil
 }
 
-func (s *JWTService) IssueAccessToken(cl AccessClaims) (string, error) {
+func (s *JWTService) IssueAccessToken(cl dto.AccessClaims) (string, error) {
 	if cl.ID == "" {
 		return "", errors.New("jti is required")
 	}
@@ -76,7 +63,7 @@ func (s *JWTService) IssueAccessToken(cl AccessClaims) (string, error) {
 	return tok.SignedString(s.privateKey)
 }
 
-func (s *JWTService) ParseAndValidateAccess(tokenStr string) (*AccessClaims, error) {
+func (s *JWTService) ParseAndValidateAccess(tokenStr string) (*dto.AccessClaims, error) {
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodRS256.Alg() {
 			return nil, errors.New("unexpected signing method")
@@ -92,7 +79,7 @@ func (s *JWTService) ParseAndValidateAccess(tokenStr string) (*AccessClaims, err
 		return pub, nil
 	}
 
-	var claims AccessClaims
+	var claims dto.AccessClaims
 	parsed, err := jwt.ParseWithClaims(tokenStr, &claims, keyFunc,
 		jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}),
 		jwt.WithIssuer(s.issuer),

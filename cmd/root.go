@@ -8,8 +8,9 @@ import (
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "go-rest",
-		Short: "Blog REST API (server + utilities)",
+		Use:          "go-rest",
+		Short:        "Blog REST API (server + utilities)",
+		SilenceUsage: true,
 	}
 
 	serveCmd := newServeCmd()

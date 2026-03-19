@@ -13,8 +13,8 @@ import (
 	"go-rest/internal/database"
 	"go-rest/internal/handler"
 	"go-rest/internal/middleware"
-	"go-rest/internal/repository"
 	"go-rest/internal/rbac"
+	"go-rest/internal/repository"
 	"go-rest/internal/service"
 	"go-rest/pkg/logger"
 	"go-rest/pkg/response"
@@ -127,7 +127,9 @@ func Serve(ctx context.Context) error {
 		r.Use(middleware.RateLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst))
 	}
 
-	r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+	if cfg.Env == "local" {
+		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+	}
 	r.GET("/healthz", func(c *gin.Context) {
 		response.OK(c, 2000001, "ok", gin.H{"status": "ok"})
 	})
@@ -226,4 +228,3 @@ func Serve(ctx context.Context) error {
 	log.Info("server stopped")
 	return nil
 }
-

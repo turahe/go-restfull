@@ -20,6 +20,7 @@ go run ./cmd
 Auto migration runs on startup. Swagger is available at `http://localhost:8080/swagger/index.html`.
 
 ## Docker
+This compose file also starts **MinIO** for media storage.
 
 - Start MySQL only:
 
@@ -79,6 +80,9 @@ This API uses **RS256** access tokens and **refresh token rotation**.
 - `revoked_jtis`: blacklist for revoked access tokens
 - `impersonation_audits`: immutable audit trail
 - `user_two_factors`, `two_factor_challenges`: TOTP 2FA config and login challenges
+- `media`: file metadata (stored in MinIO when configured)
+- `post_media`, `user_media`, `category_media`, `comment_media`: media join tables for relations
+- `mediable`: single-table design for future consolidation (auto-migrated)
 
 ### 2FA (TOTP)
 
@@ -114,117 +118,27 @@ Rules:
   - `impersonation_reason`
 - Every impersonation creates an audit record with IP/UA/timestamp.
 
+## Media (MinIO + relations)
+Media is stored as objects in **MinIO** (S3-compatible) and metadata is stored in MySQL.
+
+### Storage configuration
+Set these env vars (already present in `.env.example`):
+- `MINIO_ENDPOINT`
+- `MINIO_ACCESS_KEY`
+- `MINIO_SECRET_KEY`
+- `MINIO_BUCKET`
+- `MINIO_USE_SSL`
+
+When MinIO is enabled, `GET /api/v1/media/:id` returns a `downloadUrl` (presigned).
+
+### Attach media to entities
+`POST /api/v1/media` accepts multipart upload with:
+- `file` (form-data file)
+- optional `mediaableType` and `mediaableId`
+
+Allowed `mediaableType` values: `post`, `user`, `category`, `comment`.
+If omitted, media defaults to attaching to the uploading `user`.
+
 ## Notes (Windows)
 
 If you ever see errors like `compile: version "goX.Y.Z" does not match go tool version ...`, your `GOROOT` is likely pointing at a different Go installation than your `go.exe`. Fix by ensuring `GOROOT` matches `go version`, or by unsetting `GOROOT`.
-
-## API (examples)
-
-### Register
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/register `
-  -H "Content-Type: application/json" `
-  -d "{\"name\":\"Alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"
-```
-
-### Login
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/login `
-  -H "Content-Type: application/json" `
-  -d "{\"email\":\"alice@example.com\",\"password\":\"password123\",\"deviceId\":\"device-1\"}"
-```
-
-If `twoFactorRequired=false`, copy `accessToken` as `%ACCESS_TOKEN%` and `refreshToken` as `%REFRESH_TOKEN%`.
-If `twoFactorRequired=true`, call `/api/v1/auth/2fa/verify`:
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/2fa/verify `
-  -H "Content-Type: application/json" `
-  -d "{\"challengeId\":\"...\",\"code\":\"123456\",\"deviceId\":\"device-1\"}"
-```
-
-### Refresh (rotation)
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/refresh `
-  -H "Content-Type: application/json" `
-  -d "{\"refreshToken\":\"%REFRESH_TOKEN%\",\"deviceId\":\"device-1\"}"
-```
-
-### Impersonate (admin/support only)
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/impersonate `
-  -H "Authorization: Bearer %ACCESS_TOKEN%" `
-  -H "Content-Type: application/json" `
-  -d "{\"userId\":2,\"reason\":\"Support investigation\",\"deviceId\":\"device-1\"}"
-```
-
-### Create Post (auth)
-
-```bash
-curl -X POST localhost:8080/api/v1/posts `
-  -H "Authorization: Bearer %ACCESS_TOKEN%" `
-  -H "Content-Type: application/json" `
-  -d "{\"title\":\"Hello World\",\"content\":\"My first post\",\"categoryId\":1}"
-```
-
-### List Posts (cursor pagination, next/prev, no COUNT)
-
-- First page:
-
-```bash
-curl "localhost:8080/api/v1/posts?limit=10"
-```
-
-- Next page:
-
-```bash
-curl "localhost:8080/api/v1/posts?limit=10&cursor=%NEXT_CURSOR%&dir=next"
-```
-
-- Prev page:
-
-```bash
-curl "localhost:8080/api/v1/posts?limit=10&cursor=%PREV_CURSOR%&dir=prev"
-```
-
-### Get Post by Slug
-
-```bash
-curl "localhost:8080/api/v1/posts/slug/hello-world"
-```
-
-### Update Post (auth, owner only)
-
-```bash
-curl -X PUT localhost:8080/api/v1/posts/1 `
-  -H "Authorization: Bearer %ACCESS_TOKEN%" `
-  -H "Content-Type: application/json" `
-  -d "{\"title\":\"Updated title\",\"content\":\"Updated content\"}"
-```
-
-### Delete Post (auth, owner only)
-
-```bash
-curl -X DELETE localhost:8080/api/v1/posts/1 `
-  -H "Authorization: Bearer %ACCESS_TOKEN%"
-```
-
-### Add Comment (auth)
-
-```bash
-curl -X POST localhost:8080/api/v1/posts/1/comments `
-  -H "Authorization: Bearer %ACCESS_TOKEN%" `
-  -H "Content-Type: application/json" `
-  -d "{\"content\":\"Nice post\"}"
-```
-
-### List Comments
-
-```bash
-curl "localhost:8080/api/v1/posts/1/comments?limit=50"
-```
-
