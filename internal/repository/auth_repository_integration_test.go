@@ -61,7 +61,8 @@ func TestAuthRepository_Integration_Session_RefreshToken_JTI(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, found2.UsedAt)
 
-		jti := "jti-" + uuid.New().String()
+		// RevokedJTI.JTI is char(36), so use raw UUID length.
+		jti := uuid.New().String()
 		revoked := &model.RevokedJTI{
 			JTI:       jti,
 			UserID:    u.ID,

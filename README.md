@@ -1,46 +1,117 @@
-# Blog REST API (Gin + GORM + MySQL)
+# Go REST Blog API
 
-Production-ready local blog API with clean architecture:
+[![Test](https://github.com/turahe/go-rest/actions/workflows/test.yml/badge.svg)](https://github.com/turahe/go-rest/actions/workflows/test.yml)
+![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)
 
-- `cmd/`: entrypoint
-- `internal/`: config, db, models, repos, services, handlers, middleware
-- `pkg/`: shared response + logger
+## 1. Project Title
 
-## Run
+**Go REST Blog API** - a production-oriented REST backend built with Go, Gin, and GORM.
 
-1. Create a MySQL database named `blog` (or set `DB_NAME`).
-2. Copy `.env.example` to `.env` and update DB credentials (including Redis and JWT paths).
-3. Start:
+## 2. Description
 
-```bash
-go mod tidy
-go run ./cmd
+This project provides a secure, modular, and testable backend for blog-style platforms.  
+It includes authentication, RBAC authorization, content management (posts, categories, comments), media uploads, and operational tooling (testing, CI, SonarQube).
+
+It is designed for:
+
+- engineers building blog or CMS APIs in Go
+- teams needing JWT + refresh token rotation + optional 2FA
+- projects that value clean architecture, testing, and CI quality gates
+
+## 3. Tech Stack
+
+- **Language:** Go
+- **HTTP Framework:** Gin
+- **ORM:** GORM
+- **Database:** MySQL
+- **Cache / Rate Limiting:** Redis
+- **Auth:** JWT (RS256), refresh token rotation, TOTP 2FA
+- **Authorization:** Casbin (RBAC)
+- **Object Storage:** MinIO (S3-compatible)
+- **API Docs:** Swagger (swaggo)
+- **Testing:** Go test, integration tests, race detector, benchmarks
+- **CI:** GitHub Actions + SonarQube
+
+## 4. Features
+
+- RS256 JWT authentication with short-lived access tokens
+- refresh token rotation with reuse detection
+- revocation support for sessions and JTIs
+- optional TOTP 2FA login challenge flow
+- RBAC authorization (Casbin + DB-backed role/permission model)
+- impersonation flow with audit trail
+- blog domain CRUD: users, roles, permissions, categories, tags, posts, comments
+- media upload and attachment to entities (`post`, `user`, `category`, `comment`)
+- Redis-backed and in-memory rate limiting
+- Swagger documentation endpoint
+- strong test coverage: unit, integration, benchmark, and concurrency tests
+
+## 5. Project Structure
+
+```text
+.
+├── cmd/                  # Entrypoints and CLI commands
+├── internal/
+│   ├── config/           # Environment/config loading and validation
+│   ├── database/         # DB/Redis connections + migrations
+│   ├── handler/          # HTTP handlers and router wiring
+│   ├── middleware/       # Auth, RBAC, logging, request-id, rate limit, recovery
+│   ├── model/            # GORM models
+│   ├── rbac/             # Casbin enforcer integration
+│   ├── repository/       # Data access layer
+│   ├── service/          # Business logic layer
+│   └── seeder/           # Seed data utilities
+├── pkg/                  # Shared utility packages (logger, response, ids)
+├── docs/                 # Generated Swagger artifacts
+└── .github/workflows/    # CI pipelines
 ```
 
-Auto migration runs on startup. Swagger is available at `http://localhost:8080/swagger/index.html`.
+## 6. Installation & Setup
+
+```bash
+git clone <your-repo-url>
+cd go-rest
+go mod tidy
+cp .env.example .env
+go run cmd/main.go
+```
+
+### Local run notes
+
+1. Create a MySQL database (default: `blog`) or set `DB_NAME` in `.env`.
+2. Update `.env` for DB, Redis, JWT keys, and optional MinIO.
+3. Auto-migration runs on startup.
+4. Swagger UI is available at `http://localhost:8080/swagger/index.html`.
+
+## Configuration
+
+Important environment variables:
+
+- **Database:** `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- **Redis:** `REDIS_ADDR`, `REDIS_PASSWORD`, `REDIS_DB`
+- **JWT:** `JWT_PRIVATE_KEY_PATH`, `JWT_PUBLIC_KEY_PATH`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_KEY_ID`
+- **Token TTLs:** `ACCESS_TOKEN_TTL_MINUTES`, `REFRESH_TOKEN_TTL_DAYS`, `IMPERSONATION_TTL_MINUTES`
+- **2FA:** `TWO_FACTOR_ENC_KEY`, `TWO_FACTOR_ISSUER`
+- **MinIO:** `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL`
+
+See `.env.example` for complete defaults.
 
 ## Docker
-This compose file also starts **MinIO** for media storage.
 
-- Start MySQL only:
+The compose setup can run MySQL and MinIO alongside the API.
 
 ```bash
+# MySQL only
 docker compose up -d mysql
-```
 
-- Start MySQL + API:
-
-```bash
+# Full stack
 docker compose up -d --build
-```
 
-- Stop:
-
-```bash
+# Stop
 docker compose down
 ```
 
-## Makefile
+## Makefile Commands
 
 ```bash
 make docker-up
@@ -49,107 +120,116 @@ make swagger
 make test
 ```
 
-## Testing
+## Authentication and Security Model
 
-- **Unit tests**: `go test ./...` (repository tests use in-memory SQLite; handler/service tests use mocks).
-- **Integration tests** (real MySQL): set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (or `TEST_DB_NAME`), then run:
-  ```bash
-  go test -tags=integration ./internal/repository/...
-  ```
-  Each test runs inside a transaction that is rolled back so the database stays clean.
-- **Benchmarks**: `go test -bench=. -benchmem ./internal/repository/... ./internal/service/...`
-- **Concurrency / race**: `go test -race ./internal/repository/... ./internal/service/...` (requires CGO). Concurrency tests assert that concurrent Create/Register with the same email results in exactly one success.
+### JWT and refresh lifecycle
 
-## Auth (fintech-style JWT + 2FA)
-
-This API uses **RS256** access tokens and **refresh token rotation**.
-
-### Token lifecycle
-- **Access token**: short-lived (`ACCESS_TOKEN_TTL_MINUTES`, 5–15 minutes). Contains `iss`, `aud`, `exp`, `iat`, `nbf`, `jti`, plus app claims: `userId`, `role`, `permissions`, `sessionId`, `deviceId`.
-- **Refresh token**: long-lived (`REFRESH_TOKEN_TTL_DAYS`). Stored **hashed** in MySQL.
-- **Rotation**: every `/auth/refresh` call:
-  - marks the old refresh token as `used_at`
-  - issues a new refresh token
-  - issues a new access token
-- **Reuse detection**: if an already-used refresh token is presented again, the system treats it as theft/replay and **revokes the session** and **refresh token family**.
-- **Revocation**:
-  - sessions can be revoked (`auth_sessions.revoked_at`)
-  - individual access tokens can be revoked via `revoked_jtis` until `exp`
-
-### Key rotation strategy (recommended)
-- Keep a **`kid`** header on tokens (already implemented).
-- Store keys in a secret manager (private key) and distribute public keys to services.
-- During rotation:
-  - deploy new key pair (new `kid`) and start signing with it
-  - keep old public key available for verification until all old access tokens expire
-
-### Database tables
-- `users`
-- `roles`, `permissions`, `user_roles`, `role_permissions` (RBAC via Casbin)
-- `auth_sessions`: per device/session, revocable
-- `refresh_tokens`: hashed, rotated, reuse-detectable
-- `revoked_jtis`: blacklist for revoked access tokens
-- `impersonation_audits`: immutable audit trail
-- `user_two_factors`, `two_factor_challenges`: TOTP 2FA config and login challenges
-- `media`: file metadata (stored in MinIO when configured)
-- `post_media`, `user_media`, `category_media`, `comment_media`: media join tables for relations
-- `mediable`: single-table design for future consolidation (auto-migrated)
+- Access token: short-lived (`ACCESS_TOKEN_TTL_MINUTES`, 5-15 min)
+- Refresh token: long-lived (`REFRESH_TOKEN_TTL_DAYS`), stored **hashed**
+- On `/auth/refresh`: old token marked `used_at`, new refresh + access tokens issued
+- Reuse detection revokes the full session/family on replay attempts
+- Revocation supports:
+  - session revocation (`auth_sessions.revoked_at`)
+  - access token blacklist (`revoked_jtis`) until expiration
 
 ### 2FA (TOTP)
 
-- Optional **TOTP** (Google Authenticator, etc.) per user.
-- Flow:
-  1. User logs in with email/password + `deviceId`.
-  2. If 2FA **disabled** → returns `accessToken` + `refreshToken` as usual.
-  3. If 2FA **enabled** → returns:
-     ```json
-     {
-       "twoFactorRequired": true,
-       "challengeId": "...",
-       "expiresAt": "...",
-       "sessionId": "...",
-       "user": { "id", "name", "email" }
-     }
-     ```
-  4. Client then calls `/api/v1/auth/2fa/verify` with `challengeId`, `code`, `deviceId` to obtain tokens.
+- Optional TOTP-based second factor.
+- Login flow:
+  1. user logs in with email/password + `deviceId`
+  2. if 2FA disabled -> tokens returned
+  3. if 2FA enabled -> challenge response returned
+  4. client verifies with `/api/v1/auth/2fa/verify`
 
-2FA management endpoints (auth required):
-- `POST /api/v1/auth/2fa/setup` → returns `secret` and `otpauthUrl` for TOTP app.
-- `POST /api/v1/auth/2fa/enable` → body: `{ "code": "123456" }`.
+2FA management endpoints (authenticated):
 
-## Impersonation
-Admin/support users can impersonate a user with a **short-lived (default 5 min)** access token.
+- `POST /api/v1/auth/2fa/setup`
+- `POST /api/v1/auth/2fa/enable`
 
-Rules:
+### Impersonation
+
 - Allowed roles: `admin`, `support`
-- Token contains:
+- Issues short-lived impersonation token (default 5 min)
+- Token carries:
   - `impersonation=true`
   - `impersonator_id`
   - `impersonated_user_id`
   - `impersonation_reason`
-- Every impersonation creates an audit record with IP/UA/timestamp.
+- Every impersonation action is recorded in immutable audit logs
 
-## Media (MinIO + relations)
-Media is stored as objects in **MinIO** (S3-compatible) and metadata is stored in MySQL.
+## Media Storage
 
-### Storage configuration
-Set these env vars (already present in `.env.example`):
-- `MINIO_ENDPOINT`
-- `MINIO_ACCESS_KEY`
-- `MINIO_SECRET_KEY`
-- `MINIO_BUCKET`
-- `MINIO_USE_SSL`
+- Media files are stored in MinIO (S3-compatible)
+- Metadata is stored in MySQL
+- `GET /api/v1/media/:id` returns a presigned `downloadUrl` when MinIO is enabled
+- `POST /api/v1/media` supports multipart upload:
+  - `file`
+  - optional `mediaableType` + `mediaableId`
+- Allowed `mediaableType`: `post`, `user`, `category`, `comment`
 
-When MinIO is enabled, `GET /api/v1/media/:id` returns a `downloadUrl` (presigned).
+## Data Model Overview
 
-### Attach media to entities
-`POST /api/v1/media` accepts multipart upload with:
-- `file` (form-data file)
-- optional `mediaableType` and `mediaableId`
+Core tables include:
 
-Allowed `mediaableType` values: `post`, `user`, `category`, `comment`.
-If omitted, media defaults to attaching to the uploading `user`.
+- `users`
+- `roles`, `permissions`, `user_roles`, `role_permissions`
+- `auth_sessions`, `refresh_tokens`, `revoked_jtis`, `impersonation_audits`
+- `user_two_factors`, `two_factor_challenges`
+- `media`, `post_media`, `user_media`, `category_media`, `comment_media`, `mediable`
 
-## Notes (Windows)
+## Testing
 
-If you ever see errors like `compile: version "goX.Y.Z" does not match go tool version ...`, your `GOROOT` is likely pointing at a different Go installation than your `go.exe`. Fix by ensuring `GOROOT` matches `go version`, or by unsetting `GOROOT`.
+- **Unit tests**
+  ```bash
+  go test ./...
+  ```
+  Repository tests use in-memory SQLite; handler/service tests use mocks.
+
+- **Integration tests (real MySQL)**
+  ```bash
+  go test -tags=integration ./internal/repository/...
+  ```
+  Each integration test runs inside a transaction and rolls back.
+
+- **Benchmarks**
+  ```bash
+  go test -bench=. -benchmem ./internal/repository/... ./internal/service/...
+  ```
+
+- **Race detector / concurrency safety**
+  ```bash
+  go test -race ./internal/repository/... ./internal/service/...
+  ```
+  > Requires CGO-enabled Go toolchain.
+
+## CI and Code Quality (SonarQube)
+
+GitHub Actions runs:
+
+- build
+- unit tests
+- integration tests (MySQL)
+- Redis rate limiter test
+- race checks
+- SonarQube scan + quality gate
+
+Configure repository secrets for SonarQube:
+
+- `SONAR_HOST_URL`
+- `SONAR_TOKEN`
+
+Local Sonar scan example:
+
+```bash
+go test -covermode=atomic -coverprofile=coverage.out ./...
+sonar-scanner
+```
+
+## Windows Note
+
+If you encounter:
+
+`compile: version "goX.Y.Z" does not match go tool version ...`
+
+your `GOROOT` likely points to a different Go installation than your active `go.exe`.  
+Fix by aligning or unsetting `GOROOT`.
