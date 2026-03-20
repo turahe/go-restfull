@@ -92,8 +92,6 @@ func (s *MediaService) PresignGet(ctx context.Context, objectKey string, expiry 
 func (s *MediaService) Upload(
 	ctx context.Context,
 	actorUserID uint,
-	mediaableType string,
-	mediaableID *uint,
 	fh *multipart.FileHeader,
 ) (*model.Media, error) {
 	if actorUserID == 0 {
@@ -220,20 +218,14 @@ func (s *MediaService) Upload(
 		return nil, err
 	}
 
-	// Attach to the correct target via join table.
-	t := strings.TrimSpace(mediaableType)
-	var targetID uint
-	if t == "" {
-		t = "User"
-		targetID = actorUserID
-	} else {
-		if mediaableID == nil || *mediaableID == 0 {
-			return nil, errors.New("mediaableId is required for provided mediaableType")
-		}
-		targetID = *mediaableID
-	}
-	if err := s.repo.AttachMedia(ctx, m.ID, t, targetID); err != nil {
+	downloadURL, err := s.PresignGet(ctx, objectKey, 1*time.Hour)
+	if err != nil {
 		return nil, err
+	}
+	m.DownloadURL = downloadURL
+	// PresignGet returns ("", nil) when MinIO isn't enabled; in that case we should not fail the upload.
+	if s.minioClient != nil && s.minioBucket != "" && strings.TrimSpace(m.DownloadURL) == "" {
+		return nil, errors.New("failed to presign get object")
 	}
 
 	return m, nil

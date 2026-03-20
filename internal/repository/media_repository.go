@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"go-rest/internal/handler/request"
 	"go-rest/internal/model"
@@ -157,14 +158,14 @@ func (r *MediaRepository) SoftDeleteByID(ctx context.Context, id uint, userID ui
 // - user_media
 // - category_media
 // - comment_media
-func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, mediaableType string, mediaableID uint) error {
-	if mediaID == 0 || mediaableID == 0 {
+func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, targetType string, targetID uint) error {
+	if mediaID == 0 || targetID == 0 {
 		return errors.New("invalid ids")
 	}
 
-	switch mediaableType {
+	switch targetType {
 	case "Post":
-		target := model.Post{ID: mediaableID}
+		target := model.Post{ID: targetID}
 		err := r.db.WithContext(ctx).
 			Model(&target).
 			Association("Media").
@@ -175,18 +176,21 @@ func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, mediaab
 		}
 		return nil
 	case "User":
-		target := model.User{ID: mediaableID}
-		err := r.db.WithContext(ctx).
-			Model(&target).
-			Association("Media").
-			Append(&model.Media{ID: mediaID})
-		if err != nil {
-			r.log.Error("failed to append media to user", zap.Error(err))
+		// user_media has a NOT NULL `type` column (e.g. "avatar").
+		// When using Association.Append(), GORM won't populate that extra join field,
+		// so we insert the join row explicitly.
+		j := model.UserMedia{
+			UserID:  targetID,
+			MediaID: mediaID,
+			Type:    "media",
+		}
+		if err := r.db.WithContext(ctx).FirstOrCreate(&j).Error; err != nil {
+			r.log.Error("failed to create user_media join row", zap.Error(err))
 			return err
 		}
 		return nil
 	case "Category":
-		target := model.Category{ID: mediaableID}
+		target := model.Category{ID: targetID}
 		err := r.db.WithContext(ctx).
 			Model(&target).
 			Association("Media").
@@ -197,7 +201,7 @@ func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, mediaab
 		}
 		return nil
 	case "Comment":
-		target := model.Comment{ID: mediaableID}
+		target := model.Comment{ID: targetID}
 		err := r.db.WithContext(ctx).
 			Model(&target).
 			Association("Media").
@@ -208,7 +212,7 @@ func (r *MediaRepository) AttachMedia(ctx context.Context, mediaID uint, mediaab
 		}
 		return nil
 	default:
-		r.log.Error("invalid mediaableType", zap.String("mediaableType", mediaableType))
+		r.log.Error("invalid targetType", zap.String("targetType", targetType))
 		return errors.New("invalid mediaableType")
 	}
 }
@@ -232,6 +236,13 @@ func (r *MediaRepository) UserAvatar(ctx context.Context, user *model.User) (*st
 			return &fallback, nil
 		}
 		return nil, err
+	}
+
+	// DownloadURL is not persisted (gorm:"-"), so it may be empty even when the join row exists.
+	// In that case, return the same fallback URL.
+	if strings.TrimSpace(avatar.DownloadURL) == "" {
+		fallback := "https://ui-avatars.com/api/?name=" + user.Name
+		return &fallback, nil
 	}
 
 	return &avatar.DownloadURL, nil

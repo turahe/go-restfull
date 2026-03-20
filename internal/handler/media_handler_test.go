@@ -23,8 +23,8 @@ import (
 
 type mockMediaService struct{ mock.Mock }
 
-func (m *mockMediaService) Upload(ctx context.Context, actorUserID uint, mediaableType string, mediaableID *uint, fh *multipart.FileHeader) (*model.Media, error) {
-	args := m.Called(ctx, actorUserID, mediaableType, mediaableID, fh)
+func (m *mockMediaService) Upload(ctx context.Context, actorUserID uint, fh *multipart.FileHeader) (*model.Media, error) {
+	args := m.Called(ctx, actorUserID, fh)
 	med, _ := args.Get(0).(*model.Media)
 	return med, args.Error(1)
 }

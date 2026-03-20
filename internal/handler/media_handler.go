@@ -26,7 +26,7 @@ type MediaHandler struct {
 }
 
 type MediaService interface {
-	Upload(ctx context.Context, actorUserID uint, mediaableType string, mediaableID *uint, fh *multipart.FileHeader) (*model.Media, error)
+	Upload(ctx context.Context, actorUserID uint, fh *multipart.FileHeader) (*model.Media, error)
 	List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error)
 	GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error)
 	Delete(ctx context.Context, actorUserID, id uint) error
@@ -62,42 +62,7 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 		return
 	}
 
-	mediaableTypeRaw := strings.ToLower(strings.TrimSpace(c.PostForm("mediaableType")))
-	mediaableIDRaw := strings.TrimSpace(c.PostForm("mediaableId"))
-
-	var mediaableType string
-	var mediaableID *uint
-
-	if mediaableTypeRaw != "" || mediaableIDRaw != "" {
-		if mediaableTypeRaw == "" || mediaableIDRaw == "" {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid request", "mediaableType and mediaableId are required together")
-			return
-		}
-
-		switch mediaableTypeRaw {
-		case "user":
-			mediaableType = "User"
-		case "post":
-			mediaableType = "Post"
-		case "category":
-			mediaableType = "Category"
-		case "comment":
-			mediaableType = "Comment"
-		default:
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid request", "invalid mediaableType")
-			return
-		}
-
-		n, err := strconv.ParseUint(mediaableIDRaw, 10, 64)
-		if err != nil || n == 0 {
-			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid request", "mediaableId must be uint > 0")
-			return
-		}
-		u := uint(n)
-		mediaableID = &u
-	}
-
-	m, err := h.mediaSvc.Upload(c.Request.Context(), auth.UserID, mediaableType, mediaableID, fh)
+	m, err := h.mediaSvc.Upload(c.Request.Context(), auth.UserID, fh)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrMediaTooLarge):

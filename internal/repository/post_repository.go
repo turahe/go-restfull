@@ -88,6 +88,7 @@ func (r *PostRepository) FindBySlugWithCategory(ctx context.Context, slug string
 		Preload("Category").
 		Preload("Tags").
 		Preload("Media").
+		Preload("User").
 		Where("slug = ?", slug).
 		First(&p).Error
 	if err != nil {
