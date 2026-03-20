@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-rest/internal/config"
 	"go-rest/internal/service"
 	"go-rest/pkg/response"
 
@@ -20,21 +19,7 @@ func TestSettingsHandler_Get(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	cfg := config.Config{
-		Env:                   "test",
-		JWTIssuer:             "iss",
-		JWTAudience:           "aud",
-		JWTKeyID:              "kid",
-		AccessTokenTTLMinutes: 10,
-		RefreshTokenTTLDays:   30,
-		RateLimitRPS:          5,
-		RateLimitBurst:        10,
-		RedisAddr:             "127.0.0.1:6379",
-		MediaMaxUploadBytes:   1024,
-		TwoFactorIssuer:       "2fa-iss",
-		MinioEndpoint:         "localhost:9000",
-	}
-	svc := service.NewSettingsService(cfg, nil)
+	svc := service.NewSettingsService(nil)
 	h := NewSettingsHandler(svc, zap.NewNop())
 
 	r := gin.New()

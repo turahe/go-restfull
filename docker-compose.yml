@@ -51,6 +51,7 @@ services:
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
       RATE_LIMIT_KEY_PREFIX: "rl:ip:"
+      DB_DRIVER: mysql
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: blog

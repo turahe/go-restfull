@@ -27,6 +27,14 @@ RateLimitBurst int
 	DBUser     string
 	DBPassword string
 	DBName     string
+	// DBDriver selects the MySQL connection implementation:
+	// - "mysql": direct TCP host/port DSN
+	// - "mysql-cloud": use Cloud SQL Go Connector (cloud.google.com/go/cloudsqlconn)
+	DBDriver string
+
+	// Cloud SQL fields (used when DBDriver="mysql-cloud")
+	CloudSQLInstanceConnectionName string
+	CloudSQLPrivateIP               bool
 
 	JWTPublicKeyPath  string
 	JWTPrivateKeyPath string
@@ -73,6 +81,9 @@ func Load() (Config, error) {
 		DBUser:             strings.TrimSpace(getEnvDefault("DB_USER", "root")),
 		DBPassword:         os.Getenv("DB_PASSWORD"),
 		DBName:             strings.TrimSpace(getEnvDefault("DB_NAME", "blog")),
+		DBDriver:           strings.TrimSpace(getEnvDefault("DB_DRIVER", "mysql")),
+		CloudSQLInstanceConnectionName: strings.TrimSpace(os.Getenv("INSTANCE_CONNECTION_NAME")),
+		CloudSQLPrivateIP:               getEnvBoolDefault("PRIVATE_IP", false),
 		JWTPublicKeyPath:   strings.TrimSpace(getEnvDefault("JWT_PUBLIC_KEY_PATH", "keys/jwtRS256.key.pub")),
 		JWTPrivateKeyPath:  strings.TrimSpace(getEnvDefault("JWT_PRIVATE_KEY_PATH", "keys/jwtRS256.key")),
 		JWTIssuer:          strings.TrimSpace(getEnvDefault("JWT_ISSUER", "go-rest-blog")),
@@ -98,6 +109,15 @@ func Load() (Config, error) {
 
 	if cfg.DBName == "" || cfg.DBUser == "" || cfg.DBHost == "" || cfg.DBPort == "" {
 		return Config{}, errors.New("missing required DB configuration")
+	}
+	switch strings.ToLower(cfg.DBDriver) {
+	case "mysql", "mysql-cloud", "":
+		// ok (empty treated as defaulted)
+	default:
+		return Config{}, errors.New("DB_DRIVER must be 'mysql' or 'mysql-cloud'")
+	}
+	if strings.ToLower(cfg.DBDriver) == "mysql-cloud" && cfg.CloudSQLInstanceConnectionName == "" {
+		return Config{}, errors.New("INSTANCE_CONNECTION_NAME is required when DB_DRIVER=mysql-cloud")
 	}
 	if cfg.AccessTokenTTLMinutes < 5 || cfg.AccessTokenTTLMinutes > 15 {
 		return Config{}, errors.New("ACCESS_TOKEN_TTL_MINUTES must be between 5 and 15")

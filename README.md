@@ -139,7 +139,17 @@ gcloud run deploy go-rest-api \
   --region asia-southeast2 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "APP_ENV=prod,DB_HOST=<db-host>,DB_PORT=3306,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
+  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql,DB_HOST=<db-host>,DB_PORT=3306,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
+```
+
+Cloud SQL for MySQL (recommended on GCP):
+```bash
+gcloud run deploy go-rest-api \
+  --source . \
+  --region asia-southeast2 \
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql-cloud,INSTANCE_CONNECTION_NAME=<project:region:instance>,PRIVATE_IP=false,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
 ```
 
 ### Deploy via Cloud Build
