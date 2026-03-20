@@ -1,10 +1,29 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
 )
+
+type PostLayout string
+
+const (
+	PostLayoutSimple PostLayout = "simple"
+	PostLayoutAuthor PostLayout = "author"
+	PostLayoutBook   PostLayout = "book"
+	PostLayoutList   PostLayout = "list"
+)
+
+func (l PostLayout) IsValid() bool {
+	switch l {
+	case PostLayoutSimple, PostLayoutAuthor, PostLayoutBook, PostLayoutList:
+		return true
+	default:
+		return false
+	}
+}
 
 type Post struct {
 	ID    uint   `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -16,8 +35,9 @@ type Post struct {
 	UserID uint  `json:"userId" gorm:"not null;index"`
 	User   *User `json:"author,omitempty" gorm:"constraint:OnDelete:CASCADE"`
 
-	CategoryID uint      `json:"categoryId" gorm:"not null;index"`
-	Category   *Category `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
+	CategoryID uint       `json:"categoryId" gorm:"not null;index"`
+	Layout     PostLayout `json:"layout" gorm:"type:varchar(50);not null;check:layout IN ('simple','author','book','list')"`
+	Category   *Category  `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
 
 	Media []Media `json:"media,omitempty" gorm:"many2many:post_media;"`
 
@@ -37,12 +57,21 @@ func (Post) TableName() string {
 }
 
 func (p *Post) BeforeCreate(tx *gorm.DB) error {
+	if p.Layout == "" {
+		p.Layout = PostLayoutSimple
+	}
+	if !p.Layout.IsValid() {
+		return fmt.Errorf("invalid post layout: %q", p.Layout)
+	}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
 	return nil
 }
 
 func (p *Post) BeforeUpdate(tx *gorm.DB) error {
+	if p.Layout != "" && !p.Layout.IsValid() {
+		return fmt.Errorf("invalid post layout: %q", p.Layout)
+	}
 	p.UpdatedAt = time.Now()
 	return nil
 }

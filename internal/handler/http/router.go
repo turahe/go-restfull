@@ -37,6 +37,7 @@ type Handlers struct {
 	Comment  *handler.CommentHandler
 	Media    *handler.MediaHandler
 	RBAC     *handler.RBACHandler
+	Settings *handler.SettingsHandler
 }
 
 func NewRouter(d Deps) *gin.Engine {
@@ -75,6 +76,7 @@ func NewRouter(d Deps) *gin.Engine {
 		api.GET("/categories/:slug", d.Handlers.Category.GetBySlug)
 		api.GET("/tags", d.Handlers.Tag.List)
 		api.GET("/tags/:slug", d.Handlers.Tag.GetBySlug)
+		api.GET("/settings", d.Handlers.Settings.Get)
 
 		auth := api.Group("")
 		auth.Use(middleware.JWTAuth(d.JWT, d.AuthRepo, d.Log))

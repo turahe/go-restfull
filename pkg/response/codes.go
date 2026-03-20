@@ -15,6 +15,7 @@ const (
 	ServiceCodeUsers    = "07" // Users
 	ServiceCodeRoles    = "08" // Roles
 	ServiceCodeMedia    = "09" // Media
+	ServiceCodeSettings = "10" // App settings (public, non-secret)
 )
 
 // Case codes (2 digits: 01-99)

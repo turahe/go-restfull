@@ -83,6 +83,7 @@ func Serve(ctx context.Context) error {
 	commentRepo := repository.NewCommentRepository(db.Gorm, log)
 	twoFARepo := repository.NewTwoFactorRepository(db.Gorm, log)
 	mediaRepo := repository.NewMediaRepository(db.Gorm, log)
+	settingRepo := repository.NewSettingRepository(db.Gorm, log)
 
 	// Services
 	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer, log)
@@ -106,6 +107,7 @@ func Serve(ctx context.Context) error {
 	tagSvc := service.NewTagService(tagRepo, log)
 	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo, log)
 	commentSvc := service.NewCommentService(commentRepo, tagRepo, log)
+	settingsSvc := service.NewSettingsService(settingRepo)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc, log)
@@ -117,6 +119,7 @@ func Serve(ctx context.Context) error {
 	commentH := handler.NewCommentHandler(commentSvc, log)
 	mediaH := handler.NewMediaHandler(mediaSvc, log)
 	rbacH := handler.NewRBACHandler(rbacSvc, log)
+	settingsH := handler.NewSettingsHandler(settingsSvc, log)
 
 	r := NewRouter(Deps{
 		Cfg:      cfg,
@@ -135,6 +138,7 @@ func Serve(ctx context.Context) error {
 			Comment:  commentH,
 			Media:    mediaH,
 			RBAC:     rbacH,
+			Settings: settingsH,
 		},
 	})
 

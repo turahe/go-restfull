@@ -41,4 +41,5 @@ func TestAutoMigrate_AllModels(t *testing.T) {
 	ctx := db.Statement.Context
 	require.NoError(t, db.WithContext(ctx).Create(&model.User{Name: "u", Email: "u@x.com", Password: "x"}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&model.Category{Name: "c", Slug: "c"}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&model.Setting{Key: "k", Value: "v", IsPublic: true}).Error)
 }

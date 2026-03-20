@@ -25,5 +25,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.Comment{},
 		&model.Media{},
 		&model.UserMedia{},
+		&model.Setting{},
 	)
 }

@@ -87,6 +87,13 @@ go run cmd/main.go
 4. Auto-migration runs on startup.
 5. Swagger UI is available at `http://localhost:8080/swagger/index.html`.
 
+Seed default RBAC and app settings (idempotent):
+
+```bash
+go run ./cmd seed rbac
+go run ./cmd seed settings
+```
+
 ## Configuration
 
 Important environment variables:
@@ -189,6 +196,14 @@ make test
   - `impersonation_reason`
 - Every impersonation action is recorded in immutable audit logs
 
+## Public settings
+
+Unauthenticated clients can load non-secret configuration (JWT issuer/audience/key id, token TTLs, upload size limit, rate-limit hints, feature flags):
+
+- `GET /api/v1/settings`
+
+Database-backed keys live in the `settings` table (`setting_key`, `value`, `is_public`). Rows with `is_public = true` are returned directly as the response `data` object as a string map (`setting_key` → `value`). Use `SettingRepository` (or raw SQL) to manage rows; admin HTTP CRUD can be added later with RBAC.
+
 ## Media Storage
 
 - Media files are stored in MinIO (S3-compatible)
@@ -208,6 +223,7 @@ Core tables include:
 - `auth_sessions`, `refresh_tokens`, `revoked_jtis`, `impersonation_audits`
 - `user_two_factors`, `two_factor_challenges`
 - `media`, `post_media`, `user_media`, `category_media`, `comment_media`, `mediable`
+- `settings` (key/value app settings; `is_public` controls exposure on `GET /settings`)
 
 ## Testing
 

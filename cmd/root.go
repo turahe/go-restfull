@@ -16,6 +16,7 @@ func newRootCmd() *cobra.Command {
 	serveCmd := newServeCmd()
 	seedCmd := newSeedCmd()
 	seedCmd.AddCommand(newSeedRBACCmd())
+	seedCmd.AddCommand(newSeedSettingsCmd())
 
 	root.AddCommand(serveCmd, seedCmd)
 
