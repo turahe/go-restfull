@@ -5,8 +5,6 @@ import (
 	"errors"
 	"mime/multipart"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go-rest/internal/handler/request"
@@ -44,10 +42,10 @@ func NewMediaHandler(mediaSvc MediaService, log *zap.Logger) *MediaHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        file  formData  file  true  "Upload file"
-// @Success      201   {object}  response.Envelope
-// @Failure      400   {object}  response.Envelope
-// @Failure      401   {object}  response.Envelope
-// @Failure      500   {object}  response.Envelope
+// @Success      201   {object}  response.Created
+// @Failure      400   {object}  response.BadRequest
+// @Failure      401   {object}  response.Unauthorized
+// @Failure      500   {object}  response.InternalServerError
 // @Router       /api/v1/media [post]
 func (h *MediaHandler) UploadMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -73,7 +71,7 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 		return
 	}
 
-	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeMedia, response.CaseCodeCreated), "uploaded", m)
+	response.Created(c, response.BuildResponseCode(http.StatusCreated, response.ServiceCodeMedia, response.CaseCodeCreated), "Successfully uploaded media", m)
 }
 
 // ListMedia godoc
@@ -83,8 +81,8 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
 // @Success      200    {object}  response.OKPaginated
-// @Failure      401    {object}  response.Envelope
-// @Failure      500    {object}  response.Envelope
+// @Failure      401    {object}  response.Unauthorized
+// @Failure      500    {object}  response.InternalServerError
 // @Router       /api/v1/media [get]
 func (h *MediaHandler) ListMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -106,7 +104,7 @@ func (h *MediaHandler) ListMedia(c *gin.Context) {
 
 	next := page.NextCursor != nil
 	prev := page.PrevCursor != nil
-	response.OKPaginated(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeListRetrieved), "ok", page.Items, next, prev)
+	response.OKPaginated(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeListRetrieved), "Successfully retrieved media list", page.Items, next, prev)
 }
 
 // GetMediaByID godoc
@@ -115,11 +113,11 @@ func (h *MediaHandler) ListMedia(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Media ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/media/{id} [get]
 func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -128,13 +126,13 @@ func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
 
-	m, err := h.mediaSvc.GetByID(c.Request.Context(), auth.UserID, uint(id))
+	m, err := h.mediaSvc.GetByID(c.Request.Context(), auth.UserID, id)
 	if err != nil {
 		if errors.Is(err, service.ErrMediaNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
@@ -144,14 +142,7 @@ func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 		return
 	}
 
-	// Best-effort: return a temporary download URL when MinIO is enabled.
-	if m != nil {
-		if url, _ := h.mediaSvc.PresignGet(c.Request.Context(), m.StoragePath, 15*time.Minute); url != "" {
-			m.DownloadURL = url
-		}
-	}
-
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeRetrieved), "ok", m)
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeRetrieved), "Successfully retrieved media", m)
 }
 
 // DeleteMedia godoc
@@ -160,11 +151,11 @@ func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Media ID"
-// @Success      200 {object}  response.Envelope
-// @Failure      400 {object}  response.Envelope
-// @Failure      401 {object}  response.Envelope
-// @Failure      404 {object}  response.Envelope
-// @Failure      500 {object}  response.Envelope
+// @Success      200 {object}  response.OK
+// @Failure      400 {object}  response.BadRequest
+// @Failure      401 {object}  response.Unauthorized
+// @Failure      404 {object}  response.NotFound
+// @Failure      500 {object}  response.InternalServerError
 // @Router       /api/v1/media/{id} [delete]
 func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -173,13 +164,12 @@ func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(strings.TrimSpace(c.Param("id")), 10, 64)
+	id, err := h.ParseUintParam(c, "id")
 	if err != nil {
-		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid id", err.Error())
 		return
 	}
-
-	if err := h.mediaSvc.Delete(c.Request.Context(), auth.UserID, uint(id)); err != nil {
+	if err := h.mediaSvc.Delete(c.Request.Context(), auth.UserID, id); err != nil {
 		if errors.Is(err, service.ErrMediaNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
 			return
@@ -188,5 +178,5 @@ func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeDeleted), "deleted", gin.H{"id": uint(id)})
+	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeMedia, response.CaseCodeDeleted), "Successfully deleted media", gin.H{"id": uint(id)})
 }

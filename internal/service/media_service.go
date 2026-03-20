@@ -235,7 +235,35 @@ func (s *MediaService) List(ctx context.Context, actorUserID uint, req request.M
 	if actorUserID == 0 {
 		return repository.CursorPage{}, ErrInvalidMediaUserID
 	}
-	return s.repo.List(ctx, actorUserID, req)
+	page, err := s.repo.List(ctx, actorUserID, req)
+	if err != nil {
+		return repository.CursorPage{}, err
+	}
+
+	// Best-effort: when MinIO is enabled, populate `downloadUrl` for each item.
+	if s.minioClient == nil || s.minioBucket == "" {
+		return page, nil
+	}
+
+	items, ok := page.Items.([]model.Media)
+	if !ok || len(items) == 0 {
+		return page, nil
+	}
+
+	expiry := 15 * time.Minute
+	for i := range items {
+		if items[i].StoragePath == "" {
+			continue
+		}
+		url, uerr := s.PresignGet(ctx, items[i].StoragePath, expiry)
+		if uerr != nil || url == "" {
+			// Ignore presign errors per-item; keep item usable.
+			continue
+		}
+		items[i].DownloadURL = url
+	}
+	page.Items = items
+	return page, nil
 }
 
 func (s *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error) {
@@ -248,6 +276,15 @@ func (s *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*mode
 			return nil, ErrMediaNotFound
 		}
 		return nil, err
+	}
+	downloadURL, err := s.PresignGet(ctx, m.StoragePath, 15*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	m.DownloadURL = downloadURL
+	// PresignGet returns ("", nil) when MinIO isn't enabled; in that case we should not fail the get.
+	if s.minioClient != nil && s.minioBucket != "" && m.DownloadURL == "" {
+		return nil, errors.New("failed to presign get object")
 	}
 	return m, nil
 }
