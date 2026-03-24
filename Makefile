@@ -1,4 +1,4 @@
-.PHONY: help tidy test test-unit test-cover test-ci swagger run serve seed-rbac env local-serve local-seed-rbac local-deps docker-up docker-down docker-build docker-logs db-up db-down
+.PHONY: help tidy test test-unit test-cover test-ci swagger run serve seed-rbac env local-serve local-seed-rbac local-deps docker-up docker-down docker-build docker-seed-rbac docker-logs db-up db-down
 
 help:
 	@echo "Targets:"
@@ -18,9 +18,10 @@ help:
 	@echo "Docker:"
 	@echo "  db-up       - start MySQL only (docker compose)"
 	@echo "  db-down     - stop MySQL only (docker compose)"
-	@echo "  docker-up   - start MySQL + Redis + MinIO + API (docker compose)"
+	@echo "  docker-up   - start MySQL + Redis + MinIO + API, then seed RBAC (docker compose)"
 	@echo "  docker-down - stop docker compose stack"
-	@echo "  docker-build- rebuild API image"
+	@echo "  docker-build - rebuild API image"
+	@echo "  docker-seed-rbac - run RBAC seed in API container (docker compose run)"
 	@echo "  docker-logs - tail API logs"
 
 tidy:
@@ -83,13 +84,17 @@ db-down:
 	docker compose down
 
 docker-up:
-	docker compose up -d --build
+	docker compose up -d --build --wait
+	docker compose run --rm api seed rbac
 
 docker-down:
 	docker compose down
 
 docker-build:
 	docker compose build api
+
+docker-seed-rbac:
+	docker compose run --rm api seed rbac
 
 docker-logs:
 	docker compose logs -f --tail 100 api

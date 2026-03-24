@@ -108,14 +108,18 @@ See `.env.example` for complete defaults.
 
 ## Docker
 
-The compose setup can run MySQL, Redis, MinIO (S3 API), and the API. **`docker-compose.yml` declares an `environment` block** for each service; **keys match the variable names in your project `.env`** (same as `.env.example`), and values are filled with **`${VAR}`** substitution from that file. Copy `.env.example` to `.env`, add JWT PEM keys and any secrets (`REFRESH_TOKEN_PEPPER`, `TWO_FACTOR_ENC_KEY`), then run compose. Media is stored only in **object storage** (S3-compatible or GCS), not on the container filesystem; configure `MINIO_*` or `S3_*` to point at the Compose MinIO service (or another bucket). For local `go run` without Docker, use `DB_HOST=127.0.0.1` and `REDIS_ADDR=127.0.0.1:6379`, and point S3/MinIO env vars at a reachable endpoint (e.g. local MinIO).
+The compose setup can run MySQL, Redis, MinIO (S3 API), and the API. **`docker-compose.yml` declares an `environment` block** for each service; most values come from **`${VAR}`** substitution using your project `.env`. The **`api` service pins `DB_HOST=mysql`, `REDIS_ADDR=redis:6379`, and `MINIO_ENDPOINT=minio:9000`** so a host-only `.env` (e.g. `DB_HOST=127.0.0.1` for local `go run`) does not break the container. Copy `.env.example` to `.env`, add JWT PEM keys and any secrets (`REFRESH_TOKEN_PEPPER`, `TWO_FACTOR_ENC_KEY`), then run compose. Media is stored only in **object storage** (S3-compatible or GCS), not on the container filesystem; configure `MINIO_*` or `S3_*` for the Compose MinIO service (or another bucket). For local `go run` without Docker, use `DB_HOST=127.0.0.1` and `REDIS_ADDR=127.0.0.1:6379`, and point S3/MinIO env vars at a reachable endpoint (e.g. local MinIO).
 
 ```bash
 # MySQL only
 docker compose up -d mysql
 
-# Full stack
+# Full stack (recommended: also seeds default RBAC after services are up)
+make docker-up
+
+# Or manually, then seed RBAC (same as `make docker-seed-rbac`)
 docker compose up -d --build
+docker compose run --rm api seed rbac
 
 # Stop
 docker compose down
@@ -162,7 +166,8 @@ gcloud builds submit --config cloudbuild.yaml
 ## Makefile Commands
 
 ```bash
-make docker-up
+make docker-up          # stack + RBAC seed
+make docker-seed-rbac   # run RBAC seed only (compose run)
 make docker-down
 make swagger
 make test

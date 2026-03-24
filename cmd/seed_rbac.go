@@ -24,6 +24,10 @@ func newSeedRBACCmd() *cobra.Command {
 			}
 			defer func() { _ = db.SQL.Close() }()
 
+			if err := database.AutoMigrate(db.Gorm); err != nil {
+				return err
+			}
+
 			enf, err := rbac.NewEnforcer(db.Gorm, cfg.CasbinModelPath)
 			if err != nil {
 				return err

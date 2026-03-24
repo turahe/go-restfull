@@ -55,10 +55,11 @@ services:
       RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-5}
       RATE_LIMIT_BURST: ${RATE_LIMIT_BURST:-10}
       RATE_LIMIT_KEY_PREFIX: ${RATE_LIMIT_KEY_PREFIX:-rl:ip:}
-      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+      # Fixed service names — host .env often sets 127.0.0.1 for local dev; that breaks inside containers.
+      REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: ${REDIS_DB:-0}
-      DB_HOST: ${DB_HOST:-mysql}
+      DB_HOST: mysql
       DB_PORT: ${DB_PORT:-3306}
       DB_DRIVER: ${DB_DRIVER:-mysql}
       INSTANCE_CONNECTION_NAME: ${INSTANCE_CONNECTION_NAME:-}
@@ -86,7 +87,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-}
       S3_BUCKET: ${S3_BUCKET:-}
       S3_USE_SSL: ${S3_USE_SSL:-}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-media}
