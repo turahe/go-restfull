@@ -6,7 +6,6 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/internal/service"
-	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -28,6 +27,7 @@ type Deps struct {
 }
 
 type Handlers struct {
+	Health   *handler.HealthHandler
 	Auth     *handler.AuthHandler
 	User     *handler.UserHandler
 	Role     *handler.RoleHandler
@@ -58,11 +58,8 @@ func NewRouter(d Deps) *gin.Engine {
 	if d.Cfg.SwaggerEnabled {
 		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 	}
-	healthHandler := func(c *gin.Context) {
-		response.OK(c, 2000001, "ok", gin.H{"status": "ok"})
-	}
-	r.GET("/healthz", healthHandler)
-	r.GET("/health", healthHandler)
+	r.GET("/healthz", d.Handlers.Health.Health)
+	r.GET("/readyz", d.Handlers.Health.Ready)
 
 	api := r.Group("/api/v1")
 	{

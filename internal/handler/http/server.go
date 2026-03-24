@@ -109,6 +109,7 @@ func Serve(ctx context.Context) error {
 	settingsSvc := service.NewSettingsService(settingRepo)
 
 	// Handlers
+	healthH := handler.NewHealthHandler(db.SQL, rdb, cfg)
 	authH := handler.NewAuthHandler(authSvc, log)
 	userH := handler.NewUserHandler(userSvc, log)
 	roleH := handler.NewRoleHandler(roleSvc, log)
@@ -128,6 +129,7 @@ func Serve(ctx context.Context) error {
 		RBAC:     rbacSvc,
 		AuthRepo: authRepo,
 		Handlers: Handlers{
+			Health:   healthH,
 			Auth:     authH,
 			User:     userH,
 			Role:     roleH,

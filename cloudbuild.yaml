@@ -45,6 +45,10 @@ steps:
       - ${_CONCURRENCY}
       - --timeout
       - ${_TIMEOUT}
+      - --startup-probe
+      - ${_STARTUP_PROBE}
+      - --liveness-probe
+      - ${_LIVENESS_PROBE}
       - --set-env-vars
       - ${_ENV_VARS}
 
@@ -59,6 +63,8 @@ substitutions:
   _MAX_INSTANCES: "10"
   _CONCURRENCY: "80"
   _TIMEOUT: 300s
+  _STARTUP_PROBE: timeoutSeconds=3,periodSeconds=5,httpGet.path=/healthz,httpGet.port=8080
+  _LIVENESS_PROBE: timeoutSeconds=3,periodSeconds=10,httpGet.path=/healthz,httpGet.port=8080
   _ENV_VARS: APP_ENV=prod,SWAGGER_ENABLED=false
 
 options:
