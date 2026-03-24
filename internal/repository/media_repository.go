@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"go-rest/internal/handler/request"
-	"go-rest/internal/model"
+	"github.com/turahe/go-restfull/internal/handler/request"
+	"github.com/turahe/go-restfull/internal/model"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"

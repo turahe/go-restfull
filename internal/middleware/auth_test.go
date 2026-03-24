@@ -8,16 +8,14 @@ import (
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"go-rest/internal/model"
-	"go-rest/internal/repository"
-	"go-rest/internal/service"
-	"go-rest/internal/service/dto"
-	"go-rest/internal/testutil"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/service/dto"
+	"github.com/turahe/go-restfull/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -146,9 +144,6 @@ func TestJWTAuth(t *testing.T) {
 
 func stubAuthDeps(t *testing.T) (*service.JWTService, *repository.AuthRepository) {
 	t.Helper()
-	dir := t.TempDir()
-	privPath := filepath.Join(dir, "priv.pem")
-	pubPath := filepath.Join(dir, "pub.pem")
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
 	pub := &priv.PublicKey
@@ -156,10 +151,8 @@ func stubAuthDeps(t *testing.T) (*service.JWTService, *repository.AuthRepository
 	pubDER, err := x509.MarshalPKIXPublicKey(pub)
 	require.NoError(t, err)
 	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubDER})
-	require.NoError(t, os.WriteFile(privPath, privPEM, 0600))
-	require.NoError(t, os.WriteFile(pubPath, pubPEM, 0644))
 
-	jwtSvc, err := service.NewJWTService(privPath, pubPath, "test", "test", "k1", zap.NewNop())
+	jwtSvc, err := service.NewJWTService(string(privPEM), string(pubPEM), "test", "test", "k1", zap.NewNop())
 	require.NoError(t, err)
 
 	db := openAuthTestDB(t)

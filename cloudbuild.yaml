@@ -59,7 +59,7 @@ substitutions:
   _MAX_INSTANCES: "10"
   _CONCURRENCY: "80"
   _TIMEOUT: 300s
-  _ENV_VARS: APP_ENV=prod
+  _ENV_VARS: APP_ENV=prod,SWAGGER_ENABLED=false
 
 options:
   logging: CLOUD_LOGGING_ONLY

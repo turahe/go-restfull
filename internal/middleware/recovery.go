@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

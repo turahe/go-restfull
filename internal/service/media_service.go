@@ -3,23 +3,18 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
 	"mime"
 	"mime/multipart"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"go-rest/internal/config"
-	"go-rest/internal/handler/request"
-	"go-rest/internal/model"
-	"go-rest/internal/repository"
+	"github.com/turahe/go-restfull/internal/config"
+	"github.com/turahe/go-restfull/internal/handler/request"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/objectstore"
+	"github.com/turahe/go-restfull/internal/repository"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -30,61 +25,44 @@ var (
 	ErrMediaNotFound      = errors.New("media not found")
 	ErrInvalidMediaUserID = errors.New("invalid media user id")
 	ErrInvalidActorID     = errors.New("invalid actor id")
-	ErrInvalidUploadDir   = errors.New("invalid upload dir")
 )
 
 type MediaService struct {
-	repo      *repository.MediaRepository
-	uploadDir string
-	maxBytes  int64
+	repo     *repository.MediaRepository
+	maxBytes int64
 
-	minioClient *minio.Client
-	minioBucket string
-	log         *zap.Logger
+	store objectstore.Store
+	log   *zap.Logger
 }
 
-func NewMediaService(repo *repository.MediaRepository, cfg config.Config, log *zap.Logger) *MediaService {
-	var minioClient *minio.Client
-	var minioBucket string
-	if cfg.MinioEndpoint != "" && cfg.MinioAccessKey != "" && cfg.MinioSecretKey != "" {
-		minioBucket = cfg.MinioBucket
-		client, err := minio.New(cfg.MinioEndpoint, &minio.Options{
-			Creds:  credentials.NewStaticV4(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
-			Secure: cfg.MinioUseSSL,
-		})
-		if err != nil {
-			log.Error("failed to create minio client", zap.Error(err))
-			return nil
-		}
-		minioClient = client
+func NewMediaService(repo *repository.MediaRepository, cfg config.Config, log *zap.Logger) (*MediaService, error) {
+	store, err := objectstore.NewFromConfig(cfg, log)
+	if err != nil {
+		return nil, err
 	}
-
 	return &MediaService{
-		repo:        repo,
-		uploadDir:   cfg.MediaUploadDir,
-		maxBytes:    cfg.MediaMaxUploadBytes,
-		minioClient: minioClient,
-		minioBucket: minioBucket,
-		log:         log,
-	}
+		repo:     repo,
+		maxBytes: cfg.MediaMaxUploadBytes,
+		store:    store,
+		log:      log,
+	}, nil
 }
 
 // PresignGet returns a temporary URL for downloading the object.
-// When MinIO is not enabled, it returns an empty string.
 func (s *MediaService) PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
-	if s.minioClient == nil || s.minioBucket == "" {
+	if objectKey == "" {
 		return "", nil
 	}
-	u, err := s.minioClient.PresignedGetObject(ctx, s.minioBucket, objectKey, expiry, nil)
+	u, err := s.store.SignedURL(ctx, objectKey, expiry)
 	if err != nil {
 		s.log.Error("failed to presign get object", zap.Error(err))
 		return "", errors.New("failed to presign get object")
 	}
-	if u == nil {
+	if u == "" {
 		s.log.Error("failed to presign get object")
 		return "", errors.New("failed to presign get object")
 	}
-	return u.String(), nil
+	return u, nil
 }
 
 // Upload uploads the file to storage and creates a Media row.
@@ -102,10 +80,6 @@ func (s *MediaService) Upload(
 	}
 	if fh.Size > s.maxBytes {
 		return nil, ErrMediaTooLarge
-	}
-	// If MinIO is enabled, we don't need local upload directory.
-	if s.minioClient == nil && strings.TrimSpace(s.uploadDir) == "" {
-		return nil, ErrInvalidUploadDir
 	}
 
 	origName := strings.TrimSpace(fh.Filename)
@@ -155,50 +129,9 @@ func (s *MediaService) Upload(
 	relDir := time.Now().Format("2006/01/02")
 	storageFilename := id + ext
 	objectKey := filepath.ToSlash(filepath.Join(relDir, storageFilename))
-	var cleanupLocalPath string
 
-	// Store into MinIO when configured; otherwise fallback to local filesystem.
-	if s.minioClient != nil {
-		if s.minioBucket == "" {
-			return nil, errors.New("MINIO_BUCKET is required")
-		}
-		exists, err := s.minioClient.BucketExists(ctx, s.minioBucket)
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			if err := s.minioClient.MakeBucket(ctx, s.minioBucket, minio.MakeBucketOptions{}); err != nil {
-				return nil, err
-			}
-		}
-
-		opts := minio.PutObjectOptions{ContentType: mimeType}
-		if _, err := s.minioClient.PutObject(ctx, s.minioBucket, objectKey, f, fh.Size, opts); err != nil {
-			return nil, err
-		}
-	} else {
-		fullDir := s.uploadDir
-		if strings.TrimSpace(fullDir) == "" {
-			return nil, ErrInvalidUploadDir
-		}
-		fullDir = filepath.Clean(fullDir)
-		destDir := filepath.Join(fullDir, relDir)
-		if err := os.MkdirAll(destDir, 0o755); err != nil {
-			return nil, err
-		}
-
-		destPath := filepath.Join(destDir, storageFilename)
-		cleanupLocalPath = destPath
-		dst, err := os.Create(destPath)
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = dst.Close() }()
-
-		if _, err := io.Copy(dst, f); err != nil {
-			_ = os.Remove(destPath)
-			return nil, err
-		}
+	if err := s.store.Put(ctx, objectKey, f, fh.Size, mimeType); err != nil {
+		return nil, err
 	}
 
 	m := &model.Media{
@@ -212,9 +145,7 @@ func (s *MediaService) Upload(
 		UpdatedBy:    actorUserID,
 	}
 	if err := s.repo.Create(ctx, m); err != nil {
-		if cleanupLocalPath != "" {
-			_ = os.Remove(cleanupLocalPath)
-		}
+		_ = s.store.Delete(ctx, objectKey)
 		return nil, err
 	}
 
@@ -223,8 +154,7 @@ func (s *MediaService) Upload(
 		return nil, err
 	}
 	m.DownloadURL = downloadURL
-	// PresignGet returns ("", nil) when MinIO isn't enabled; in that case we should not fail the upload.
-	if s.minioClient != nil && s.minioBucket != "" && strings.TrimSpace(m.DownloadURL) == "" {
+	if strings.TrimSpace(m.DownloadURL) == "" {
 		return nil, errors.New("failed to presign get object")
 	}
 
@@ -240,11 +170,6 @@ func (s *MediaService) List(ctx context.Context, actorUserID uint, req request.M
 		return repository.CursorPage{}, err
 	}
 
-	// Best-effort: when MinIO is enabled, populate `downloadUrl` for each item.
-	if s.minioClient == nil || s.minioBucket == "" {
-		return page, nil
-	}
-
 	items, ok := page.Items.([]model.Media)
 	if !ok || len(items) == 0 {
 		return page, nil
@@ -257,7 +182,6 @@ func (s *MediaService) List(ctx context.Context, actorUserID uint, req request.M
 		}
 		url, uerr := s.PresignGet(ctx, items[i].StoragePath, expiry)
 		if uerr != nil || url == "" {
-			// Ignore presign errors per-item; keep item usable.
 			continue
 		}
 		items[i].DownloadURL = url
@@ -282,8 +206,7 @@ func (s *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*mode
 		return nil, err
 	}
 	m.DownloadURL = downloadURL
-	// PresignGet returns ("", nil) when MinIO isn't enabled; in that case we should not fail the get.
-	if s.minioClient != nil && s.minioBucket != "" && m.DownloadURL == "" {
+	if m.DownloadURL == "" {
 		return nil, errors.New("failed to presign get object")
 	}
 	return m, nil
@@ -300,7 +223,6 @@ func (s *MediaService) Delete(ctx context.Context, actorUserID, id uint) error {
 	if actorUserID == 0 || id == 0 {
 		return ErrInvalidMedia
 	}
-	// Load to know storage path
 	m, err := s.repo.FindByIDAndUserID(ctx, id, actorUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -309,32 +231,8 @@ func (s *MediaService) Delete(ctx context.Context, actorUserID, id uint) error {
 		return err
 	}
 
-	// Delete from MinIO when configured.
-	if s.minioClient != nil {
-		if s.minioBucket == "" {
-			return errors.New("MINIO_BUCKET is required")
-		}
-		err := s.minioClient.RemoveObject(ctx, s.minioBucket, m.StoragePath, minio.RemoveObjectOptions{})
-		if err != nil {
-			var respErr minio.ErrorResponse
-			if !errors.As(err, &respErr) || respErr.StatusCode != http.StatusNotFound {
-				return err
-			}
-		}
-		return s.repo.SoftDeleteByID(ctx, id, actorUserID, actorUserID)
-	}
-
-	// Fallback local filesystem: soft delete row then remove file.
-	if err := s.repo.SoftDeleteByID(ctx, id, actorUserID, actorUserID); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrMediaNotFound
-		}
+	if err := s.store.Delete(ctx, m.StoragePath); err != nil {
 		return err
 	}
-
-	fullPath := filepath.Join(s.uploadDir, filepath.FromSlash(m.StoragePath))
-	if err := os.Remove(fullPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("media deleted but file removal failed: %w", err)
-	}
-	return nil
+	return s.repo.SoftDeleteByID(ctx, id, actorUserID, actorUserID)
 }

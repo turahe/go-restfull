@@ -70,20 +70,19 @@ It is designed for:
 
 ```bash
 git clone git@github.com:turahe/go-restfull.git
-cd go-rest
+cd go-restfull
 go mod tidy
 cp .env.example .env
-mkdir -p keys
-openssl genrsa -out keys/jwtRS256.key 2048
-openssl rsa -in keys/jwtRS256.key -pubout -out keys/jwtRS256.key.pub
 go run cmd/main.go
 ```
+
+Set `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` in `.env` to PEM text (quoted multiline); see `.env.example`.
 
 ### Local run notes
 
 1. Create a MySQL database (default: `blog`) or set `DB_NAME` in `.env`.
-2. Generate JWT keys in `keys/` (or set custom key paths in `.env`).
-3. Update `.env` for DB, Redis, JWT keys, and optional MinIO.
+2. Configure JWT keys in `.env` as PEM text; see `.env.example`.
+3. Update `.env` for DB, Redis, and object storage (S3-compatible or GCS) for media uploads.
 4. Auto-migration runs on startup.
 5. Swagger UI is available at `http://localhost:8080/swagger/index.html`.
 
@@ -100,16 +99,16 @@ Important environment variables:
 
 - **Database:** `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 - **Redis:** `REDIS_ADDR`, `REDIS_PASSWORD`, `REDIS_DB`
-- **JWT:** `JWT_PRIVATE_KEY_PATH`, `JWT_PUBLIC_KEY_PATH`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_KEY_ID`
+- **JWT:** `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` (PEM only), `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_KEY_ID`
 - **Token TTLs:** `ACCESS_TOKEN_TTL_MINUTES`, `REFRESH_TOKEN_TTL_DAYS`, `IMPERSONATION_TTL_MINUTES`
 - **2FA:** `TWO_FACTOR_ENC_KEY`, `TWO_FACTOR_ISSUER`
-- **MinIO:** `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL`
+- **Media (object storage, required):** `MEDIA_STORAGE` (`s3` or `gcs`), `MEDIA_MAX_UPLOAD_BYTES`, plus either S3-compatible (`S3_*` or legacy `MINIO_*`) or `GCS_BUCKET` with Application Default Credentials.
 
 See `.env.example` for complete defaults.
 
 ## Docker
 
-The compose setup can run MySQL and MinIO alongside the API.
+The compose setup can run MySQL, Redis, MinIO (S3 API), and the API. **`docker-compose.yml` declares an `environment` block** for each service; **keys match the variable names in your project `.env`** (same as `.env.example`), and values are filled with **`${VAR}`** substitution from that file. Copy `.env.example` to `.env`, add JWT PEM keys and any secrets (`REFRESH_TOKEN_PEPPER`, `TWO_FACTOR_ENC_KEY`), then run compose. Media is stored only in **object storage** (S3-compatible or GCS), not on the container filesystem; configure `MINIO_*` or `S3_*` to point at the Compose MinIO service (or another bucket). For local `go run` without Docker, use `DB_HOST=127.0.0.1` and `REDIS_ADDR=127.0.0.1:6379`, and point S3/MinIO env vars at a reachable endpoint (e.g. local MinIO).
 
 ```bash
 # MySQL only
@@ -139,7 +138,7 @@ gcloud run deploy go-rest-api \
   --region asia-southeast2 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql,DB_HOST=<db-host>,DB_PORT=3306,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
+  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql,DB_HOST=<db-host>,DB_PORT=3306,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
 ```
 
 Cloud SQL for MySQL (recommended on GCP):
@@ -149,7 +148,7 @@ gcloud run deploy go-rest-api \
   --region asia-southeast2 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql-cloud,INSTANCE_CONNECTION_NAME=<project:region:instance>,PRIVATE_IP=false,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_PRIVATE_KEY_PATH=keys/jwtRS256.key,JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
+  --set-env-vars "APP_ENV=prod,DB_DRIVER=mysql-cloud,INSTANCE_CONNECTION_NAME=<project:region:instance>,PRIVATE_IP=false,DB_USER=<db-user>,DB_PASSWORD=<db-pass>,DB_NAME=<db-name>,JWT_ISSUER=go-rest-blog,JWT_AUDIENCE=blog-api,JWT_KEY_ID=k1,TWO_FACTOR_ENC_KEY=<32-byte-key>,TWO_FACTOR_ISSUER=go-rest-blog"
 ```
 
 ### Deploy via Cloud Build
@@ -216,9 +215,9 @@ Database-backed keys live in the `settings` table (`setting_key`, `value`, `is_p
 
 ## Media Storage
 
-- Media files are stored in MinIO (S3-compatible)
+- Media files are stored in **object storage only** (S3-compatible backends such as MinIO or AWS S3, or **GCS**)
 - Metadata is stored in MySQL
-- `GET /api/v1/media/:id` returns a presigned `downloadUrl` when MinIO is enabled
+- `GET /api/v1/media/:id` returns a presigned `downloadUrl` from the configured bucket
 - `POST /api/v1/media` supports multipart upload:
   - `file`
   - optional `mediaableType` + `mediaableId`

@@ -3,7 +3,7 @@ package database
 import (
 	"testing"
 
-	"go-rest/internal/config"
+	"github.com/turahe/go-restfull/internal/config"
 
 	"github.com/stretchr/testify/require"
 )

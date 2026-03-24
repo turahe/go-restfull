@@ -1,18 +1,21 @@
+# `environment` keys match `.env` / `.env.example`. Values come from `${VAR}` substitution
+# against the project `.env` file (Compose loads it automatically). Defaults use `:-` when a key is absent.
+
 services:
   mysql:
     image: mysql:8.4
     container_name: go-rest-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: blog
-      MYSQL_USER: blog
-      MYSQL_PASSWORD: blog
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-blog}
+      MYSQL_USER: ${MYSQL_USER:-blog}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-blog}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -30,8 +33,8 @@ services:
     image: minio/minio:latest
     container_name: go-rest-minio
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -45,37 +48,50 @@ services:
       dockerfile: Dockerfile
     container_name: go-rest-api
     environment:
-      APP_ENV: local
-      SERVER_PORT: "8080"
-      REDIS_ADDR: redis:6379
-      REDIS_PASSWORD: ""
-      REDIS_DB: "0"
-      RATE_LIMIT_KEY_PREFIX: "rl:ip:"
-      DB_DRIVER: mysql
-      DB_HOST: mysql
-      DB_PORT: "3306"
-      DB_USER: blog
-      DB_PASSWORD: blog
-      DB_NAME: blog
-      JWT_PRIVATE_KEY_PATH: keys/jwtRS256.key
-      JWT_PUBLIC_KEY_PATH: keys/jwtRS256.key.pub
-      JWT_ISSUER: go-rest-blog
-      JWT_AUDIENCE: blog-api
-      JWT_KEY_ID: k1
-      ACCESS_TOKEN_TTL_MINUTES: "10"
-      REFRESH_TOKEN_TTL_DAYS: "30"
-      REFRESH_TOKEN_PEPPER: "change_me_strong_secret"
-      IMPERSONATION_TTL_MINUTES: "5"
-      CASBIN_MODEL_PATH: configs/casbin_model.conf
-      TWO_FACTOR_ENC_KEY: "0123456789abcdef0123456789abcdef"
-      TWO_FACTOR_ISSUER: "go-rest-blog"
-      MEDIA_UPLOAD_DIR: "/app/uploads"
-      MEDIA_MAX_UPLOAD_BYTES: "10485760"
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: media
-      MINIO_USE_SSL: "false"
+      APP_ENV: ${APP_ENV:-local}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      PORT: ${PORT:-}
+      RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-5}
+      RATE_LIMIT_BURST: ${RATE_LIMIT_BURST:-10}
+      RATE_LIMIT_KEY_PREFIX: ${RATE_LIMIT_KEY_PREFIX:-rl:ip:}
+      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DRIVER: ${DB_DRIVER:-mysql}
+      INSTANCE_CONNECTION_NAME: ${INSTANCE_CONNECTION_NAME:-}
+      PRIVATE_IP: ${PRIVATE_IP:-false}
+      DB_USER: ${DB_USER:-blog}
+      DB_PASSWORD: ${DB_PASSWORD:-blog}
+      DB_NAME: ${DB_NAME:-blog}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-go-rest-blog}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-blog-api}
+      JWT_KEY_ID: ${JWT_KEY_ID:-k1}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-10}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER}
+      IMPERSONATION_TTL_MINUTES: ${IMPERSONATION_TTL_MINUTES:-5}
+      CASBIN_MODEL_PATH: ${CASBIN_MODEL_PATH:-configs/casbin_model.conf}
+      TWO_FACTOR_ENC_KEY: ${TWO_FACTOR_ENC_KEY}
+      TWO_FACTOR_ISSUER: ${TWO_FACTOR_ISSUER:-go-rest-blog}
+      MEDIA_MAX_UPLOAD_BYTES: ${MEDIA_MAX_UPLOAD_BYTES:-10485760}
+      MEDIA_STORAGE: ${MEDIA_STORAGE:-s3}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_USE_SSL: ${S3_USE_SSL:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-media}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      GCS_BUCKET: ${GCS_BUCKET:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -85,12 +101,8 @@ services:
         condition: service_started
       minio:
         condition: service_started
-    volumes:
-      - media_data:/app/uploads
 
 volumes:
   mysql_data:
   redis_data:
-  media_data:
   minio_data:
-

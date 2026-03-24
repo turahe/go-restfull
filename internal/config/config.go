@@ -12,14 +12,17 @@ import (
 type Config struct {
 	Env string
 
+	// SwaggerEnabled registers /swagger when true. If SWAGGER_ENABLED is unset, defaults to true only when APP_ENV is "local".
+	SwaggerEnabled bool
+
 	ServerPort string
 
 	RateLimitRPS   float64
-RateLimitBurst int
+	RateLimitBurst int
 
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
+	RedisAddr          string
+	RedisPassword      string
+	RedisDB            int
 	RateLimitKeyPrefix string
 
 	DBHost     string
@@ -34,32 +37,39 @@ RateLimitBurst int
 
 	// Cloud SQL fields (used when DBDriver="mysql-cloud")
 	CloudSQLInstanceConnectionName string
-	CloudSQLPrivateIP               bool
+	CloudSQLPrivateIP              bool
 
-	JWTPublicKeyPath  string
-	JWTPrivateKeyPath string
-	JWTIssuer         string
-	JWTAudience       string
-	JWTKeyID          string
+	JWTPublicKey  string
+	JWTPrivateKey string
+	JWTIssuer     string
+	JWTAudience   string
+	JWTKeyID      string
 
-	AccessTokenTTLMinutes        int
-	RefreshTokenTTLDays          int
-	ImpersonationTTLMinutes      int
-	RefreshTokenPepper           string
+	AccessTokenTTLMinutes   int
+	RefreshTokenTTLDays     int
+	ImpersonationTTLMinutes int
+	RefreshTokenPepper      string
 
 	CasbinModelPath string
 
 	TwoFactorEncKey string
 	TwoFactorIssuer string
 
-	MediaUploadDir       string
 	MediaMaxUploadBytes int64
 
-	MinioEndpoint   string
-	MinioAccessKey  string
-	MinioSecretKey  string
-	MinioBucket     string
-	MinioUseSSL      bool
+	// MediaStorage selects where uploads go: s3 (S3 API: AWS S3, MinIO, etc.) or gcs (Google Cloud Storage).
+	MediaStorage string
+
+	// S3-compatible object storage (AWS S3, MinIO, etc.). MINIO_* env vars are merged into these when S3_* are unset.
+	S3Endpoint  string
+	S3Region    string
+	S3AccessKey string
+	S3SecretKey string
+	S3Bucket    string
+	S3UseSSL    bool
+
+	// Google Cloud Storage (native JSON API).
+	GCSBucket string
 }
 
 func Load() (Config, error) {
@@ -67,28 +77,28 @@ func Load() (Config, error) {
 	_ = godotenv.Load()
 
 	cfg := Config{
-		Env:                strings.TrimSpace(os.Getenv("APP_ENV")),
+		Env: strings.TrimSpace(os.Getenv("APP_ENV")),
 		// Cloud Run injects PORT; prefer it over SERVER_PORT when present.
-		ServerPort:         strings.TrimSpace(getEnvFirstNonEmpty("PORT", "SERVER_PORT", "8080")),
-		RateLimitRPS:       getEnvFloatDefault("RATE_LIMIT_RPS", 5),
-		RateLimitBurst:     getEnvIntDefault("RATE_LIMIT_BURST", 10),
-		RedisAddr:          strings.TrimSpace(os.Getenv("REDIS_ADDR")),
-		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
-		RedisDB:            getEnvIntDefault("REDIS_DB", 0),
-		RateLimitKeyPrefix: strings.TrimSpace(getEnvDefault("RATE_LIMIT_KEY_PREFIX", "rl:ip:")),
-		DBHost:             strings.TrimSpace(getEnvDefault("DB_HOST", "127.0.0.1")),
-		DBPort:             strings.TrimSpace(getEnvDefault("DB_PORT", "3306")),
-		DBUser:             strings.TrimSpace(getEnvDefault("DB_USER", "root")),
-		DBPassword:         os.Getenv("DB_PASSWORD"),
-		DBName:             strings.TrimSpace(getEnvDefault("DB_NAME", "blog")),
-		DBDriver:           strings.TrimSpace(getEnvDefault("DB_DRIVER", "mysql")),
+		ServerPort:                     strings.TrimSpace(getEnvFirstNonEmpty("PORT", "SERVER_PORT", "8080")),
+		RateLimitRPS:                   getEnvFloatDefault("RATE_LIMIT_RPS", 5),
+		RateLimitBurst:                 getEnvIntDefault("RATE_LIMIT_BURST", 10),
+		RedisAddr:                      strings.TrimSpace(os.Getenv("REDIS_ADDR")),
+		RedisPassword:                  os.Getenv("REDIS_PASSWORD"),
+		RedisDB:                        getEnvIntDefault("REDIS_DB", 0),
+		RateLimitKeyPrefix:             strings.TrimSpace(getEnvDefault("RATE_LIMIT_KEY_PREFIX", "rl:ip:")),
+		DBHost:                         strings.TrimSpace(getEnvDefault("DB_HOST", "127.0.0.1")),
+		DBPort:                         strings.TrimSpace(getEnvDefault("DB_PORT", "3306")),
+		DBUser:                         strings.TrimSpace(getEnvDefault("DB_USER", "root")),
+		DBPassword:                     os.Getenv("DB_PASSWORD"),
+		DBName:                         strings.TrimSpace(getEnvDefault("DB_NAME", "blog")),
+		DBDriver:                       strings.TrimSpace(getEnvDefault("DB_DRIVER", "mysql")),
 		CloudSQLInstanceConnectionName: strings.TrimSpace(os.Getenv("INSTANCE_CONNECTION_NAME")),
-		CloudSQLPrivateIP:               getEnvBoolDefault("PRIVATE_IP", false),
-		JWTPublicKeyPath:   strings.TrimSpace(getEnvDefault("JWT_PUBLIC_KEY_PATH", "keys/jwtRS256.key.pub")),
-		JWTPrivateKeyPath:  strings.TrimSpace(getEnvDefault("JWT_PRIVATE_KEY_PATH", "keys/jwtRS256.key")),
-		JWTIssuer:          strings.TrimSpace(getEnvDefault("JWT_ISSUER", "go-rest-blog")),
-		JWTAudience:        strings.TrimSpace(getEnvDefault("JWT_AUDIENCE", "blog-api")),
-		JWTKeyID:           strings.TrimSpace(getEnvDefault("JWT_KEY_ID", "k1")),
+		CloudSQLPrivateIP:              getEnvBoolDefault("PRIVATE_IP", false),
+		JWTPublicKey:                   strings.TrimSpace(os.Getenv("JWT_PUBLIC_KEY")),
+		JWTPrivateKey:                  strings.TrimSpace(os.Getenv("JWT_PRIVATE_KEY")),
+		JWTIssuer:                      strings.TrimSpace(getEnvDefault("JWT_ISSUER", "go-rest-blog")),
+		JWTAudience:                    strings.TrimSpace(getEnvDefault("JWT_AUDIENCE", "blog-api")),
+		JWTKeyID:                       strings.TrimSpace(getEnvDefault("JWT_KEY_ID", "k1")),
 
 		AccessTokenTTLMinutes:   getEnvIntDefault("ACCESS_TOKEN_TTL_MINUTES", 10),
 		RefreshTokenTTLDays:     getEnvIntDefault("REFRESH_TOKEN_TTL_DAYS", 30),
@@ -97,14 +107,36 @@ func Load() (Config, error) {
 		CasbinModelPath:         strings.TrimSpace(getEnvDefault("CASBIN_MODEL_PATH", "configs/casbin_model.conf")),
 		TwoFactorEncKey:         strings.TrimSpace(os.Getenv("TWO_FACTOR_ENC_KEY")),
 		TwoFactorIssuer:         strings.TrimSpace(getEnvDefault("TWO_FACTOR_ISSUER", "")),
-		MediaUploadDir:          strings.TrimSpace(getEnvDefault("MEDIA_UPLOAD_DIR", "uploads")),
 		MediaMaxUploadBytes:     getEnvInt64Default("MEDIA_MAX_UPLOAD_BYTES", 10*1024*1024),
 
-		MinioEndpoint:  strings.TrimSpace(os.Getenv("MINIO_ENDPOINT")),
-		MinioAccessKey: strings.TrimSpace(os.Getenv("MINIO_ACCESS_KEY")),
-		MinioSecretKey: os.Getenv("MINIO_SECRET_KEY"),
-		MinioBucket:    strings.TrimSpace(getEnvDefault("MINIO_BUCKET", "media")),
-		MinioUseSSL:     getEnvBoolDefault("MINIO_USE_SSL", false),
+		S3Endpoint:  strings.TrimSpace(os.Getenv("S3_ENDPOINT")),
+		S3Region:    strings.TrimSpace(os.Getenv("S3_REGION")),
+		S3AccessKey: strings.TrimSpace(os.Getenv("S3_ACCESS_KEY")),
+		S3SecretKey: os.Getenv("S3_SECRET_KEY"),
+		S3Bucket:    strings.TrimSpace(getEnvDefault("S3_BUCKET", "")),
+		S3UseSSL:    getEnvBoolDefault("S3_USE_SSL", false),
+
+		GCSBucket: strings.TrimSpace(os.Getenv("GCS_BUCKET")),
+	}
+
+	// Merge legacy MINIO_* into S3 when S3_* are unset (MinIO is S3-compatible).
+	if cfg.S3Endpoint == "" {
+		cfg.S3Endpoint = strings.TrimSpace(os.Getenv("MINIO_ENDPOINT"))
+	}
+	if cfg.S3AccessKey == "" {
+		cfg.S3AccessKey = strings.TrimSpace(os.Getenv("MINIO_ACCESS_KEY"))
+	}
+	if cfg.S3SecretKey == "" {
+		cfg.S3SecretKey = os.Getenv("MINIO_SECRET_KEY")
+	}
+	if cfg.S3Bucket == "" {
+		cfg.S3Bucket = strings.TrimSpace(getEnvDefault("MINIO_BUCKET", ""))
+	}
+	if cfg.S3Bucket == "" && cfg.S3Endpoint != "" && cfg.S3AccessKey != "" && cfg.S3SecretKey != "" {
+		cfg.S3Bucket = "media"
+	}
+	if strings.TrimSpace(os.Getenv("S3_USE_SSL")) == "" {
+		cfg.S3UseSSL = getEnvBoolDefault("MINIO_USE_SSL", false)
 	}
 
 	if cfg.DBName == "" || cfg.DBUser == "" || cfg.DBHost == "" || cfg.DBPort == "" {
@@ -149,18 +181,56 @@ func Load() (Config, error) {
 	if cfg.TwoFactorIssuer == "" {
 		cfg.TwoFactorIssuer = cfg.JWTIssuer
 	}
-	if cfg.MediaUploadDir == "" {
-		cfg.MediaUploadDir = "uploads"
-	}
 	if cfg.MediaMaxUploadBytes <= 0 {
 		return Config{}, errors.New("MEDIA_MAX_UPLOAD_BYTES must be > 0")
 	}
 
-	// If MinIO is partially configured, treat it as disabled to avoid breaking local dev.
-	// (We only enable when endpoint + access + secret are all set.)
-	if cfg.MinioEndpoint == "" || cfg.MinioAccessKey == "" || cfg.MinioSecretKey == "" {
-		cfg.MinioEndpoint = ""
+	ms := strings.ToLower(strings.TrimSpace(os.Getenv("MEDIA_STORAGE")))
+	s3Ok := cfg.S3Endpoint != "" && cfg.S3AccessKey != "" && cfg.S3SecretKey != "" && cfg.S3Bucket != ""
+	gcsOk := cfg.GCSBucket != ""
+	if ms == "" {
+		if s3Ok && gcsOk {
+			return Config{}, errors.New("both S3 and GCS are configured; set MEDIA_STORAGE to s3 or gcs")
+		}
+		if s3Ok {
+			ms = "s3"
+		} else if gcsOk {
+			ms = "gcs"
+		} else {
+			return Config{}, errors.New("media storage requires S3-compatible config (S3_* or MINIO_*) or GCS (GCS_BUCKET), or set MEDIA_STORAGE to s3 or gcs")
+		}
+	} else {
+		switch ms {
+		case "local", "filesystem", "fs", "disk":
+			return Config{}, errors.New("MEDIA_STORAGE local filesystem is not supported; use s3 or gcs")
+		case "minio", "aws":
+			ms = "s3"
+		case "google":
+			ms = "gcs"
+		}
 	}
+	if ms != "s3" && ms != "gcs" {
+		return Config{}, errors.New("MEDIA_STORAGE must be s3 or gcs")
+	}
+	cfg.MediaStorage = ms
+
+	if cfg.MediaStorage == "s3" {
+		if cfg.S3Endpoint == "" || cfg.S3AccessKey == "" || cfg.S3SecretKey == "" || cfg.S3Bucket == "" {
+			return Config{}, errors.New("S3 storage requires S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, and S3_BUCKET (or legacy MINIO_* equivalents)")
+		}
+	}
+	if cfg.MediaStorage == "gcs" {
+		if cfg.GCSBucket == "" {
+			return Config{}, errors.New("GCS storage requires GCS_BUCKET")
+		}
+	}
+
+	if strings.TrimSpace(os.Getenv("SWAGGER_ENABLED")) != "" {
+		cfg.SwaggerEnabled = getEnvBoolDefault("SWAGGER_ENABLED", false)
+	} else {
+		cfg.SwaggerEnabled = strings.EqualFold(cfg.Env, "local")
+	}
+
 	return cfg, nil
 }
 
@@ -232,4 +302,3 @@ func getEnvFloatDefault(key string, def float64) float64 {
 	}
 	return n
 }
-

@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"go-rest/pkg/ids"
+	"github.com/turahe/go-restfull/pkg/ids"
 
 	"go.uber.org/zap"
 )

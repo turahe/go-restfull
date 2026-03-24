@@ -11,9 +11,9 @@ import (
 	"io"
 	"time"
 
-	"go-rest/internal/model"
-	"go-rest/internal/repository"
-	"go-rest/internal/service/dto"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service/dto"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"

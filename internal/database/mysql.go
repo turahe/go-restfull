@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"go-rest/internal/config"
+	"github.com/turahe/go-restfull/internal/config"
 
 	"go.uber.org/zap"
 	"cloud.google.com/go/cloudsqlconn"

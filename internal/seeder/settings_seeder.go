@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"go-rest/internal/repository"
+	"github.com/turahe/go-restfull/internal/repository"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"

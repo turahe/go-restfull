@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"go-rest/internal/database"
-	"go-rest/internal/model"
-	"go-rest/internal/testutil"
+	"github.com/turahe/go-restfull/internal/database"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/testutil"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"

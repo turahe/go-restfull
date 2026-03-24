@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-rest/internal/handler/request"
-	"go-rest/internal/middleware"
-	"go-rest/internal/model"
-	"go-rest/internal/service"
-	"go-rest/internal/repository"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/handler/request"
+	"github.com/turahe/go-restfull/internal/middleware"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

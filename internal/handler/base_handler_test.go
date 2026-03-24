@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

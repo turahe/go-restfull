@@ -8,14 +8,14 @@ import (
 	"syscall"
 	"time"
 
-	_ "go-rest/docs"
-	"go-rest/internal/config"
-	"go-rest/internal/database"
-	"go-rest/internal/handler"
-	"go-rest/internal/rbac"
-	"go-rest/internal/repository"
-	"go-rest/internal/service"
-	"go-rest/pkg/logger"
+	_ "github.com/turahe/go-restfull/docs"
+	"github.com/turahe/go-restfull/internal/config"
+	"github.com/turahe/go-restfull/internal/database"
+	"github.com/turahe/go-restfull/internal/handler"
+	"github.com/turahe/go-restfull/internal/rbac"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -26,10 +26,6 @@ import (
 func Serve(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(cfg.MediaUploadDir, 0o755); err != nil {
 		return err
 	}
 
@@ -61,7 +57,7 @@ func Serve(ctx context.Context) error {
 	}
 	log.Info("db migrated")
 
-	jwtm, err := service.NewJWTService(cfg.JWTPrivateKeyPath, cfg.JWTPublicKeyPath, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTKeyID, log)
+	jwtm, err := service.NewJWTService(cfg.JWTPrivateKey, cfg.JWTPublicKey, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTKeyID, log)
 	if err != nil {
 		log.Fatal("jwt keys load failed", zap.Error(err))
 	}
@@ -87,7 +83,10 @@ func Serve(ctx context.Context) error {
 
 	// Services
 	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer, log)
-	mediaSvc := service.NewMediaService(mediaRepo, cfg, log)
+	mediaSvc, err := service.NewMediaService(mediaRepo, cfg, log)
+	if err != nil {
+		return err
+	}
 	authSvc := service.NewAuthService(userRepo,
 		authRepo,
 		auditRepo,

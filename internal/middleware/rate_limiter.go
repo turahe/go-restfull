@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"

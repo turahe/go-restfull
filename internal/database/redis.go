@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-rest/internal/config"
+	"github.com/turahe/go-restfull/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )

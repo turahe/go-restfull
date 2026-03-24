@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"go-rest/internal/model"
-	"go-rest/internal/rbac"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/rbac"
 
 	"gorm.io/gorm"
 )

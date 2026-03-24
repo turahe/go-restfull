@@ -1,10 +1,10 @@
 package main
 
 import (
-	"go-rest/internal/config"
-	"go-rest/internal/database"
-	"go-rest/internal/rbac"
-	"go-rest/internal/seeder"
+	"github.com/turahe/go-restfull/internal/config"
+	"github.com/turahe/go-restfull/internal/database"
+	"github.com/turahe/go-restfull/internal/rbac"
+	"github.com/turahe/go-restfull/internal/seeder"
 
 	"github.com/spf13/cobra"
 )

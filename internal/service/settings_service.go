@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"go-rest/internal/repository"
+	"github.com/turahe/go-restfull/internal/repository"
 )
 
 // PublicSettings is the exact JSON shape exposed by GET /api/v1/settings.

@@ -14,7 +14,6 @@ RUN adduser -D -g '' appuser
 WORKDIR /app
 
 COPY --from=build /out/api /app/api
-COPY --chown=appuser:appuser keys /app/keys
 COPY --chown=appuser:appuser configs /app/configs
 
 EXPOSE 8080

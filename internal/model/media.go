@@ -17,7 +17,7 @@ type Media struct {
 	Size         int64  `json:"size" gorm:"not null"`
 	StoragePath  string `json:"storagePath" gorm:"type:varchar(512);not null;index"` // relative path under upload dir
 
-	// DownloadURL is returned to clients for convenience when using MinIO.
+	// DownloadURL is returned to clients when using S3-compatible storage or GCS (signed URL).
 	// It's not persisted in the database.
 	DownloadURL string `json:"downloadUrl,omitempty" gorm:"-"`
 

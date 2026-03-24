@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"go-rest/internal/handler/request"
-	"go-rest/internal/middleware"
-	"go-rest/internal/service"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/handler/request"
+	"github.com/turahe/go-restfull/internal/middleware"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

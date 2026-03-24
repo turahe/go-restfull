@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-rest/internal/rbac"
-	"go-rest/internal/service"
-	"go-rest/internal/testutil"
+	"github.com/turahe/go-restfull/internal/rbac"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"

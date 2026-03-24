@@ -4,10 +4,10 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"os"
+	"strings"
 	"time"
 
-	"go-rest/internal/service/dto"
+	"github.com/turahe/go-restfull/internal/service/dto"
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
@@ -23,15 +23,10 @@ type JWTService struct {
 	log      *zap.Logger
 }
 
-func NewJWTService(privateKeyPath, publicKeyPath, issuer, audience, keyID string, log *zap.Logger) (*JWTService, error) {
-	privBytes, err := os.ReadFile(privateKeyPath)
+func NewJWTService(privateKeySrc, publicKeySrc, issuer, audience, keyID string, log *zap.Logger) (*JWTService, error) {
+	privBytes, pubBytes, err := loadJWTKeyPEM(privateKeySrc, publicKeySrc)
 	if err != nil {
-		log.Error("failed to read private key", zap.Error(err))
-		return nil, err
-	}
-	pubBytes, err := os.ReadFile(publicKeyPath)
-	if err != nil {
-		log.Error("failed to read public key", zap.Error(err))
+		log.Error("failed to load JWT keys", zap.Error(err))
 		return nil, err
 	}
 
@@ -57,6 +52,21 @@ func NewJWTService(privateKeyPath, publicKeyPath, issuer, audience, keyID string
 		keyID:      keyID,
 		log:        log,
 	}, nil
+}
+
+func loadJWTKeyPEM(privateKeyPEM, publicKeyPEM string) (priv []byte, pub []byte, err error) {
+	p := strings.TrimSpace(privateKeyPEM)
+	q := strings.TrimSpace(publicKeyPEM)
+	if p == "" && q == "" {
+		return nil, nil, errors.New("JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are required (PEM text)")
+	}
+	if p == "" || q == "" {
+		return nil, nil, errors.New("set both JWT_PRIVATE_KEY and JWT_PUBLIC_KEY")
+	}
+	if !strings.Contains(p, "-----BEGIN") || !strings.Contains(q, "-----BEGIN") {
+		return nil, nil, errors.New("JWT_PRIVATE_KEY and JWT_PUBLIC_KEY must be PEM-encoded (include -----BEGIN)")
+	}
+	return []byte(p), []byte(q), nil
 }
 
 func (s *JWTService) IssueAccessToken(cl dto.AccessClaims) (string, error) {

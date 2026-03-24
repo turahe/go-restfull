@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

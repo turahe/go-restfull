@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"go-rest/internal/middleware"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/middleware"
+	"github.com/turahe/go-restfull/pkg/response"
 	"strconv"
 	"strings"
 

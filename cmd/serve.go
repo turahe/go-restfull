@@ -1,7 +1,7 @@
 package main
 
 import (
-	httpserver "go-rest/internal/handler/http"
+	httpserver "github.com/turahe/go-restfull/internal/handler/http"
 
 	"github.com/spf13/cobra"
 )

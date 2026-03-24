@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"go-rest/pkg/ids"
+	"github.com/turahe/go-restfull/pkg/ids"
 )
 
 const (

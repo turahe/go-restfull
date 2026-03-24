@@ -1,7 +1,7 @@
 package database
 
 import (
-	"go-rest/internal/model"
+	"github.com/turahe/go-restfull/internal/model"
 
 	"gorm.io/gorm"
 )

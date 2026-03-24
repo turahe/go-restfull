@@ -1,12 +1,12 @@
 package http
 
 import (
-	"go-rest/internal/config"
-	"go-rest/internal/handler"
-	"go-rest/internal/middleware"
-	"go-rest/internal/repository"
-	"go-rest/internal/service"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/config"
+	"github.com/turahe/go-restfull/internal/handler"
+	"github.com/turahe/go-restfull/internal/middleware"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -55,7 +55,7 @@ func NewRouter(d Deps) *gin.Engine {
 		r.Use(middleware.RateLimiter(d.Cfg.RateLimitRPS, d.Cfg.RateLimitBurst))
 	}
 
-	if d.Cfg.Env == "local" {
+	if d.Cfg.SwaggerEnabled {
 		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 	}
 	healthHandler := func(c *gin.Context) {

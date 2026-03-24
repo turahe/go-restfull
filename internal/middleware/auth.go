@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
-	"go-rest/internal/repository"
-	"go-rest/internal/service"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-rest/internal/service"
-	"go-rest/pkg/response"
+	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

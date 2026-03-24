@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"go-rest/internal/model"
+	"github.com/turahe/go-restfull/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"

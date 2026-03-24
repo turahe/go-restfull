@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"go-rest/internal/model"
-	"go-rest/internal/testutil"
+	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/testutil"
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
