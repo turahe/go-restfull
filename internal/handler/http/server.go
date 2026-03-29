@@ -147,6 +147,9 @@ func Serve(ctx context.Context) error {
 		Addr:              ":" + cfg.ServerPort,
 		Handler:           r,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second, // media uploads
+		IdleTimeout:       120 * time.Second,
 	}
 
 	errCh := make(chan error, 1)

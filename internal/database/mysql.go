@@ -10,9 +10,9 @@ import (
 
 	"github.com/turahe/go-restfull/internal/config"
 
-	"go.uber.org/zap"
 	"cloud.google.com/go/cloudsqlconn"
 	sqlmysql "github.com/go-sql-driver/mysql"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -87,7 +87,7 @@ func ConnectMySQL(cfg config.Config, log *zap.Logger) (DB, error) {
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(25)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
 
 	return DB{Gorm: gormDB, SQL: sqlDB}, nil
 }
-

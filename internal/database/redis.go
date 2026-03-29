@@ -11,9 +11,12 @@ import (
 
 func ConnectRedis(cfg config.Config) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-		DB:       cfg.RedisDB,
+		Addr:         cfg.RedisAddr,
+		Password:     cfg.RedisPassword,
+		DB:           cfg.RedisDB,
+		PoolSize:     10,
+		MinIdleConns: 2,
+		PoolTimeout:  4 * time.Second,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -25,4 +28,3 @@ func ConnectRedis(cfg config.Config) (*redis.Client, error) {
 
 	return rdb, nil
 }
-

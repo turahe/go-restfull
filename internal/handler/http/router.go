@@ -1,6 +1,8 @@
 package http
 
 import (
+	"strings"
+
 	"github.com/turahe/go-restfull/internal/config"
 	"github.com/turahe/go-restfull/internal/handler"
 	"github.com/turahe/go-restfull/internal/middleware"
@@ -15,12 +17,12 @@ import (
 )
 
 type Deps struct {
-	Cfg     config.Config
-	Log     *zap.Logger
-	Redis   *redis.Client
+	Cfg   config.Config
+	Log   *zap.Logger
+	Redis *redis.Client
 
-	JWT     *service.JWTService
-	RBAC    *service.RBACService
+	JWT      *service.JWTService
+	RBAC     *service.RBACService
 	AuthRepo *repository.AuthRepository
 
 	Handlers Handlers
@@ -41,12 +43,20 @@ type Handlers struct {
 }
 
 func NewRouter(d Deps) *gin.Engine {
-	if d.Cfg.Env == "prod" {
+	e := strings.ToLower(strings.TrimSpace(d.Cfg.Env))
+	if e == "local" || e == "dev" || e == "development" || e == "" {
+		gin.SetMode(gin.DebugMode)
+	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 	r.Use(middleware.Recovery(d.Log))
+
+	// Probes skip request logging and rate limiting to avoid Redis/log noise under orchestrator health checks.
+	r.GET("/healthz", d.Handlers.Health.Health)
+	r.GET("/readyz", d.Handlers.Health.Ready)
+
 	r.Use(middleware.RequestID())
 	r.Use(middleware.RequestLogger(d.Log))
 	if d.Redis != nil {
@@ -58,8 +68,6 @@ func NewRouter(d Deps) *gin.Engine {
 	if d.Cfg.SwaggerEnabled {
 		r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 	}
-	r.GET("/healthz", d.Handlers.Health.Health)
-	r.GET("/readyz", d.Handlers.Health.Ready)
 
 	api := r.Group("/api/v1")
 	{
@@ -121,4 +129,3 @@ func NewRouter(d Deps) *gin.Engine {
 
 	return r
 }
-
