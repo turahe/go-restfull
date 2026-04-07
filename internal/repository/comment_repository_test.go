@@ -51,4 +51,3 @@ func TestCommentRepository_Create_ListByPostID_PostExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, rows, 1)
 }
-

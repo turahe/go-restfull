@@ -37,9 +37,7 @@ func TestCategoryRepository_CRUD_SlugExists_FindByIDs_SoftDelete(t *testing.T) {
 	assert.Equal(t, "Technology", got2.Name)
 
 	page, err := repo.List(ctx, request.CategoryListRequest{
-		Limit: 10,
-		Name:  "",
-		Page:  1,
+		PageRequest: request.PageRequest{Page: 1, Limit: 10},
 	})
 	assert.NoError(t, err)
 	items, ok := page.Items.([]model.Category)
@@ -52,4 +50,3 @@ func TestCategoryRepository_CRUD_SlugExists_FindByIDs_SoftDelete(t *testing.T) {
 
 	assert.NoError(t, repo.SoftDeleteByID(ctx, cat.ID, 1))
 }
-

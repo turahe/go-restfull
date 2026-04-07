@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
@@ -160,4 +160,3 @@ func TestPostHandler_GetBySlug(t *testing.T) {
 		})
 	}
 }
-

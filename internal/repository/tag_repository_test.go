@@ -36,7 +36,9 @@ func TestTagRepository_CRUD_SlugExists_FindByIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Golang", got2.Name)
 
-	page, err := repo.List(ctx, request.TagListRequest{Limit: 10, Name: "", Page: 1})
+	page, err := repo.List(ctx, request.TagListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: 10},
+	})
 	assert.NoError(t, err)
 	items, ok := page.Items.([]model.Tag)
 	assert.True(t, ok)
@@ -48,4 +50,3 @@ func TestTagRepository_CRUD_SlugExists_FindByIDs(t *testing.T) {
 
 	assert.NoError(t, repo.DeleteByID(ctx, tag.ID))
 }
-

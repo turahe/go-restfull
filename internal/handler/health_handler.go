@@ -55,7 +55,7 @@ func (h *HealthHandler) Ready(c *gin.Context) {
 
 	ready := dbOK && redisOK && configOK
 	data := gin.H{
-		"status":      "ready",
+		"status": "ready",
 		"checks": gin.H{
 			"database": dbOK,
 			"redis":    redisStatus,

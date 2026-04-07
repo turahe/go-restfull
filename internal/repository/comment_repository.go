@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
@@ -58,8 +59,8 @@ func (r *CommentRepository) List(ctx context.Context, req request.CommentListReq
 	countQ := r.db.WithContext(ctx).
 		Model(&model.Comment{}).
 		Where("post_id = ?", req.PostID)
-	if req.Content != "" {
-		countQ = countQ.Where("content LIKE ?", "%"+req.Content+"%")
+	if s := strings.TrimSpace(req.Search); s != "" {
+		countQ = countQ.Where("content LIKE ?", "%"+s+"%")
 	}
 
 	var totalRows int64
@@ -73,8 +74,8 @@ func (r *CommentRepository) List(ctx context.Context, req request.CommentListReq
 		Preload("Tags").
 		Preload("Media").
 		Where("post_id = ?", req.PostID)
-	if req.Content != "" {
-		q = q.Where("content LIKE ?", "%"+req.Content+"%")
+	if s := strings.TrimSpace(req.Search); s != "" {
+		q = q.Where("content LIKE ?", "%"+s+"%")
 	}
 
 	var rows []model.Comment
@@ -104,7 +105,10 @@ func (r *CommentRepository) List(ctx context.Context, req request.CommentListReq
 
 // ListByPostID is a backward-compatible helper for older tests/callers.
 func (r *CommentRepository) ListByPostID(ctx context.Context, postID uint, limit int) ([]model.Comment, error) {
-	page, err := r.List(ctx, request.CommentListRequest{PostID: postID, Limit: limit, Page: 1})
+	page, err := r.List(ctx, request.CommentListRequest{
+		PostID:      postID,
+		PageRequest: request.PageRequest{Page: 1, Limit: limit},
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ type UpdateCategoryRequest struct {
 }
 
 type CategoryListRequest struct {
-	Limit int    `form:"limit" json:"limit" binding:"omitempty,min=1,max=200"`
-	Name  string `form:"name" json:"name" binding:"omitempty,min=2,max=100"`
-	Page  int    `form:"page" json:"page" binding:"omitempty,min=1"`
+	PageRequest
+	SearchRequest
+	Name string `form:"name" json:"name" binding:"omitempty,min=2,max=100"`
 }

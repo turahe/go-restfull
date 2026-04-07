@@ -82,10 +82,42 @@ definitions:
     type: object
   request.CreatePostRequest:
     properties:
+      canonicalUrl:
+        maxLength: 512
+        type: string
       categoryId:
         type: integer
       content:
         minLength: 1
+        type: string
+      excerpt:
+        description: SEO (optional)
+        maxLength: 2000
+        type: string
+      layout:
+        enum:
+        - simple
+        - author
+        - book
+        - list
+        type: string
+      metaDescription:
+        maxLength: 320
+        type: string
+      metaTitle:
+        maxLength: 200
+        type: string
+      ogImageUrl:
+        maxLength: 512
+        type: string
+      robotsMeta:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        - archived
         type: string
       tagIds:
         items:
@@ -213,13 +245,48 @@ definitions:
         maxLength: 100
         minLength: 2
         type: string
+    required:
+    - name
     type: object
   request.UpdatePostRequest:
     properties:
+      canonicalUrl:
+        maxLength: 512
+        type: string
       categoryId:
         type: integer
       content:
         minLength: 1
+        type: string
+      excerpt:
+        description: 'SEO: use pointers so JSON null/absence can mean "no change";
+          present string (including "") updates/clears.'
+        maxLength: 2000
+        type: string
+      layout:
+        enum:
+        - simple
+        - author
+        - book
+        - list
+        type: string
+      metaDescription:
+        maxLength: 320
+        type: string
+      metaTitle:
+        maxLength: 200
+        type: string
+      ogImageUrl:
+        maxLength: 512
+        type: string
+      robotsMeta:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        - archived
         type: string
       tagIds:
         items:
@@ -245,8 +312,14 @@ definitions:
       error: {}
       message:
         type: string
+      next:
+        type: boolean
       nextCursor:
+        description: Cursor-specific fields are optional and used by some pagination
+          styles.
         type: string
+      prev:
+        type: boolean
       prevCursor:
         type: string
     type: object
@@ -1304,6 +1377,19 @@ paths:
       summary: Delete role
       tags:
       - Roles
+  /api/v1/settings:
+    get:
+      description: Returns public DB-backed application settings (rows where `is_public=true`).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Envelope'
+      summary: Public application settings
+      tags:
+      - Settings
   /api/v1/tags:
     get:
       parameters:

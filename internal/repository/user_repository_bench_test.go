@@ -65,7 +65,9 @@ func BenchmarkUserRepository_List(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = repo.List(ctx, request.UserListRequest{Limit: 20, Page: 1})
+		_, _ = repo.List(ctx, request.UserListRequest{
+			PageRequest: request.PageRequest{Page: 1, Limit: 20},
+		})
 	}
 }
 

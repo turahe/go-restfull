@@ -42,10 +42,10 @@ func NewMediaHandler(mediaSvc MediaService, log *zap.Logger) *MediaHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        file  formData  file  true  "Upload file"
-// @Success      201   {object}  response.Created
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      500   {object}  response.InternalServerError
+// @Success      201   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/media [post]
 func (h *MediaHandler) UploadMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -80,9 +80,9 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.OKPaginated
-// @Failure      401    {object}  response.Unauthorized
-// @Failure      500    {object}  response.InternalServerError
+// @Success      200    {object}  response.Envelope
+// @Failure      401    {object}  response.Envelope
+// @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/media [get]
 func (h *MediaHandler) ListMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -113,11 +113,11 @@ func (h *MediaHandler) ListMedia(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Media ID"
-// @Success      200 {object}  response.OK
-// @Failure      400 {object}  response.BadRequest
-// @Failure      401 {object}  response.Unauthorized
-// @Failure      404 {object}  response.NotFound
-// @Failure      500 {object}  response.InternalServerError
+// @Success      200 {object}  response.Envelope
+// @Failure      400 {object}  response.Envelope
+// @Failure      401 {object}  response.Envelope
+// @Failure      404 {object}  response.Envelope
+// @Failure      500 {object}  response.Envelope
 // @Router       /api/v1/media/{id} [get]
 func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -151,11 +151,11 @@ func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Media ID"
-// @Success      200 {object}  response.OK
-// @Failure      400 {object}  response.BadRequest
-// @Failure      401 {object}  response.Unauthorized
-// @Failure      404 {object}  response.NotFound
-// @Failure      500 {object}  response.InternalServerError
+// @Success      200 {object}  response.Envelope
+// @Failure      400 {object}  response.Envelope
+// @Failure      401 {object}  response.Envelope
+// @Failure      404 {object}  response.Envelope
+// @Failure      500 {object}  response.Envelope
 // @Router       /api/v1/media/{id} [delete]
 func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

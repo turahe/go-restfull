@@ -100,4 +100,3 @@ func (h *RBACHandler) AddPermission(c *gin.Context) {
 	}
 	response.OK(c, response.BuildResponseCode(http.StatusOK, response.ServiceCodeCommon, response.CaseCodeSuccess), "ok", gin.H{"added": ok2})
 }
-

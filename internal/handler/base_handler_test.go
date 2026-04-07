@@ -65,4 +65,3 @@ func TestBaseHandler_bindJSON_ValidationError(t *testing.T) {
 	env := decodeEnvBase(t, rr)
 	assert.Equal(t, "validation failed", env.Message)
 }
-

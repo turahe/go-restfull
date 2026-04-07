@@ -42,13 +42,17 @@ func TestUserRepository_List_LimitClamp(t *testing.T) {
 		assert.NoError(t, repo.Create(ctx, &model.User{Name: "N", Email: string(rune('a'+i)) + "@b.com", Password: "x"}))
 	}
 
-	page, err := repo.List(ctx, request.UserListRequest{Limit: 2, Page: 1})
+	page, err := repo.List(ctx, request.UserListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: 2},
+	})
 	assert.NoError(t, err)
 	items, ok := page.Items.([]model.User)
 	assert.True(t, ok)
 	assert.Len(t, items, 2)
 
-	page2, err := repo.List(ctx, request.UserListRequest{Limit: -1, Page: 1})
+	page2, err := repo.List(ctx, request.UserListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: -1},
+	})
 	assert.NoError(t, err)
 	items2, ok := page2.Items.([]model.User)
 	assert.True(t, ok)
@@ -86,4 +90,3 @@ func TestUserRepository_ConcurrentCreate_SameEmail(t *testing.T) {
 	}
 	assert.Equal(t, 1, successCount, "expected exactly one successful Create with same email")
 }
-

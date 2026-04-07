@@ -50,4 +50,3 @@ func openTestDB(t *testing.T, migrate ...any) *gorm.DB {
 	}
 	return db
 }
-

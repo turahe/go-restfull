@@ -16,4 +16,3 @@ type AccessClaims struct {
 	ImpersonatorID      *uint  `json:"impersonator_id,omitempty"`
 	ImpersonationReason string `json:"impersonation_reason,omitempty"`
 }
-

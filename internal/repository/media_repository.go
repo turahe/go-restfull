@@ -62,6 +62,9 @@ func (r *MediaRepository) List(ctx context.Context, userID uint, req request.Med
 		// Treat `name` as a fuzzy match on the original file name.
 		countQ = countQ.Where("original_name LIKE ?", "%"+req.Name+"%")
 	}
+	if s := strings.TrimSpace(req.Search); s != "" {
+		countQ = countQ.Where("original_name LIKE ?", "%"+s+"%")
+	}
 
 	var totalRows int64
 	if err := countQ.Count(&totalRows).Error; err != nil {
@@ -72,6 +75,9 @@ func (r *MediaRepository) List(ctx context.Context, userID uint, req request.Med
 	dataQ := r.db.WithContext(ctx).Model(&model.Media{}).Where("user_id = ?", userID)
 	if req.Name != "" {
 		dataQ = dataQ.Where("original_name LIKE ?", "%"+req.Name+"%")
+	}
+	if s := strings.TrimSpace(req.Search); s != "" {
+		dataQ = dataQ.Where("original_name LIKE ?", "%"+s+"%")
 	}
 
 	var rows []model.Media
@@ -106,7 +112,9 @@ func (r *MediaRepository) List(ctx context.Context, userID uint, req request.Med
 
 // ListByUserID keeps older callers/tests working. It returns only items (no pagination metadata).
 func (r *MediaRepository) ListByUserID(ctx context.Context, userID uint, limit int) ([]model.Media, error) {
-	page, err := r.List(ctx, userID, request.MediaListRequest{Limit: limit, Page: 1})
+	page, err := r.List(ctx, userID, request.MediaListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: limit},
+	})
 	if err != nil {
 		return nil, err
 	}

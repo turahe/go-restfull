@@ -38,16 +38,16 @@ func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 	assert.NoError(t, db.WithContext(ctx).Create(cmt).Error)
 
 	m := &model.Media{
-		UserID:        u.ID,
-		MediaType:     "image",
-		OriginalName:  "a.png",
-		MimeType:      "image/png",
-		Size:          10,
-		StoragePath:   "x",
-		CreatedBy:     u.ID,
-		UpdatedBy:     u.ID,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		UserID:       u.ID,
+		MediaType:    "image",
+		OriginalName: "a.png",
+		MimeType:     "image/png",
+		Size:         10,
+		StoragePath:  "x",
+		CreatedBy:    u.ID,
+		UpdatedBy:    u.ID,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	assert.NoError(t, repo.Create(ctx, m))
 	assert.NotZero(t, m.ID)
@@ -72,4 +72,3 @@ func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 
 	assert.NoError(t, repo.SoftDeleteByID(ctx, m.ID, u.ID, u.ID))
 }
-

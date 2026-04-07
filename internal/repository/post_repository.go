@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"math"
+	"strings"
 
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
@@ -38,6 +39,27 @@ func (r *PostRepository) Update(ctx context.Context, p *model.Post) error {
 	return nil
 }
 
+func (r *PostRepository) SavePostSEO(ctx context.Context, seo *model.PostSEO) error {
+	if seo == nil {
+		return nil
+	}
+	err := r.db.WithContext(ctx).Save(seo).Error
+	if err != nil {
+		r.log.Error("failed to save post seo", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (r *PostRepository) DeletePostSEO(ctx context.Context, postID uint) error {
+	err := r.db.WithContext(ctx).Delete(&model.PostSEO{}, postID).Error
+	if err != nil {
+		r.log.Error("failed to delete post seo", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 func (r *PostRepository) DeleteByID(ctx context.Context, id uint) error {
 	err := r.db.WithContext(ctx).Delete(&model.Post{}, id).Error
 	if err != nil {
@@ -64,7 +86,7 @@ func (r *PostRepository) SoftDeleteByID(ctx context.Context, id uint, deletedBy 
 
 func (r *PostRepository) FindByID(ctx context.Context, id uint) (*model.Post, error) {
 	var p model.Post
-	err := r.db.WithContext(ctx).First(&p, id).Error
+	err := r.db.WithContext(ctx).Preload("PostSEO").First(&p, id).Error
 	if err != nil {
 		r.log.Error("failed to find post by id", zap.Error(err))
 		return nil, err
@@ -74,7 +96,7 @@ func (r *PostRepository) FindByID(ctx context.Context, id uint) (*model.Post, er
 
 func (r *PostRepository) FindBySlug(ctx context.Context, slug string) (*model.Post, error) {
 	var p model.Post
-	err := r.db.WithContext(ctx).Where("slug = ?", slug).First(&p).Error
+	err := r.db.WithContext(ctx).Preload("PostSEO").Where("slug = ?", slug).First(&p).Error
 	if err != nil {
 		r.log.Error("failed to find post by slug", zap.Error(err))
 		return nil, err
@@ -85,6 +107,7 @@ func (r *PostRepository) FindBySlug(ctx context.Context, slug string) (*model.Po
 func (r *PostRepository) FindBySlugWithCategory(ctx context.Context, slug string) (*model.Post, error) {
 	var p model.Post
 	err := r.db.WithContext(ctx).
+		Preload("PostSEO").
 		Preload("Category").
 		Preload("Tags").
 		Preload("Media").
@@ -158,11 +181,18 @@ func (r *PostRepository) ListCursor(ctx context.Context, req request.PostListReq
 		if req.Title != "" {
 			db = db.Where("title LIKE ?", "%"+req.Title+"%")
 		}
-		if req.Content != "" {
-			db = db.Where("content LIKE ?", "%"+req.Content+"%")
+		if s := strings.TrimSpace(req.Search); s != "" {
+			pat := "%" + s + "%"
+			db = db.Where("(title LIKE ? OR content LIKE ?)", pat, pat)
 		}
 		if req.CategoryID != nil && *req.CategoryID > 0 {
 			db = db.Where("category_id = ?", *req.CategoryID)
+		}
+		if req.Layout != "" {
+			db = db.Where("layout = ?", req.Layout)
+		}
+		if req.Status != "" {
+			db = db.Where("status = ?", req.Status)
 		}
 		return db
 	}
@@ -185,6 +215,7 @@ func (r *PostRepository) ListCursor(ctx context.Context, req request.PostListReq
 	dataQ := applyFilters(
 		r.db.WithContext(ctx).
 			Model(&model.Post{}).
+			Preload("PostSEO").
 			Preload("Media").
 			Preload("Tags").
 			Preload("Category").

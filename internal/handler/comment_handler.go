@@ -84,7 +84,7 @@ func (h *CommentHandler) Create(c *gin.Context) {
 // @Produce      json
 // @Param        id     path      int  true   "Post ID"
 // @Param        limit  query     int  false  "Max comments (max 200)"
-// @Success      200    {object}  response.OKPaginated
+// @Success      200    {object}  response.Envelope
 // @Failure      400    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/posts/{id}/comments [get]

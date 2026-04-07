@@ -64,4 +64,3 @@ func TestTwoFactorRepository_ChallengeLifecycle(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
-

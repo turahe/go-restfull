@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/handler/request"
+	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/internal/service"
@@ -115,4 +115,3 @@ func TestCategoryHandler_Create_Unauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	svc.AssertExpectations(t)
 }
-

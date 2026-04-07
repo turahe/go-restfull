@@ -30,12 +30,15 @@ func BenchmarkUserService_List(b *testing.B) {
 	for i := range users {
 		users[i] = model.User{ID: uint(i + 1), Email: "a@b.com", Name: "A"}
 	}
-	repo.On("List", mock.Anything, request.UserListRequest{Limit: 20}).Return(repository.CursorPage{
+	listReq := request.UserListRequest{
+		PageRequest: request.PageRequest{Limit: 20},
+	}
+	repo.On("List", mock.Anything, listReq).Return(repository.CursorPage{
 		Items: users,
 	}, nil)
 	svc := NewUserService(repo, nil, zap.NewNop())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = svc.List(ctx, request.UserListRequest{Limit: 20})
+		_, _ = svc.List(ctx, listReq)
 	}
 }

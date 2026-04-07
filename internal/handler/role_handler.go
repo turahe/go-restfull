@@ -27,10 +27,10 @@ func NewRoleHandler(roles *service.RoleService, log *zap.Logger) *RoleHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.OKPaginated
-// @Failure      401    {object}  response.Unauthorized
-// @Failure      403    {object}  response.Forbidden
-// @Failure      500    {object}  response.InternalServerError
+// @Success      200    {object}  response.Envelope
+// @Failure      401    {object}  response.Envelope
+// @Failure      403    {object}  response.Envelope
+// @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/roles [get]
 func (h *RoleHandler) List(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -77,11 +77,11 @@ func (h *RoleHandler) List(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateRoleRequest  true  "Create role payload"
-// @Success      201   {object}  response.Created
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      403   {object}  response.Forbidden
-// @Failure      500   {object}  response.InternalServerError
+// @Success      201   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      403   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/roles [post]
 func (h *RoleHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -116,12 +116,12 @@ func (h *RoleHandler) Create(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Role ID"
-// @Success      200 {object}  response.OK
-// @Failure      400 {object}  response.BadRequest
-// @Failure      401 {object}  response.Unauthorized
-// @Failure      403 {object}  response.Forbidden
-// @Failure      404 {object}  response.NotFound
-// @Failure      500 {object}  response.InternalServerError
+// @Success      200 {object}  response.Envelope
+// @Failure      400 {object}  response.Envelope
+// @Failure      401 {object}  response.Envelope
+// @Failure      403 {object}  response.Envelope
+// @Failure      404 {object}  response.Envelope
+// @Failure      500 {object}  response.Envelope
 // @Router       /api/v1/roles/{id} [delete]
 func (h *RoleHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

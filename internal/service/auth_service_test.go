@@ -14,10 +14,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"go.uber.org/zap"
 )
 
 type mockAuthUserRepo struct{ mock.Mock }
@@ -345,4 +345,3 @@ func (a *authServiceUserRepoAdapter) UpdatePassword(ctx context.Context, userID 
 func (a *authServiceUserRepoAdapter) UpdateEmail(ctx context.Context, userID uint, newEmail string) error {
 	return a.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("email", newEmail).Error
 }
-

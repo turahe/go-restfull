@@ -32,4 +32,3 @@ type ChangeEmailRequest struct {
 	CurrentPassword string `json:"currentPassword" binding:"required,min=8,max=72"`
 	NewEmail        string `json:"newEmail" binding:"required,email,max=190"`
 }
-

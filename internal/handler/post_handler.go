@@ -39,9 +39,9 @@ func NewPostHandler(posts PostService, log *zap.Logger) *PostHandler {
 // @Param        limit   query     int     false  "Page size (max 50)"  minimum(1)  maximum(50)
 // @Param        cursor  query     string  false  "Cursor (post id)"
 // @Param        dir     query     string  false  "Direction: next|prev"  Enums(next,prev)
-// @Success      200     {object}  response.OKPaginated
-// @Failure      400     {object}  response.BadRequest
-// @Failure      500     {object}  response.InternalServerError
+// @Success      200     {object}  response.Envelope
+// @Failure      400     {object}  response.Envelope
+// @Failure      500     {object}  response.Envelope
 // @Router       /api/v1/posts [get]
 func (h *PostHandler) List(c *gin.Context) {
 	var req request.PostListRequest
@@ -76,9 +76,9 @@ func (h *PostHandler) List(c *gin.Context) {
 // @Tags         Posts
 // @Produce      json
 // @Param        slug  path      string  true  "Post slug"
-// @Success      200   {object}  response.OK
-// @Failure      400   {object}  response.BadRequest
-// @Failure      404   {object}  response.NotFound
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      404   {object}  response.Envelope
 // @Router       /api/v1/posts/slug/{slug} [get]
 func (h *PostHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
@@ -101,9 +101,9 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreatePostRequest  true  "Create post payload"
-// @Success      201   {object}  response.Created
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
+// @Success      201   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
 // @Router       /api/v1/posts [post]
 func (h *PostHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

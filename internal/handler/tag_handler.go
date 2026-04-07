@@ -26,7 +26,7 @@ func NewTagHandler(tags *service.TagService, log *zap.Logger) *TagHandler {
 // @Tags         Tags
 // @Produce      json
 // @Param        limit  query     int  false  "Max items (max 500)"
-// @Success      200    {object}  response.OKPaginated
+// @Success      200    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/tags [get]
 func (h *TagHandler) List(c *gin.Context) {
@@ -65,9 +65,9 @@ func (h *TagHandler) List(c *gin.Context) {
 // @Tags         Tags
 // @Produce      json
 // @Param        slug  path      string  true  "Tag slug"
-// @Success      200   {object}  response.OK
-// @Failure      404   {object}  response.NotFound
-// @Failure      400   {object}  response.BadRequest
+// @Success      200   {object}  response.Envelope
+// @Failure      404   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
 // @Router       /api/v1/tags/{slug} [get]
 func (h *TagHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
@@ -91,10 +91,10 @@ func (h *TagHandler) GetBySlug(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateTagRequest  true  "Create tag payload"
-// @Success      201   {object}  response.Created
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      500   {object}  response.InternalServerError
+// @Success      201   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/tags [post]
 func (h *TagHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -126,11 +126,11 @@ func (h *TagHandler) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id    path      int                       true  "Tag ID"
 // @Param        body  body      request.UpdateTagRequest   true  "Update tag payload"
-// @Success      200   {object}  response.OK
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      404   {object}  response.NotFound
-// @Failure      500   {object}  response.InternalServerError
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      404   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/tags/{id} [put]
 func (h *TagHandler) Update(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -170,11 +170,11 @@ func (h *TagHandler) Update(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Tag ID"
-// @Success      200 {object}  response.OK
-// @Failure      400 {object}  response.BadRequest
-// @Failure      401 {object}  response.Unauthorized
-// @Failure      404 {object}  response.NotFound
-// @Failure      500 {object}  response.InternalServerError
+// @Success      200 {object}  response.Envelope
+// @Failure      400 {object}  response.Envelope
+// @Failure      401 {object}  response.Envelope
+// @Failure      404 {object}  response.Envelope
+// @Failure      500 {object}  response.Envelope
 // @Router       /api/v1/tags/{id} [delete]
 func (h *TagHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

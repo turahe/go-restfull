@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type mockUserRepo struct {
@@ -111,12 +111,15 @@ func TestUserService_List(t *testing.T) {
 
 	ctx := context.Background()
 	repo := &mockUserRepo{}
-	repo.On("List", mock.Anything, request.UserListRequest{Limit: 10}).Return(repository.CursorPage{
+	listReq := request.UserListRequest{
+		PageRequest: request.PageRequest{Limit: 10},
+	}
+	repo.On("List", mock.Anything, listReq).Return(repository.CursorPage{
 		Items: []model.User{{ID: 1}},
 	}, nil).Once()
 
 	svc := NewUserService(repo, nil, zap.NewNop())
-	page, err := svc.List(ctx, request.UserListRequest{Limit: 10})
+	page, err := svc.List(ctx, listReq)
 
 	assert.NoError(t, err)
 	items, ok := page.Items.([]model.User)
@@ -125,4 +128,3 @@ func TestUserService_List(t *testing.T) {
 	assert.Equal(t, uint(1), items[0].ID)
 	repo.AssertExpectations(t)
 }
-

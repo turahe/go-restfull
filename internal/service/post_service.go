@@ -90,9 +90,24 @@ func (s *PostService) Create(ctx context.Context, userID uint, req request.Creat
 		CreatedBy:  userID,
 		UpdatedBy:  userID,
 	}
+	if req.Layout != "" {
+		p.Layout = model.PostLayout(req.Layout)
+	}
+	if req.Status != "" {
+		p.Status = model.PostStatus(req.Status)
+	}
 	if err := s.posts.Create(ctx, p); err != nil {
 		s.log.Error("failed to create post", zap.Error(err))
 		return nil, err
+	}
+
+	if seo := postSEOFromCreateRequest(req); seo != nil {
+		seo.PostID = p.ID
+		if err := s.posts.SavePostSEO(ctx, seo); err != nil {
+			s.log.Error("failed to save post seo", zap.Error(err))
+			return nil, err
+		}
+		p.PostSEO = seo
 	}
 
 	if len(req.TagIDs) > 0 && s.tags != nil {
@@ -150,11 +165,64 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, req
 		}
 		p.CategoryID = *req.CategoryID
 	}
+	if req.Layout != "" {
+		p.Layout = model.PostLayout(req.Layout)
+	}
+	if req.Status != "" {
+		p.Status = model.PostStatus(req.Status)
+	}
+	seoTouched := false
+	if req.Excerpt != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.Excerpt = strings.TrimSpace(*req.Excerpt)
+	}
+	if req.MetaTitle != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.MetaTitle = strings.TrimSpace(*req.MetaTitle)
+	}
+	if req.MetaDescription != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.MetaDescription = strings.TrimSpace(*req.MetaDescription)
+	}
+	if req.CanonicalURL != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.CanonicalURL = strings.TrimSpace(*req.CanonicalURL)
+	}
+	if req.OgImageURL != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.OgImageURL = strings.TrimSpace(*req.OgImageURL)
+	}
+	if req.RobotsMeta != nil {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.RobotsMeta = strings.TrimSpace(*req.RobotsMeta)
+	}
 	p.UpdatedBy = actorUserID
 
 	if err := s.posts.Update(ctx, p); err != nil {
 		s.log.Error("failed to update post", zap.Error(err))
 		return nil, err
+	}
+
+	if seoTouched {
+		if postSEOEmpty(p.PostSEO) {
+			if err := s.posts.DeletePostSEO(ctx, p.ID); err != nil {
+				s.log.Error("failed to delete post seo", zap.Error(err))
+				return nil, err
+			}
+			p.PostSEO = nil
+		} else {
+			p.PostSEO.PostID = p.ID
+			if err := s.posts.SavePostSEO(ctx, p.PostSEO); err != nil {
+				s.log.Error("failed to save post seo", zap.Error(err))
+				return nil, err
+			}
+		}
 	}
 
 	// If tagIds is present in JSON, gin will bind it as either [] (empty) or [..].
@@ -228,4 +296,38 @@ func slugify(s string) string {
 		s = strings.ReplaceAll(s, "--", "-")
 	}
 	return s
+}
+
+func postSEOFromCreateRequest(req request.CreatePostRequest) *model.PostSEO {
+	seo := &model.PostSEO{
+		Excerpt:         strings.TrimSpace(req.Excerpt),
+		MetaTitle:       strings.TrimSpace(req.MetaTitle),
+		MetaDescription: strings.TrimSpace(req.MetaDescription),
+		CanonicalURL:    strings.TrimSpace(req.CanonicalURL),
+		OgImageURL:      strings.TrimSpace(req.OgImageURL),
+		RobotsMeta:      strings.TrimSpace(req.RobotsMeta),
+	}
+	if postSEOEmpty(seo) {
+		return nil
+	}
+	return seo
+}
+
+func ensurePostSEO(p *model.Post) {
+	if p.PostSEO == nil {
+		p.PostSEO = &model.PostSEO{}
+	}
+	p.PostSEO.PostID = p.ID
+}
+
+func postSEOEmpty(seo *model.PostSEO) bool {
+	if seo == nil {
+		return true
+	}
+	return strings.TrimSpace(seo.Excerpt) == "" &&
+		strings.TrimSpace(seo.MetaTitle) == "" &&
+		strings.TrimSpace(seo.MetaDescription) == "" &&
+		strings.TrimSpace(seo.CanonicalURL) == "" &&
+		strings.TrimSpace(seo.OgImageURL) == "" &&
+		strings.TrimSpace(seo.RobotsMeta) == ""
 }

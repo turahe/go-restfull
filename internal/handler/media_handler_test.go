@@ -12,8 +12,8 @@ import (
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
-	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -116,4 +116,3 @@ func TestMediaHandler_Upload_MissingFile(t *testing.T) {
 	assert.Equal(t, "invalid request", env.Message)
 	svc.AssertExpectations(t)
 }
-

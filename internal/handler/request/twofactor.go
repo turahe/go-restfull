@@ -13,4 +13,3 @@ type TwoFAVerifyRequest struct {
 	Code        string `json:"code" binding:"required,len=6"`
 	DeviceID    string `json:"deviceId" binding:"required,min=4,max=64"`
 }
-

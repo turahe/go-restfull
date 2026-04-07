@@ -1665,6 +1665,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/settings": {
+            "get": {
+                "description": "Returns public DB-backed application settings (rows where ` + "`" + `is_public=true` + "`" + `).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Public application settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tags": {
             "get": {
                 "produces": [
@@ -2150,12 +2170,54 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "canonicalUrl": {
+                    "type": "string",
+                    "maxLength": 512
+                },
                 "categoryId": {
                     "type": "integer"
                 },
                 "content": {
                     "type": "string",
                     "minLength": 1
+                },
+                "excerpt": {
+                    "description": "SEO (optional)",
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "layout": {
+                    "type": "string",
+                    "enum": [
+                        "simple",
+                        "author",
+                        "book",
+                        "list"
+                    ]
+                },
+                "metaDescription": {
+                    "type": "string",
+                    "maxLength": 320
+                },
+                "metaTitle": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "ogImageUrl": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "robotsMeta": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ]
                 },
                 "tagIds": {
                     "type": "array",
@@ -2320,6 +2382,9 @@ const docTemplate = `{
         },
         "request.UpdateCategoryRequest": {
             "type": "object",
+            "required": [
+                "name"
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -2331,12 +2396,54 @@ const docTemplate = `{
         "request.UpdatePostRequest": {
             "type": "object",
             "properties": {
+                "canonicalUrl": {
+                    "type": "string",
+                    "maxLength": 512
+                },
                 "categoryId": {
                     "type": "integer"
                 },
                 "content": {
                     "type": "string",
                     "minLength": 1
+                },
+                "excerpt": {
+                    "description": "SEO: use pointers so JSON null/absence can mean \"no change\"; present string (including \"\") updates/clears.",
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "layout": {
+                    "type": "string",
+                    "enum": [
+                        "simple",
+                        "author",
+                        "book",
+                        "list"
+                    ]
+                },
+                "metaDescription": {
+                    "type": "string",
+                    "maxLength": 320
+                },
+                "metaTitle": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "ogImageUrl": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "robotsMeta": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ]
                 },
                 "tagIds": {
                     "type": "array",
@@ -2372,8 +2479,15 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
+                "next": {
+                    "type": "boolean"
+                },
                 "nextCursor": {
+                    "description": "Cursor-specific fields are optional and used by some pagination styles.",
                     "type": "string"
+                },
+                "prev": {
+                    "type": "boolean"
                 },
                 "prevCursor": {
                     "type": "string"

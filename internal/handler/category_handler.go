@@ -37,7 +37,7 @@ func NewCategoryHandler(categories CategoryService, log *zap.Logger) *CategoryHa
 // @Tags         Categories
 // @Produce      json
 // @Param        limit  query     int  false  "Max items (max 200)"
-// @Success      200    {object}  response.OKPaginated
+// @Success      200    {object}  response.Envelope
 // @Failure      500    {object}  response.Envelope
 // @Router       /api/v1/categories [get]
 func (h *CategoryHandler) List(c *gin.Context) {
@@ -76,9 +76,9 @@ func (h *CategoryHandler) List(c *gin.Context) {
 // @Tags         Categories
 // @Produce      json
 // @Param        slug  path      string  true  "Category slug"
-// @Success      200   {object}  response.OK
-// @Failure      400   {object}  response.BadRequest
-// @Failure      404   {object}  response.NotFound
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      404   {object}  response.Envelope
 // @Router       /api/v1/categories/{slug} [get]
 func (h *CategoryHandler) GetBySlug(c *gin.Context) {
 	slug := c.Param("slug")
@@ -102,10 +102,10 @@ func (h *CategoryHandler) GetBySlug(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body      request.CreateCategoryRequest  true  "Create category payload"
-// @Success      201   {object}  response.Created
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      500   {object}  response.InternalServerError
+// @Success      201   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/categories [post]
 func (h *CategoryHandler) Create(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -137,11 +137,11 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id    path      int                         true  "Category ID"
 // @Param        body  body      request.UpdateCategoryRequest true  "Update category payload"
-// @Success      200   {object}  response.OK
-// @Failure      400   {object}  response.BadRequest
-// @Failure      401   {object}  response.Unauthorized
-// @Failure      404   {object}  response.NotFound
-// @Failure      500   {object}  response.InternalServerError
+// @Success      200   {object}  response.Envelope
+// @Failure      400   {object}  response.Envelope
+// @Failure      401   {object}  response.Envelope
+// @Failure      404   {object}  response.Envelope
+// @Failure      500   {object}  response.Envelope
 // @Router       /api/v1/categories/{id} [put]
 func (h *CategoryHandler) Update(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)
@@ -181,11 +181,11 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path      int  true  "Category ID"
-// @Success      200 {object}  response.OK
-// @Failure      400 {object}  response.BadRequest
-// @Failure      401 {object}  response.Unauthorized
-// @Failure      404 {object}  response.NotFound
-// @Failure      500 {object}  response.InternalServerError
+// @Success      200 {object}  response.Envelope
+// @Failure      400 {object}  response.Envelope
+// @Failure      401 {object}  response.Envelope
+// @Failure      404 {object}  response.Envelope
+// @Failure      500 {object}  response.Envelope
 // @Router       /api/v1/categories/{id} [delete]
 func (h *CategoryHandler) Delete(c *gin.Context) {
 	auth, ok := middleware.GetAuth(c)

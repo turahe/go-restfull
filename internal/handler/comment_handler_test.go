@@ -11,8 +11,8 @@ import (
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
-	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/internal/repository"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -105,4 +105,3 @@ func TestCommentHandler_Create_PostMissing(t *testing.T) {
 	assert.Equal(t, "not found", env.Message)
 	svc.AssertExpectations(t)
 }
-

@@ -26,4 +26,3 @@ func TestAuditRepository_CreateImpersonation(t *testing.T) {
 	assert.NoError(t, repo.CreateImpersonation(ctx, a))
 	assert.NotZero(t, a.ID)
 }
-

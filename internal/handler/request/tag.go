@@ -9,7 +9,7 @@ type UpdateTagRequest struct {
 }
 
 type TagListRequest struct {
-	Limit int    `json:"limit" binding:"omitempty,min=1,max=200"`
-	Name  string `json:"name" binding:"omitempty,min=2,max=100"`
-	Page  int    `json:"page" binding:"omitempty,min=1"`
+	PageRequest
+	SearchRequest
+	Name string `form:"name" json:"name" binding:"omitempty,min=2,max=100"`
 }

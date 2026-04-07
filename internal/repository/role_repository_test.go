@@ -26,7 +26,9 @@ func TestRoleRepository_CRUD_FindByName_List(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r.ID, got.ID)
 
-	page, err := repo.List(ctx, request.RoleListRequest{Limit: 10, Page: 1})
+	page, err := repo.List(ctx, request.RoleListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: 10},
+	})
 	assert.NoError(t, err)
 	items, ok := page.Items.([]model.Role)
 	assert.True(t, ok)
@@ -41,4 +43,3 @@ func TestRoleRepository_CRUD_FindByName_List(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
-

@@ -10,4 +10,3 @@ type AddPermissionRequest struct {
 	Obj  string `json:"obj" binding:"required,min=1,max=200"`
 	Act  string `json:"act" binding:"required,min=1,max=50"`
 }
-
