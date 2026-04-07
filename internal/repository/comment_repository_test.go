@@ -14,12 +14,12 @@ import (
 func TestCommentRepository_Create_ListByPostID_PostExists(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	db := openTestDB(t, &model.User{}, &model.Category{}, &model.Post{}, &model.Comment{}, &model.Tag{}, &model.Media{})
+	db := openTestDB(t, &model.User{}, &model.CategoryModel{}, &model.Post{}, &model.Comment{}, &model.Tag{}, &model.Media{})
 	repo := NewCommentRepository(db, zap.NewNop())
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)
-	cat := &model.Category{Name: "Tech", Slug: "tech", CreatedBy: u.ID, UpdatedBy: u.ID}
+	cat := &model.CategoryModel{Name: "Tech", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: u.ID, UpdatedBy: u.ID}
 	assert.NoError(t, db.WithContext(ctx).Create(cat).Error)
 	p := &model.Post{
 		Title:      "T",
@@ -37,14 +37,8 @@ func TestCommentRepository_Create_ListByPostID_PostExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
-	cmt := &model.Comment{
-		PostID:    p.ID,
-		UserID:    u.ID,
-		Content:   "hi",
-		CreatedBy: u.ID,
-		UpdatedBy: u.ID,
-	}
-	assert.NoError(t, repo.Create(ctx, cmt))
+	cmt, err := repo.CreateRoot(ctx, p.ID, u.ID, "hi", u.ID)
+	assert.NoError(t, err)
 	assert.NotZero(t, cmt.ID)
 
 	rows, err := repo.ListByPostID(ctx, p.ID, 10)

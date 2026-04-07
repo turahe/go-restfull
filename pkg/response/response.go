@@ -64,6 +64,10 @@ func NotFound(c Context, code int, message string, err any) {
 	JSON(c, http.StatusNotFound, code, message, nil, err)
 }
 
+func Conflict(c Context, code int, message string, err any) {
+	JSON(c, http.StatusConflict, code, message, nil, err)
+}
+
 func InternalServerError(c Context, code int, message string, err any) {
 	JSON(c, http.StatusInternalServerError, code, message, nil, err)
 }

@@ -8,16 +8,14 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o /out/api ./cmd
 
-FROM alpine:3.23
-RUN apk add --no-cache ca-certificates && update-ca-certificates
-RUN adduser -D -g '' appuser
+FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 
 COPY --from=build /out/api /app/api
-COPY --chown=appuser:appuser configs /app/configs
+COPY --chown=nonroot:nonroot configs /app/configs
 
 EXPOSE 8080
-USER appuser
+USER nonroot:nonroot
 
 ENTRYPOINT ["/app/api"]
 CMD ["serve"]

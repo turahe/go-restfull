@@ -170,6 +170,36 @@ func (s *RBACService) AssignRole(ctx context.Context, userID uint, role string) 
 	return added, nil
 }
 
+// AssignRoleByID links the user to an existing row in `roles` via `user_roles` (uses role id, not name).
+func (s *RBACService) AssignRoleByID(ctx context.Context, userID uint, roleID uint) (bool, error) {
+	if userID == 0 || roleID == 0 {
+		return false, errors.New("user id and role id are required")
+	}
+	if s.db == nil {
+		return false, errors.New("assign role by id requires database")
+	}
+	var r model.Role
+	if err := s.db.WithContext(ctx).First(&r, roleID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, ErrRoleNotFound
+		}
+		s.log.Error("failed to load role by id", zap.Error(err))
+		return false, err
+	}
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		ur := model.UserRole{UserID: userID, RoleID: r.ID}
+		if err := tx.Where("user_id = ? AND role_id = ?", userID, r.ID).FirstOrCreate(&ur).Error; err != nil {
+			s.log.Error("failed to create user role", zap.Error(err))
+			return err
+		}
+		return nil
+	}); err != nil {
+		s.log.Error("failed to assign role by id", zap.Error(err))
+		return false, err
+	}
+	return true, nil
+}
+
 func (s *RBACService) AddPermissionToRole(ctx context.Context, role, obj, act string) (bool, error) {
 	role = strings.TrimSpace(role)
 	obj = strings.TrimSpace(obj)

@@ -15,12 +15,12 @@ import (
 func TestPostRepository_CRUD_SlugExists_ListCursor(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	db := openTestDB(t, &model.User{}, &model.Category{}, &model.Post{}, &model.PostSEO{}, &model.Media{})
+	db := openTestDB(t, &model.User{}, &model.CategoryModel{}, &model.Post{}, &model.PostSEO{}, &model.Media{})
 	repo := NewPostRepository(db, zap.NewNop())
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)
-	cat := &model.Category{Name: "Tech", Slug: "tech", CreatedBy: u.ID, UpdatedBy: u.ID}
+	cat := &model.CategoryModel{Name: "Tech", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: u.ID, UpdatedBy: u.ID}
 	assert.NoError(t, db.WithContext(ctx).Create(cat).Error)
 
 	p := &model.Post{

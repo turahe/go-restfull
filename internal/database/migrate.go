@@ -19,7 +19,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.ImpersonationAudit{},
 		&model.UserTwoFactor{},
 		&model.TwoFactorChallenge{},
-		&model.Category{},
+		&model.CategoryModel{},
 		&model.Tag{},
 		&model.Post{},
 		&model.PostSEO{},

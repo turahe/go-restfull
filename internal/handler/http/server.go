@@ -15,6 +15,7 @@ import (
 	"github.com/turahe/go-restfull/internal/rbac"
 	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/usecase"
 	"github.com/turahe/go-restfull/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
@@ -83,7 +84,7 @@ func Serve(ctx context.Context) error {
 
 	// Services
 	twoFASvc := service.NewTwoFactorService(twoFARepo, []byte(cfg.TwoFactorEncKey), cfg.TwoFactorIssuer, log)
-	mediaSvc, err := service.NewMediaService(mediaRepo, cfg, log)
+	mediaUC, err := usecase.NewMediaUsecase(mediaRepo, cfg, log)
 	if err != nil {
 		return err
 	}
@@ -93,19 +94,19 @@ func Serve(ctx context.Context) error {
 		rbacSvc,
 		jwtm,
 		twoFASvc,
-		mediaSvc,
+		mediaUC,
 		cfg.AccessTokenTTLMinutes,
 		cfg.RefreshTokenTTLDays,
 		cfg.ImpersonationTTLMinutes,
 		cfg.RefreshTokenPepper,
 		log,
 	)
-	userSvc := service.NewUserService(userRepo, mediaSvc, log)
+	userSvc := service.NewUserService(userRepo, roleRepo, rbacSvc, mediaUC, log)
 	roleSvc := service.NewRoleService(roleRepo, log)
-	categorySvc := service.NewCategoryService(categoryRepo, log)
+	categoryUC := usecase.NewCategoryUsecase(categoryRepo, log)
 	tagSvc := service.NewTagService(tagRepo, log)
 	postSvc := service.NewPostService(postRepo, categoryRepo, tagRepo, log)
-	commentSvc := service.NewCommentService(commentRepo, tagRepo, log)
+	commentUC := usecase.NewCommentUsecase(commentRepo, tagRepo, log)
 	settingsSvc := service.NewSettingsService(settingRepo)
 
 	// Handlers
@@ -113,11 +114,11 @@ func Serve(ctx context.Context) error {
 	authH := handler.NewAuthHandler(authSvc, log)
 	userH := handler.NewUserHandler(userSvc, log)
 	roleH := handler.NewRoleHandler(roleSvc, log)
-	categoryH := handler.NewCategoryHandler(categorySvc, log)
+	categoryH := handler.NewCategoryHandler(categoryUC, log)
 	tagH := handler.NewTagHandler(tagSvc, log)
 	postH := handler.NewPostHandler(postSvc, log)
-	commentH := handler.NewCommentHandler(commentSvc, log)
-	mediaH := handler.NewMediaHandler(mediaSvc, log)
+	commentH := handler.NewCommentHandler(commentUC, log)
+	mediaH := handler.NewMediaHandler(mediaUC, log)
 	rbacH := handler.NewRBACHandler(rbacSvc, log)
 	settingsH := handler.NewSettingsHandler(settingsSvc, log)
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/service/dto"
 	"github.com/turahe/go-restfull/internal/testutil"
@@ -148,7 +149,7 @@ func TestAuthService_Register(t *testing.T) {
 			u := args.Get(1).(*model.User)
 			u.ID = 99
 		}).Once()
-		rbac.On("AssignRole", mock.Anything, uint(99), "user").Return(true, nil).Once()
+		rbac.On("AssignRole", mock.Anything, uint(99), entities.RoleUser).Return(true, nil).Once()
 
 		s := NewAuthService(users, &mockAuthRepo{}, nil, rbac, &mockJWT{}, nil, nil, 10, 30, 5, "pepper", zap.NewNop())
 		u, err := s.Register(ctx, " Name ", "A@B.com", "password")

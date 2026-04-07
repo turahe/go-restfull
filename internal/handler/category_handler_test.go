@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
-	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/usecase"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -19,31 +18,47 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type mockCategoryService struct{ mock.Mock }
+type mockCategoryUsecase struct{ mock.Mock }
 
-func (m *mockCategoryService) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(repository.CursorPage), args.Error(1)
-}
-func (m *mockCategoryService) GetBySlug(ctx context.Context, slug string) (*model.Category, error) {
-	args := m.Called(ctx, slug)
-	c, _ := args.Get(0).(*model.Category)
+func (m *mockCategoryUsecase) CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error) {
+	args := m.Called(ctx, name, actorUserID)
+	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
 
-func (m *mockCategoryService) Create(ctx context.Context, actorUserID uint, req request.CreateCategoryRequest) (*model.Category, error) {
-	args := m.Called(ctx, actorUserID, req)
-	c, _ := args.Get(0).(*model.Category)
+func (m *mockCategoryUsecase) CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+	args := m.Called(ctx, parentID, name, actorUserID)
+	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
 
-func (m *mockCategoryService) Update(ctx context.Context, id uint, actorUserID uint, req request.UpdateCategoryRequest) (*model.Category, error) {
-	args := m.Called(ctx, id, actorUserID, req)
-	c, _ := args.Get(0).(*model.Category)
+func (m *mockCategoryUsecase) GetTree(ctx context.Context) ([]usecase.CategoryTreeNode, error) {
+	args := m.Called(ctx)
+	var v []usecase.CategoryTreeNode
+	if args.Get(0) != nil {
+		v = args.Get(0).([]usecase.CategoryTreeNode)
+	}
+	return v, args.Error(1)
+}
+
+func (m *mockCategoryUsecase) GetSubtree(ctx context.Context, categoryID uint) ([]usecase.CategoryTreeNode, error) {
+	args := m.Called(ctx, categoryID)
+	var v []usecase.CategoryTreeNode
+	if args.Get(0) != nil {
+		v = args.Get(0).([]usecase.CategoryTreeNode)
+	}
+	return v, args.Error(1)
+}
+
+func (m *mockCategoryUsecase) Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+	args := m.Called(ctx, id, name, actorUserID)
+	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
-func (m *mockCategoryService) Delete(ctx context.Context, id uint, actorUserID uint) error {
-	return m.Called(ctx, id, actorUserID).Error(0)
+
+func (m *mockCategoryUsecase) Delete(ctx context.Context, id uint, actorUserID uint) error {
+	args := m.Called(ctx, id, actorUserID)
+	return args.Error(0)
 }
 
 func decodeEnvCat(t *testing.T, rr *httptest.ResponseRecorder) response.Envelope {
@@ -62,56 +77,78 @@ func withAuthRole(role string) gin.HandlerFunc {
 	}
 }
 
-func TestCategoryHandler_List_InvalidLimit(t *testing.T) {
+func TestCategoryHandler_GetTree_OK(t *testing.T) {
 	t.Parallel()
 
-	svc := &mockCategoryService{}
-	h := NewCategoryHandler(svc, nil)
-	r := gin.New()
-	r.GET("/api/v1/categories", h.List)
+	uc := &mockCategoryUsecase{}
+	uc.On("GetTree", mock.Anything).Return([]usecase.CategoryTreeNode{
+		{ID: 1, Name: "Root", Children: []usecase.CategoryTreeNode{}},
+	}, nil).Once()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories?limit=bad", nil)
+	h := NewCategoryHandler(uc, nil)
+	r := gin.New()
+	r.GET("/api/v1/categories/tree", h.GetTree)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories/tree", nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	env := decodeEnvCat(t, rr)
-	assert.Equal(t, "invalid limit", env.Message)
-	svc.AssertExpectations(t)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	uc.AssertExpectations(t)
 }
 
-func TestCategoryHandler_GetBySlug_NotFound(t *testing.T) {
+func TestCategoryHandler_GetSubtree_NotFound(t *testing.T) {
 	t.Parallel()
 
-	svc := &mockCategoryService{}
-	svc.On("GetBySlug", mock.Anything, "tech").Return((*model.Category)(nil), service.ErrCategoryNotFound).Once()
+	uc := &mockCategoryUsecase{}
+	uc.On("GetSubtree", mock.Anything, uint(1)).Return(nil, usecase.ErrCategoryNotFound).Once()
 
-	h := NewCategoryHandler(svc, nil)
+	h := NewCategoryHandler(uc, nil)
 	r := gin.New()
-	r.GET("/api/v1/categories/:slug", h.GetBySlug)
+	r.GET("/api/v1/categories/:id/subtree", h.GetSubtree)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories/tech", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories/1/subtree", nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 	env := decodeEnvCat(t, rr)
 	assert.Equal(t, "not found", env.Message)
-	svc.AssertExpectations(t)
+	uc.AssertExpectations(t)
 }
 
-func TestCategoryHandler_Create_Unauthorized(t *testing.T) {
+func TestCategoryHandler_CreateRoot_Unauthorized(t *testing.T) {
 	t.Parallel()
 
-	svc := &mockCategoryService{}
-	h := NewCategoryHandler(svc, nil)
+	uc := &mockCategoryUsecase{}
+	h := NewCategoryHandler(uc, nil)
 	r := gin.New()
-	r.POST("/api/v1/categories", h.Create)
+	r.POST("/api/v1/categories/root", h.CreateRoot)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/categories", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/categories/root", nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	svc.AssertExpectations(t)
+	uc.AssertExpectations(t)
+}
+
+func TestCategoryHandler_CreateRoot_OK(t *testing.T) {
+	t.Parallel()
+
+	uc := &mockCategoryUsecase{}
+	uc.On("CreateRoot", mock.Anything, "Books", uint(1)).Return(&model.CategoryModel{ID: 1, Name: "Books", Lft: 1, Rgt: 2, Depth: 0}, nil).Once()
+
+	h := NewCategoryHandler(uc, nil)
+	r := gin.New()
+	r.POST("/api/v1/categories/root", withAuthRole("admin"), h.CreateRoot)
+
+	body := `{"name":"Books"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/categories/root", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+	uc.AssertExpectations(t)
 }

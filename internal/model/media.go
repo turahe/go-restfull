@@ -6,19 +6,25 @@ import (
 	"gorm.io/gorm"
 )
 
+// Media is user-scoped storage; folders use media_type "folder", files use image/file.
+// Nested set is scoped by user_id (same pattern as categories, per-user forest).
 type Media struct {
-	ID uint `json:"id" gorm:"primaryKey;autoIncrement"`
+	ID     uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID uint   `json:"userId" gorm:"not null;uniqueIndex:idx_media_user_parent_name"`
+	Name   string `json:"name" gorm:"type:varchar(255);not null;uniqueIndex:idx_media_user_parent_name"`
+	// ParentID nil for roots in this user's tree.
+	ParentID *uint `json:"parentId,omitempty" gorm:"column:parent_id;uniqueIndex:idx_media_user_parent_name"`
 
-	UserID uint `json:"userId" gorm:"not null;index"`
+	Lft   int `json:"lft" gorm:"column:lft;index;not null"`
+	Rgt   int `json:"rgt" gorm:"column:rgt;index;not null"`
+	Depth int `json:"depth" gorm:"column:depth;not null"`
 
-	MediaType    string `json:"mediaType" gorm:"type:varchar(20);not null"` // "image" or "file"
+	MediaType    string `json:"mediaType" gorm:"type:varchar(20);not null"` // "image", "file", or "folder"
 	OriginalName string `json:"originalName" gorm:"type:varchar(255);not null"`
 	MimeType     string `json:"mimeType" gorm:"type:varchar(100);not null"`
 	Size         int64  `json:"size" gorm:"not null"`
-	StoragePath  string `json:"storagePath" gorm:"type:varchar(512);not null;index"` // relative path under upload dir
+	StoragePath  string `json:"storagePath" gorm:"type:varchar(512);not null;index;default:''"`
 
-	// DownloadURL is returned to clients when using S3-compatible storage or GCS (signed URL).
-	// It's not persisted in the database.
 	DownloadURL string `json:"downloadUrl,omitempty" gorm:"-"`
 
 	CreatedBy uint           `json:"createdBy" gorm:"not null;index"`

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/rbac"
 
@@ -26,37 +27,37 @@ func SeedDefaultRBAC(ctx context.Context, db *gorm.DB, enf *rbac.Enforcer) error
 		return errors.New("enforcer is required")
 	}
 
-	roles := []string{"admin", "support", "user"}
+	roles := []string{entities.RoleAdmin, entities.RoleSupport, entities.RoleUser}
 	seeds := []PermissionSeed{
 		// Admin (full access)
-		{Role: "admin", Obj: "/api/v1/*", Act: ".*", Desc: "Full API access"},
+		{Role: entities.RoleAdmin, Obj: "/api/v1/*", Act: ".*", Desc: "Full API access"},
 
 		// Support (everything except RBAC admin endpoints)
-		{Role: "support", Obj: "/api/v1/auth/impersonate", Act: "POST", Desc: "Impersonate users"},
-		{Role: "support", Obj: "/api/v1/auth/password/change", Act: "POST", Desc: "Change password"},
-		{Role: "support", Obj: "/api/v1/auth/email/change", Act: "POST", Desc: "Change email"},
-		{Role: "support", Obj: "/api/v1/posts*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage posts"},
-		{Role: "support", Obj: "/api/v1/categories*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage categories"},
-		{Role: "support", Obj: "/api/v1/tags*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage tags"},
-		{Role: "support", Obj: "/api/v1/media*", Act: "(GET|POST|DELETE)", Desc: "Manage media"},
-		{Role: "support", Obj: "/api/v1/posts/*/comments", Act: "POST", Desc: "Create comments"},
-		{Role: "support", Obj: "/api/v1/posts/*/comments", Act: "GET", Desc: "List comments"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/auth/impersonate", Act: "POST", Desc: "Impersonate users"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/auth/password/change", Act: "POST", Desc: "Change password"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/auth/email/change", Act: "POST", Desc: "Change email"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/posts*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage posts"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/categories*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage categories"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/tags*", Act: "(GET|POST|PUT|DELETE)", Desc: "Manage tags"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/media*", Act: "(GET|POST|DELETE)", Desc: "Manage media"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/posts/*/comments", Act: "POST", Desc: "Create comments"},
+		{Role: entities.RoleSupport, Obj: "/api/v1/posts/*/comments", Act: "GET", Desc: "List comments"},
 
 		// User (basic CRUD; ownership checks are handled elsewhere)
-		{Role: "user", Obj: "/api/v1/posts", Act: "GET", Desc: "List posts"},
-		{Role: "user", Obj: "/api/v1/posts/slug/*", Act: "GET", Desc: "Get post by slug"},
-		{Role: "user", Obj: "/api/v1/categories", Act: "GET", Desc: "List categories"},
-		{Role: "user", Obj: "/api/v1/categories/*", Act: "GET", Desc: "Get category by slug"},
-		{Role: "user", Obj: "/api/v1/tags", Act: "GET", Desc: "List tags"},
-		{Role: "user", Obj: "/api/v1/tags/*", Act: "GET", Desc: "Get tag by slug"},
-		{Role: "user", Obj: "/api/v1/media*", Act: "(GET|POST|DELETE)", Desc: "Manage media"},
-		{Role: "user", Obj: "/api/v1/auth/password/change", Act: "POST", Desc: "Change password"},
-		{Role: "user", Obj: "/api/v1/auth/email/change", Act: "POST", Desc: "Change email"},
-		{Role: "user", Obj: "/api/v1/posts", Act: "POST", Desc: "Create post"},
-		{Role: "user", Obj: "/api/v1/posts/*", Act: "PUT", Desc: "Update post"},
-		{Role: "user", Obj: "/api/v1/posts/*", Act: "DELETE", Desc: "Delete post"},
-		{Role: "user", Obj: "/api/v1/posts/*/comments", Act: "POST", Desc: "Create comment"},
-		{Role: "user", Obj: "/api/v1/posts/*/comments", Act: "GET", Desc: "List comments"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts", Act: "GET", Desc: "List posts"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts/slug/*", Act: "GET", Desc: "Get post by slug"},
+		{Role: entities.RoleUser, Obj: "/api/v1/categories/tree", Act: "GET", Desc: "Get category tree"},
+		{Role: entities.RoleUser, Obj: "/api/v1/categories/*/subtree", Act: "GET", Desc: "Get category subtree"},
+		{Role: entities.RoleUser, Obj: "/api/v1/tags", Act: "GET", Desc: "List tags"},
+		{Role: entities.RoleUser, Obj: "/api/v1/tags/*", Act: "GET", Desc: "Get tag by slug"},
+		{Role: entities.RoleUser, Obj: "/api/v1/media*", Act: "(GET|POST|DELETE)", Desc: "Manage media"},
+		{Role: entities.RoleUser, Obj: "/api/v1/auth/password/change", Act: "POST", Desc: "Change password"},
+		{Role: entities.RoleUser, Obj: "/api/v1/auth/email/change", Act: "POST", Desc: "Change email"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts", Act: "POST", Desc: "Create post"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts/*", Act: "PUT", Desc: "Update post"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts/*", Act: "DELETE", Desc: "Delete post"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts/*/comments", Act: "POST", Desc: "Create comment"},
+		{Role: entities.RoleUser, Obj: "/api/v1/posts/*/comments", Act: "GET", Desc: "List comments"},
 	}
 
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -118,4 +119,3 @@ func SeedDefaultRBAC(ctx context.Context, db *gorm.DB, enf *rbac.Enforcer) error
 		return nil
 	})
 }
-

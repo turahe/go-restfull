@@ -7,8 +7,10 @@ import (
 )
 
 type Role struct {
-	ID   uint   `json:"id" gorm:"primaryKey;autoIncrement"`
-	Name string `json:"name" gorm:"type:varchar(50);not null;uniqueIndex"`
+	// ID is the primary key in `roles` (exposed as roleId on admin create-user API).
+	ID          uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name        string `json:"name" gorm:"type:varchar(50);not null;uniqueIndex"`
+	Description string `json:"description" gorm:"type:text"`
 
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`

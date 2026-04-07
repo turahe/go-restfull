@@ -176,11 +176,19 @@ func (s *PostService) Update(ctx context.Context, id uint, actorUserID uint, req
 		seoTouched = true
 		ensurePostSEO(p)
 		p.PostSEO.Excerpt = strings.TrimSpace(*req.Excerpt)
+	} else if p.PostSEO == nil || strings.TrimSpace(p.PostSEO.Excerpt) == "" {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.Excerpt = defaultExcerptFromContent(p.Content)
 	}
 	if req.MetaTitle != nil {
 		seoTouched = true
 		ensurePostSEO(p)
 		p.PostSEO.MetaTitle = strings.TrimSpace(*req.MetaTitle)
+	} else if p.PostSEO == nil || strings.TrimSpace(p.PostSEO.MetaTitle) == "" {
+		seoTouched = true
+		ensurePostSEO(p)
+		p.PostSEO.MetaTitle = strings.TrimSpace(p.Title)
 	}
 	if req.MetaDescription != nil {
 		seoTouched = true
@@ -299,13 +307,27 @@ func slugify(s string) string {
 }
 
 func postSEOFromCreateRequest(req request.CreatePostRequest) *model.PostSEO {
+	req.Excerpt = strings.TrimSpace(req.Excerpt)
+	req.MetaTitle = strings.TrimSpace(req.MetaTitle)
+	req.MetaDescription = strings.TrimSpace(req.MetaDescription)
+	req.CanonicalURL = strings.TrimSpace(req.CanonicalURL)
+	req.OgImageURL = strings.TrimSpace(req.OgImageURL)
+	req.RobotsMeta = strings.TrimSpace(req.RobotsMeta)
+
+	if req.Excerpt == "" {
+		req.Excerpt = defaultExcerptFromContent(req.Content)
+	}
+	if req.MetaDescription == "" {
+		req.MetaDescription = defaultMetaDescriptionFromContent(req.Content)
+	}
+
 	seo := &model.PostSEO{
-		Excerpt:         strings.TrimSpace(req.Excerpt),
-		MetaTitle:       strings.TrimSpace(req.MetaTitle),
-		MetaDescription: strings.TrimSpace(req.MetaDescription),
-		CanonicalURL:    strings.TrimSpace(req.CanonicalURL),
-		OgImageURL:      strings.TrimSpace(req.OgImageURL),
-		RobotsMeta:      strings.TrimSpace(req.RobotsMeta),
+		Excerpt:         req.Excerpt,
+		MetaTitle:       req.MetaTitle,
+		MetaDescription: req.MetaDescription,
+		CanonicalURL:    req.CanonicalURL,
+		OgImageURL:      req.OgImageURL,
+		RobotsMeta:      req.RobotsMeta,
 	}
 	if postSEOEmpty(seo) {
 		return nil
@@ -330,4 +352,22 @@ func postSEOEmpty(seo *model.PostSEO) bool {
 		strings.TrimSpace(seo.CanonicalURL) == "" &&
 		strings.TrimSpace(seo.OgImageURL) == "" &&
 		strings.TrimSpace(seo.RobotsMeta) == ""
+}
+
+func defaultExcerptFromContent(content string) string {
+	const maxExcerptChars = 2000
+	clean := strings.TrimSpace(content)
+	if len(clean) <= maxExcerptChars {
+		return clean
+	}
+	return clean[:maxExcerptChars]
+}
+
+func defaultMetaDescriptionFromContent(content string) string {
+	const maxMetaDescriptionChars = 320
+	clean := strings.TrimSpace(content)
+	if len(clean) <= maxMetaDescriptionChars {
+		return clean
+	}
+	return clean[:maxMetaDescriptionChars]
 }

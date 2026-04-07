@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/service/dto"
+	"github.com/turahe/go-restfull/internal/usecase"
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
@@ -74,7 +76,7 @@ type AuthService struct {
 	audit          AuthAudit
 	rbac           AuthRBAC
 	twoFA          AuthTwoFA
-	mediaSvc       *MediaService
+	mediaSvc       *usecase.MediaUsecase
 	accessTTL      time.Duration
 	refreshTTLDays int
 	impersonateTTL time.Duration
@@ -87,7 +89,7 @@ func NewAuthService(users AuthUserRepo,
 	rbacSvc AuthRBAC,
 	jwtm AuthJWT,
 	twoFA AuthTwoFA,
-	mediaSvc *MediaService,
+	mediaSvc *usecase.MediaUsecase,
 	accessTTLMinutes int,
 	refreshTTLDays int,
 	impersonationTTLMinutes int,
@@ -142,7 +144,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 
 	// Assign default RBAC role.
 	if s.rbac != nil {
-		if _, err := s.rbac.AssignRole(ctx, u.ID, "user"); err != nil {
+		if _, err := s.rbac.AssignRole(ctx, u.ID, entities.RoleUser); err != nil {
 			s.log.Error("failed to assign role", zap.Error(err))
 			return nil, err
 		}

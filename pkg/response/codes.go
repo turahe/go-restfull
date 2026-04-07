@@ -34,6 +34,7 @@ const (
 	CaseCodeInvalidFormat   = "13"
 	CaseCodeInvalidValue    = "14"
 	CaseCodeDuplicateEntry  = "15"
+	CaseCodeConflict        = "16" // e.g. delete blocked by foreign references
 
 	// Authentication errors
 	CaseCodeUnauthorized       = "21"

@@ -515,38 +515,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/categories": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Categories"
-                ],
-                "summary": "List categories",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Max items (max 200)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/response.Envelope"
-                        }
-                    }
-                }
-            },
+        "/api/v1/categories/root": {
             "post": {
                 "security": [
                     {
@@ -562,15 +531,15 @@ const docTemplate = `{
                 "tags": [
                     "Categories"
                 ],
-                "summary": "Create a category",
+                "summary": "Create root category",
                 "parameters": [
                     {
-                        "description": "Create category payload",
+                        "description": "Root category name",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.CreateCategoryRequest"
+                            "$ref": "#/definitions/request.CreateCategoryRootBody"
                         }
                     }
                 ],
@@ -602,6 +571,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/categories/tree": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get category tree",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/categories/{id}": {
             "put": {
                 "security": [
@@ -618,22 +612,22 @@ const docTemplate = `{
                 "tags": [
                     "Categories"
                 ],
-                "summary": "Update a category",
+                "summary": "Update category name",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Category ID",
+                        "description": "Category id",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update category payload",
+                        "description": "New name",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UpdateCategoryRequest"
+                            "$ref": "#/definitions/request.UpdateCategoryBody"
                         }
                     }
                 ],
@@ -676,17 +670,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Soft-deletes the category and all descendants (sets deleted_at / deleted_by) and rebalances nested-set indices on active rows. Blocked if any post references a category in this subtree.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Categories"
                 ],
-                "summary": "Delete a category",
+                "summary": "Delete category subtree",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Category ID",
+                        "description": "Category id (root of subtree to remove)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -695,6 +690,81 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/categories/{id}/child": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create child category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Parent category id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Child category name",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateCategoryChildBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/response.Envelope"
                         }
@@ -726,7 +796,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/categories/{slug}": {
+        "/api/v1/categories/{id}/subtree": {
             "get": {
                 "produces": [
                     "application/json"
@@ -734,12 +804,12 @@ const docTemplate = `{
                 "tags": [
                     "Categories"
                 ],
-                "summary": "Get category by slug",
+                "summary": "Get category subtree",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Category slug",
-                        "name": "slug",
+                        "type": "integer",
+                        "description": "Category id (root of subtree)",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -759,6 +829,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.Envelope"
                         }
@@ -1984,6 +2060,67 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a user account. Same shape as public register; role defaults to entities.RoleUser. Response data includes id, name, email, roleId (roles.id).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create user (admin)",
+                "parameters": [
+                    {
+                        "description": "Create user payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Envelope"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/users/{id}": {
@@ -2130,7 +2267,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.CreateCategoryRequest": {
+        "request.CreateCategoryChildBody": {
             "type": "object",
             "required": [
                 "name"
@@ -2138,7 +2275,20 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "maxLength": 100,
+                    "maxLength": 255,
+                    "minLength": 2
+                }
+            }
+        },
+        "request.CreateCategoryRootBody": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
                     "minLength": 2
                 }
             }
@@ -2255,6 +2405,38 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 2
+                }
+            }
+        },
+        "request.CreateUserRequest": {
+            "type": "object",
+            "required": [
+                "confirmPassword",
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "confirmPassword": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 190
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "roleId": {
+                    "description": "RoleID references roles.id (see model.Role). When omitted, the service assigns the default \"user\" role (entities.RoleUser) by resolving it in the database.",
+                    "type": "integer"
                 }
             }
         },
@@ -2380,7 +2562,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.UpdateCategoryRequest": {
+        "request.UpdateCategoryBody": {
             "type": "object",
             "required": [
                 "name"
@@ -2388,7 +2570,7 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "maxLength": 100,
+                    "maxLength": 255,
                     "minLength": 2
                 }
             }

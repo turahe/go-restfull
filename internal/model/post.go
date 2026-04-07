@@ -58,7 +58,7 @@ type Post struct {
 	CategoryID uint       `json:"categoryId" gorm:"not null;index"`
 	Layout     PostLayout `json:"layout" gorm:"type:varchar(50);not null;check:layout IN ('simple','author','book','list')"`
 	Status     PostStatus `json:"status" gorm:"type:varchar(20);not null;default:published;index;check:status IN ('draft','published','archived')"`
-	Category   *Category  `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
+	Category   *CategoryModel `json:"category,omitempty" gorm:"constraint:OnDelete:RESTRICT"`
 
 	Media []Media `json:"media,omitempty" gorm:"many2many:post_media;"`
 

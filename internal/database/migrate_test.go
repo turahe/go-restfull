@@ -40,6 +40,6 @@ func TestAutoMigrate_AllModels(t *testing.T) {
 	// Create one of each model to verify schema (smoke test)
 	ctx := db.Statement.Context
 	require.NoError(t, db.WithContext(ctx).Create(&model.User{Name: "u", Email: "u@x.com", Password: "x"}).Error)
-	require.NoError(t, db.WithContext(ctx).Create(&model.Category{Name: "c", Slug: "c"}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&model.CategoryModel{Name: "c", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: 1, UpdatedBy: 1}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&model.Setting{Key: "k", Value: "v", IsPublic: true}).Error)
 }

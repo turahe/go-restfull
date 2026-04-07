@@ -13,7 +13,7 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/service"
+	"github.com/turahe/go-restfull/internal/usecase"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -23,8 +23,31 @@ import (
 
 type mockMediaService struct{ mock.Mock }
 
-func (m *mockMediaService) Upload(ctx context.Context, actorUserID uint, fh *multipart.FileHeader) (*model.Media, error) {
-	args := m.Called(ctx, actorUserID, fh)
+func (m *mockMediaService) Upload(ctx context.Context, actorUserID uint, fh *multipart.FileHeader, parentID *uint) (*model.Media, error) {
+	args := m.Called(ctx, actorUserID, fh, parentID)
+	med, _ := args.Get(0).(*model.Media)
+	return med, args.Error(1)
+}
+func (m *mockMediaService) CreateFolderRoot(ctx context.Context, actorUserID uint, name string) (*model.Media, error) {
+	args := m.Called(ctx, actorUserID, name)
+	med, _ := args.Get(0).(*model.Media)
+	return med, args.Error(1)
+}
+func (m *mockMediaService) CreateFolderChild(ctx context.Context, actorUserID uint, parentID uint, name string) (*model.Media, error) {
+	args := m.Called(ctx, actorUserID, parentID, name)
+	med, _ := args.Get(0).(*model.Media)
+	return med, args.Error(1)
+}
+func (m *mockMediaService) GetTree(ctx context.Context, actorUserID uint) ([]usecase.MediaTreeNode, error) {
+	args := m.Called(ctx, actorUserID)
+	return args.Get(0).([]usecase.MediaTreeNode), args.Error(1)
+}
+func (m *mockMediaService) GetSubtree(ctx context.Context, actorUserID uint, mediaID uint) ([]usecase.MediaTreeNode, error) {
+	args := m.Called(ctx, actorUserID, mediaID)
+	return args.Get(0).([]usecase.MediaTreeNode), args.Error(1)
+}
+func (m *mockMediaService) Update(ctx context.Context, actorUserID uint, id uint, name string) (*model.Media, error) {
+	args := m.Called(ctx, actorUserID, id, name)
 	med, _ := args.Get(0).(*model.Media)
 	return med, args.Error(1)
 }
@@ -81,7 +104,7 @@ func TestMediaHandler_GetByID_NotFound(t *testing.T) {
 	t.Parallel()
 
 	svc := &mockMediaService{}
-	svc.On("GetByID", mock.Anything, uint(1), uint(10)).Return((*model.Media)(nil), service.ErrMediaNotFound).Once()
+	svc.On("GetByID", mock.Anything, uint(1), uint(10)).Return((*model.Media)(nil), usecase.ErrMediaNotFound).Once()
 
 	h := NewMediaHandler(svc, nil)
 	r := gin.New()

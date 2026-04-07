@@ -77,8 +77,10 @@ func NewRouter(d Deps) *gin.Engine {
 
 		api.GET("/posts", d.Handlers.Post.List)
 		api.GET("/posts/slug/:slug", d.Handlers.Post.GetBySlug)
-		api.GET("/categories", d.Handlers.Category.List)
-		api.GET("/categories/:slug", d.Handlers.Category.GetBySlug)
+		api.GET("/posts/:id/comments/tree", d.Handlers.Comment.GetTree)
+		api.GET("/posts/:id/comments/:cid/subtree", d.Handlers.Comment.GetSubtree)
+		api.GET("/categories/tree", d.Handlers.Category.GetTree)
+		api.GET("/categories/:id/subtree", d.Handlers.Category.GetSubtree)
 		api.GET("/tags", d.Handlers.Tag.List)
 		api.GET("/tags/:slug", d.Handlers.Tag.GetBySlug)
 		api.GET("/settings", d.Handlers.Settings.Get)
@@ -97,9 +99,13 @@ func NewRouter(d Deps) *gin.Engine {
 			auth.POST("/posts", d.Handlers.Post.Create)
 			auth.PUT("/posts/:id", d.Handlers.Post.Update)
 			auth.DELETE("/posts/:id", d.Handlers.Post.Delete)
-			auth.POST("/posts/:id/comments", d.Handlers.Comment.Create)
+			auth.POST("/posts/:id/comments/root", d.Handlers.Comment.CreateRoot)
+			auth.POST("/posts/:id/comments/:cid/child", d.Handlers.Comment.CreateChild)
+			auth.PUT("/posts/:id/comments/:cid", d.Handlers.Comment.Update)
+			auth.DELETE("/posts/:id/comments/:cid", d.Handlers.Comment.Delete)
 
-			auth.POST("/categories", d.Handlers.Category.Create)
+			auth.POST("/categories/root", d.Handlers.Category.CreateRoot)
+			auth.POST("/categories/:id/child", d.Handlers.Category.CreateChild)
 			auth.PUT("/categories/:id", d.Handlers.Category.Update)
 			auth.DELETE("/categories/:id", d.Handlers.Category.Delete)
 
@@ -107,11 +113,17 @@ func NewRouter(d Deps) *gin.Engine {
 			auth.PUT("/tags/:id", d.Handlers.Tag.Update)
 			auth.DELETE("/tags/:id", d.Handlers.Tag.Delete)
 
+			auth.GET("/media/tree", d.Handlers.Media.GetTree)
+			auth.GET("/media/:id/subtree", d.Handlers.Media.GetSubtree)
+			auth.POST("/media/root", d.Handlers.Media.CreateFolderRoot)
+			auth.POST("/media/:id/child", d.Handlers.Media.CreateFolderChild)
 			auth.POST("/media", d.Handlers.Media.UploadMedia)
 			auth.GET("/media", d.Handlers.Media.ListMedia)
+			auth.PUT("/media/:id", d.Handlers.Media.UpdateMedia)
 			auth.GET("/media/:id", d.Handlers.Media.GetMediaByID)
 			auth.DELETE("/media/:id", d.Handlers.Media.DeleteMedia)
 
+			auth.POST("/users", d.Handlers.User.Create)
 			auth.GET("/users", d.Handlers.User.List)
 			auth.GET("/users/:id", d.Handlers.User.GetByID)
 

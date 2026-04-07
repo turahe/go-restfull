@@ -14,7 +14,7 @@ import (
 func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	db := openTestDB(t, &model.User{}, &model.Category{}, &model.Post{}, &model.Comment{}, &model.Media{}, &model.Tag{})
+	db := openTestDB(t, &model.User{}, &model.CategoryModel{}, &model.Post{}, &model.Comment{}, &model.Media{}, &model.Tag{})
 
 	// Create join tables used by SoftDeleteByID raw SQL deletes (SQLite won't have them unless created).
 	// Create tables minimally with columns used by repository queries.
@@ -30,15 +30,17 @@ func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)
-	cat := &model.Category{Name: "Tech", Slug: "tech", CreatedBy: u.ID, UpdatedBy: u.ID}
+	cat := &model.CategoryModel{Name: "Tech", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: u.ID, UpdatedBy: u.ID}
 	assert.NoError(t, db.WithContext(ctx).Create(cat).Error)
 	p := &model.Post{Title: "T", Slug: "t", Content: "c", UserID: u.ID, CategoryID: cat.ID, CreatedBy: u.ID, UpdatedBy: u.ID, CreatedAt: time.Now()}
 	assert.NoError(t, db.WithContext(ctx).Create(p).Error)
-	cmt := &model.Comment{PostID: p.ID, UserID: u.ID, Content: "hi", CreatedBy: u.ID, UpdatedBy: u.ID}
-	assert.NoError(t, db.WithContext(ctx).Create(cmt).Error)
+	cmt, err := NewCommentRepository(db, zap.NewNop()).CreateRoot(ctx, p.ID, u.ID, "hi", u.ID)
+	assert.NoError(t, err)
+	assert.NotZero(t, cmt.ID)
 
 	m := &model.Media{
 		UserID:       u.ID,
+		Name:         "a.png",
 		MediaType:    "image",
 		OriginalName: "a.png",
 		MimeType:     "image/png",
@@ -49,7 +51,7 @@ func TestMediaRepository_Create_List_Find_Attach_And_SoftDelete(t *testing.T) {
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
-	assert.NoError(t, repo.Create(ctx, m))
+	assert.NoError(t, repo.CreateFileRoot(ctx, m))
 	assert.NotZero(t, m.ID)
 
 	assert.NoError(t, repo.AttachMedia(ctx, m.ID, "Post", p.ID))
