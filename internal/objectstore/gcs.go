@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/turahe/go-restfull/internal/config"
@@ -44,12 +46,26 @@ func (g *gcsStore) SignedURL(ctx context.Context, key string, expiry time.Durati
 	u, err := g.client.Bucket(g.bucket).SignedURL(key, &storage.SignedURLOptions{
 		Method:  "GET",
 		Expires: time.Now().Add(expiry),
+		Scheme:  storage.SigningSchemeV4,
 	})
 	if err != nil {
-		g.log.Error("failed to sign GCS URL", zap.Error(err))
-		return "", errPresignFailed
+		// Some runtimes can upload/list objects but cannot sign URLs (no signing creds).
+		// Fall back to the canonical object URL so API responses still include downloadUrl.
+		// This works for public buckets and keeps behavior observable instead of silently empty URLs.
+		fallback := g.publicObjectURL(key)
+		g.log.Warn("failed to sign GCS URL; falling back to public URL", zap.Error(err), zap.String("bucket", g.bucket), zap.String("key", key))
+		return fallback, nil
 	}
 	return u, nil
+}
+
+func (g *gcsStore) publicObjectURL(key string) string {
+	parts := strings.Split(strings.TrimPrefix(key, "/"), "/")
+	for i := range parts {
+		parts[i] = url.PathEscape(parts[i])
+	}
+	escapedKey := strings.Join(parts, "/")
+	return "https://storage.googleapis.com/" + g.bucket + "/" + escapedKey
 }
 
 func (g *gcsStore) Delete(ctx context.Context, key string) error {
