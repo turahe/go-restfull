@@ -9,7 +9,6 @@ import (
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/usecase"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -49,11 +48,11 @@ type UserService struct {
 	users UserRepo
 	roles roleLookup
 	rbac  userRoleAssigner
-	media *usecase.MediaUsecase
+	media *MediaService
 	log   *zap.Logger
 }
 
-func NewUserService(users UserRepo, roles roleLookup, rbac userRoleAssigner, media *usecase.MediaUsecase, log *zap.Logger) *UserService {
+func NewUserService(users UserRepo, roles roleLookup, rbac userRoleAssigner, media *MediaService, log *zap.Logger) *UserService {
 	return &UserService{users: users, roles: roles, rbac: rbac, media: media, log: log}
 }
 

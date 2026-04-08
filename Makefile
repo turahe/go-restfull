@@ -46,7 +46,7 @@ swagger:
 	# When `-d` is set, `-g/--generalInfo` must be relative to the first directory in `-d`.
 	# `internal/` has no top-level Go files, only subpackages, so scan only concrete package dirs
 	# that contain .go files (avoid `./internal` itself, which triggers `go list` warnings).
-	swag init -g main.go -o docs -d ./cmd,./internal/config,./internal/database,./internal/handler,./internal/middleware,./internal/model,./internal/rbac,./internal/repository,./internal/seeder,./internal/service,./internal/usecase,./pkg/logger,./pkg/response
+	swag init -g main.go -o docs -d ./cmd,./internal/config,./internal/database,./internal/handler,./internal/middleware,./internal/model,./internal/rbac,./internal/repository,./internal/seeder,./internal/service,./pkg/logger,./pkg/response
 
 run:
 	go run ./cmd

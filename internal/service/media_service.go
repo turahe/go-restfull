@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -22,13 +22,13 @@ import (
 )
 
 var (
-	ErrMediaInvalid          = errors.New("invalid media")
-	ErrMediaTooLarge         = errors.New("media too large")
-	ErrMediaNotFound         = errors.New("media not found")
-	ErrMediaInvalidUserID    = errors.New("invalid media user id")
-	ErrMediaInvalidActor     = errors.New("invalid actor id")
-	ErrMediaDuplicateName    = errors.New("media name already exists under this parent")
-	ErrMediaParentNotFound   = errors.New("parent media not found")
+	ErrMediaInvalid        = errors.New("invalid media")
+	ErrMediaTooLarge       = errors.New("media too large")
+	ErrMediaNotFound       = errors.New("media not found")
+	ErrMediaInvalidUserID  = errors.New("invalid media user id")
+	ErrMediaInvalidActor   = errors.New("invalid actor id")
+	ErrMediaDuplicateName  = errors.New("media name already exists under this parent")
+	ErrMediaParentNotFound = errors.New("parent media not found")
 )
 
 // MediaTreeNode is the JSON shape for tree responses (id, name, children).
@@ -38,7 +38,7 @@ type MediaTreeNode struct {
 	Children []MediaTreeNode `json:"children"`
 }
 
-type MediaUsecase struct {
+type MediaService struct {
 	repo     *repository.MediaRepository
 	maxBytes int64
 
@@ -46,12 +46,12 @@ type MediaUsecase struct {
 	log   *zap.Logger
 }
 
-func NewMediaUsecase(repo *repository.MediaRepository, cfg config.Config, log *zap.Logger) (*MediaUsecase, error) {
+func NewMediaService(repo *repository.MediaRepository, cfg config.Config, log *zap.Logger) (*MediaService, error) {
 	store, err := objectstore.NewFromConfig(cfg, log)
 	if err != nil {
 		return nil, err
 	}
-	return &MediaUsecase{
+	return &MediaService{
 		repo:     repo,
 		maxBytes: cfg.MediaMaxUploadBytes,
 		store:    store,
@@ -59,7 +59,7 @@ func NewMediaUsecase(repo *repository.MediaRepository, cfg config.Config, log *z
 	}, nil
 }
 
-func (u *MediaUsecase) PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (u *MediaService) PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
 	if objectKey == "" {
 		return "", nil
 	}
@@ -76,7 +76,7 @@ func (u *MediaUsecase) PresignGet(ctx context.Context, objectKey string, expiry 
 }
 
 // Upload uploads the file to storage and creates a Media row (optional parent folder id).
-func (u *MediaUsecase) Upload(
+func (u *MediaService) Upload(
 	ctx context.Context,
 	actorUserID uint,
 	fh *multipart.FileHeader,
@@ -197,7 +197,7 @@ done:
 	return m, nil
 }
 
-func (u *MediaUsecase) CreateFolderRoot(ctx context.Context, actorUserID uint, name string) (*model.Media, error) {
+func (u *MediaService) CreateFolderRoot(ctx context.Context, actorUserID uint, name string) (*model.Media, error) {
 	if actorUserID == 0 {
 		return nil, ErrMediaInvalidActor
 	}
@@ -215,7 +215,7 @@ func (u *MediaUsecase) CreateFolderRoot(ctx context.Context, actorUserID uint, n
 	return out, nil
 }
 
-func (u *MediaUsecase) CreateFolderChild(ctx context.Context, actorUserID uint, parentID uint, name string) (*model.Media, error) {
+func (u *MediaService) CreateFolderChild(ctx context.Context, actorUserID uint, parentID uint, name string) (*model.Media, error) {
 	if actorUserID == 0 || parentID == 0 {
 		return nil, ErrMediaInvalid
 	}
@@ -236,7 +236,7 @@ func (u *MediaUsecase) CreateFolderChild(ctx context.Context, actorUserID uint, 
 	return out, nil
 }
 
-func (u *MediaUsecase) GetTree(ctx context.Context, actorUserID uint) ([]MediaTreeNode, error) {
+func (u *MediaService) GetTree(ctx context.Context, actorUserID uint) ([]MediaTreeNode, error) {
 	if actorUserID == 0 {
 		return nil, ErrMediaInvalidUserID
 	}
@@ -247,7 +247,7 @@ func (u *MediaUsecase) GetTree(ctx context.Context, actorUserID uint) ([]MediaTr
 	return buildMediaTree(rows), nil
 }
 
-func (u *MediaUsecase) GetSubtree(ctx context.Context, actorUserID uint, mediaID uint) ([]MediaTreeNode, error) {
+func (u *MediaService) GetSubtree(ctx context.Context, actorUserID uint, mediaID uint) ([]MediaTreeNode, error) {
 	if actorUserID == 0 || mediaID == 0 {
 		return nil, ErrMediaNotFound
 	}
@@ -264,7 +264,7 @@ func (u *MediaUsecase) GetSubtree(ctx context.Context, actorUserID uint, mediaID
 	return buildMediaTree(rows), nil
 }
 
-func (u *MediaUsecase) Update(ctx context.Context, actorUserID uint, id uint, name string) (*model.Media, error) {
+func (u *MediaService) Update(ctx context.Context, actorUserID uint, id uint, name string) (*model.Media, error) {
 	if actorUserID == 0 || id == 0 {
 		return nil, ErrMediaInvalid
 	}
@@ -305,7 +305,7 @@ func buildMediaTree(rows []model.Media) []MediaTreeNode {
 	return roots
 }
 
-func (u *MediaUsecase) List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error) {
+func (u *MediaService) List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error) {
 	if actorUserID == 0 {
 		return repository.CursorPage{}, ErrMediaInvalidUserID
 	}
@@ -334,7 +334,7 @@ func (u *MediaUsecase) List(ctx context.Context, actorUserID uint, req request.M
 	return page, nil
 }
 
-func (u *MediaUsecase) GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error) {
+func (u *MediaService) GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error) {
 	if actorUserID == 0 || id == 0 {
 		return nil, ErrMediaInvalid
 	}
@@ -360,14 +360,14 @@ func (u *MediaUsecase) GetByID(ctx context.Context, actorUserID, id uint) (*mode
 	return m, nil
 }
 
-func (u *MediaUsecase) UserAvatar(ctx context.Context, user *model.User) (*string, error) {
+func (u *MediaService) UserAvatar(ctx context.Context, user *model.User) (*string, error) {
 	if user == nil {
 		return nil, ErrMediaInvalidUserID
 	}
 	return u.repo.UserAvatar(ctx, user)
 }
 
-func (u *MediaUsecase) Delete(ctx context.Context, actorUserID, id uint) error {
+func (u *MediaService) Delete(ctx context.Context, actorUserID, id uint) error {
 	if actorUserID == 0 || id == 0 {
 		return ErrMediaInvalid
 	}

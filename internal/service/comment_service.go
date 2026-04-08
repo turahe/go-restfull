@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -30,17 +30,17 @@ type CommentTreeNode struct {
 	Children []CommentTreeNode `json:"children"`
 }
 
-type CommentUsecase struct {
+type CommentService struct {
 	comments *repository.CommentRepository
 	tags     *repository.TagRepository
 	log      *zap.Logger
 }
 
-func NewCommentUsecase(comments *repository.CommentRepository, tags *repository.TagRepository, log *zap.Logger) *CommentUsecase {
-	return &CommentUsecase{comments: comments, tags: tags, log: log}
+func NewCommentService(comments *repository.CommentRepository, tags *repository.TagRepository, log *zap.Logger) *CommentService {
+	return &CommentService{comments: comments, tags: tags, log: log}
 }
 
-func (u *CommentUsecase) CreateRoot(ctx context.Context, postID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error) {
+func (u *CommentService) CreateRoot(ctx context.Context, postID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error) {
 	exists, err := u.comments.PostExists(ctx, postID)
 	if err != nil {
 		u.log.Error("failed to check if post exists", zap.Error(err))
@@ -72,7 +72,7 @@ func (u *CommentUsecase) CreateRoot(ctx context.Context, postID uint, userID uin
 	return cmt, nil
 }
 
-func (u *CommentUsecase) CreateChild(ctx context.Context, postID uint, parentID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error) {
+func (u *CommentService) CreateChild(ctx context.Context, postID uint, parentID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error) {
 	exists, err := u.comments.PostExists(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -109,11 +109,11 @@ func (u *CommentUsecase) CreateChild(ctx context.Context, postID uint, parentID 
 	return cmt, nil
 }
 
-func (u *CommentUsecase) applyTags(ctx context.Context, commentID uint, tagIDs []uint) error {
+func (u *CommentService) applyTags(ctx context.Context, commentID uint, tagIDs []uint) error {
 	if len(tagIDs) == 0 || u.tags == nil {
 		return nil
 	}
-	ids := uniqueUint(tagIDs)
+	ids := UniqueUint(tagIDs)
 	tags, err := u.tags.FindByIDs(ctx, ids)
 	if err != nil {
 		u.log.Error("failed to find tags by ids", zap.Error(err))
@@ -129,7 +129,7 @@ func (u *CommentUsecase) applyTags(ctx context.Context, commentID uint, tagIDs [
 	return nil
 }
 
-func (u *CommentUsecase) GetTree(ctx context.Context, postID uint) ([]CommentTreeNode, error) {
+func (u *CommentService) GetTree(ctx context.Context, postID uint) ([]CommentTreeNode, error) {
 	rows, err := u.comments.GetTree(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func (u *CommentUsecase) GetTree(ctx context.Context, postID uint) ([]CommentTre
 	return buildCommentTree(rows), nil
 }
 
-func (u *CommentUsecase) GetSubtree(ctx context.Context, postID uint, commentID uint) ([]CommentTreeNode, error) {
+func (u *CommentService) GetSubtree(ctx context.Context, postID uint, commentID uint) ([]CommentTreeNode, error) {
 	if commentID == 0 {
 		return nil, ErrCommentNotFound
 	}
@@ -154,7 +154,7 @@ func (u *CommentUsecase) GetSubtree(ctx context.Context, postID uint, commentID 
 	return buildCommentTree(rows), nil
 }
 
-func (u *CommentUsecase) Update(ctx context.Context, postID uint, commentID uint, userID uint, req request.UpdateCommentBody) (*model.Comment, error) {
+func (u *CommentService) Update(ctx context.Context, postID uint, commentID uint, userID uint, req request.UpdateCommentBody) (*model.Comment, error) {
 	content := strings.TrimSpace(req.Content)
 	if content == "" {
 		return nil, ErrCommentInvalidContent
@@ -169,7 +169,7 @@ func (u *CommentUsecase) Update(ctx context.Context, postID uint, commentID uint
 	return cmt, nil
 }
 
-func (u *CommentUsecase) Delete(ctx context.Context, postID uint, commentID uint, userID uint) error {
+func (u *CommentService) Delete(ctx context.Context, postID uint, commentID uint, userID uint) error {
 	err := u.comments.DeleteSubtree(ctx, postID, commentID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -183,32 +183,13 @@ func (u *CommentUsecase) Delete(ctx context.Context, postID uint, commentID uint
 	return nil
 }
 
-func (u *CommentUsecase) List(ctx context.Context, req request.CommentListRequest) (repository.CursorPage, error) {
+func (u *CommentService) List(ctx context.Context, req request.CommentListRequest) (repository.CursorPage, error) {
 	page, err := u.comments.List(ctx, req)
 	if err != nil {
 		u.log.Error("failed to list comments", zap.Error(err))
 		return repository.CursorPage{}, err
 	}
 	return page, nil
-}
-
-func uniqueUint(in []uint) []uint {
-	if len(in) == 0 {
-		return in
-	}
-	seen := make(map[uint]struct{}, len(in))
-	out := make([]uint, 0, len(in))
-	for _, v := range in {
-		if v == 0 {
-			continue
-		}
-		if _, ok := seen[v]; ok {
-			continue
-		}
-		seen[v] = struct{}{}
-		out = append(out, v)
-	}
-	return out
 }
 
 func buildCommentTree(rows []model.Comment) []CommentTreeNode {

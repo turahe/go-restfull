@@ -9,7 +9,7 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/usecase"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -18,21 +18,21 @@ import (
 
 type CommentHandler struct {
 	BaseHandler
-	comments commentUsecase
+	comments commentService
 }
 
-// commentUsecase is satisfied by *usecase.CommentUsecase (tests may use a mock).
-type commentUsecase interface {
+// commentService is satisfied by *service.CommentService (tests may use a mock).
+type commentService interface {
 	CreateRoot(ctx context.Context, postID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error)
 	CreateChild(ctx context.Context, postID uint, parentID uint, userID uint, req request.CreateCommentRequest) (*model.Comment, error)
-	GetTree(ctx context.Context, postID uint) ([]usecase.CommentTreeNode, error)
-	GetSubtree(ctx context.Context, postID uint, commentID uint) ([]usecase.CommentTreeNode, error)
+	GetTree(ctx context.Context, postID uint) ([]service.CommentTreeNode, error)
+	GetSubtree(ctx context.Context, postID uint, commentID uint) ([]service.CommentTreeNode, error)
 	Update(ctx context.Context, postID uint, commentID uint, userID uint, req request.UpdateCommentBody) (*model.Comment, error)
 	Delete(ctx context.Context, postID uint, commentID uint, userID uint) error
 	List(ctx context.Context, req request.CommentListRequest) (repository.CursorPage, error)
 }
 
-func NewCommentHandler(comments commentUsecase, log *zap.Logger) *CommentHandler {
+func NewCommentHandler(comments commentService, log *zap.Logger) *CommentHandler {
 	return &CommentHandler{BaseHandler: BaseHandler{Log: log}, comments: comments}
 }
 
@@ -74,7 +74,7 @@ func (h *CommentHandler) CreateRoot(c *gin.Context) {
 	cmt, err := h.comments.CreateRoot(c.Request.Context(), postID, auth.UserID, req)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrCommentPostMissing):
+		case errors.Is(err, service.ErrCommentPostMissing):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "post not found")
 		default:
 			h.internalError(c, response.ServiceCodeComments, err, "create comment failed")
@@ -129,9 +129,9 @@ func (h *CommentHandler) CreateChild(c *gin.Context) {
 	cmt, err := h.comments.CreateChild(c.Request.Context(), postID, uint(parentID), auth.UserID, req)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrCommentPostMissing):
+		case errors.Is(err, service.ErrCommentPostMissing):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "post not found")
-		case errors.Is(err, usecase.ErrCommentParentNotFound):
+		case errors.Is(err, service.ErrCommentParentNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "parent comment not found")
 		default:
 			h.internalError(c, response.ServiceCodeComments, err, "create comment failed")
@@ -191,7 +191,7 @@ func (h *CommentHandler) GetSubtree(c *gin.Context) {
 
 	sub, err := h.comments.GetSubtree(c.Request.Context(), postID, uint(cid))
 	if err != nil {
-		if errors.Is(err, usecase.ErrCommentNotFound) {
+		if errors.Is(err, service.ErrCommentNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "comment not found")
 			return
 		}
@@ -245,9 +245,9 @@ func (h *CommentHandler) Update(c *gin.Context) {
 	cmt, err := h.comments.Update(c.Request.Context(), postID, uint(cid), auth.UserID, req)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrCommentNotFound):
+		case errors.Is(err, service.ErrCommentNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "comment not found")
-		case errors.Is(err, usecase.ErrCommentInvalidContent):
+		case errors.Is(err, service.ErrCommentInvalidContent):
 			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeComments, response.CaseCodeInvalidValue), "invalid content", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeComments, err, "update failed")
@@ -292,9 +292,9 @@ func (h *CommentHandler) Delete(c *gin.Context) {
 	err = h.comments.Delete(c.Request.Context(), postID, uint(cid), auth.UserID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrCommentNotFound):
+		case errors.Is(err, service.ErrCommentNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeComments, response.CaseCodeNotFound), "not found", "comment not found")
-		case errors.Is(err, usecase.ErrCommentSubtreeHasMedia):
+		case errors.Is(err, service.ErrCommentSubtreeHasMedia):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeComments, response.CaseCodeConflict), "conflict", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeComments, err, "delete failed")

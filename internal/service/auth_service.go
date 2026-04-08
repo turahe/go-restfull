@@ -10,7 +10,6 @@ import (
 	"github.com/turahe/go-restfull/internal/domain/entities"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/service/dto"
-	"github.com/turahe/go-restfull/internal/usecase"
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
@@ -76,7 +75,7 @@ type AuthService struct {
 	audit          AuthAudit
 	rbac           AuthRBAC
 	twoFA          AuthTwoFA
-	mediaSvc       *usecase.MediaUsecase
+	mediaSvc       *MediaService
 	accessTTL      time.Duration
 	refreshTTLDays int
 	impersonateTTL time.Duration
@@ -89,7 +88,7 @@ func NewAuthService(users AuthUserRepo,
 	rbacSvc AuthRBAC,
 	jwtm AuthJWT,
 	twoFA AuthTwoFA,
-	mediaSvc *usecase.MediaUsecase,
+	mediaSvc *MediaService,
 	accessTTLMinutes int,
 	refreshTTLDays int,
 	impersonationTTLMinutes int,

@@ -12,7 +12,7 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/usecase"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -20,50 +20,50 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type mockCategoryUsecase struct{ mock.Mock }
+type mockCategoryService struct{ mock.Mock }
 
-func (m *mockCategoryUsecase) CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (m *mockCategoryService) CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error) {
 	args := m.Called(ctx, name, actorUserID)
 	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
 
-func (m *mockCategoryUsecase) CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (m *mockCategoryService) CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error) {
 	args := m.Called(ctx, parentID, name, actorUserID)
 	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
 
-func (m *mockCategoryUsecase) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+func (m *mockCategoryService) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 
-func (m *mockCategoryUsecase) GetTree(ctx context.Context) ([]usecase.CategoryTreeNode, error) {
+func (m *mockCategoryService) GetTree(ctx context.Context) ([]service.CategoryTreeNode, error) {
 	args := m.Called(ctx)
-	var v []usecase.CategoryTreeNode
+	var v []service.CategoryTreeNode
 	if args.Get(0) != nil {
-		v = args.Get(0).([]usecase.CategoryTreeNode)
+		v = args.Get(0).([]service.CategoryTreeNode)
 	}
 	return v, args.Error(1)
 }
 
-func (m *mockCategoryUsecase) GetSubtree(ctx context.Context, categoryID uint) ([]usecase.CategoryTreeNode, error) {
+func (m *mockCategoryService) GetSubtree(ctx context.Context, categoryID uint) ([]service.CategoryTreeNode, error) {
 	args := m.Called(ctx, categoryID)
-	var v []usecase.CategoryTreeNode
+	var v []service.CategoryTreeNode
 	if args.Get(0) != nil {
-		v = args.Get(0).([]usecase.CategoryTreeNode)
+		v = args.Get(0).([]service.CategoryTreeNode)
 	}
 	return v, args.Error(1)
 }
 
-func (m *mockCategoryUsecase) Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (m *mockCategoryService) Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error) {
 	args := m.Called(ctx, id, name, actorUserID)
 	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
 }
 
-func (m *mockCategoryUsecase) Delete(ctx context.Context, id uint, actorUserID uint) error {
+func (m *mockCategoryService) Delete(ctx context.Context, id uint, actorUserID uint) error {
 	args := m.Called(ctx, id, actorUserID)
 	return args.Error(0)
 }
@@ -87,12 +87,12 @@ func withAuthRole(role string) gin.HandlerFunc {
 func TestCategoryHandler_List_OK(t *testing.T) {
 	t.Parallel()
 
-	uc := &mockCategoryUsecase{}
-	uc.On("List", mock.Anything, mock.AnythingOfType("request.CategoryListRequest")).Return(repository.CursorPage{
+	svc := &mockCategoryService{}
+	svc.On("List", mock.Anything, mock.AnythingOfType("request.CategoryListRequest")).Return(repository.CursorPage{
 		Items: []model.CategoryModel{{ID: 1, Name: "A", Slug: "a", Lft: 1, Rgt: 2, Depth: 0}},
 	}, nil).Once()
 
-	h := NewCategoryHandler(uc, nil)
+	h := NewCategoryHandler(svc, nil)
 	r := gin.New()
 	r.GET("/api/v1/categories", h.List)
 
@@ -101,18 +101,18 @@ func TestCategoryHandler_List_OK(t *testing.T) {
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	uc.AssertExpectations(t)
+	svc.AssertExpectations(t)
 }
 
 func TestCategoryHandler_GetTree_OK(t *testing.T) {
 	t.Parallel()
 
-	uc := &mockCategoryUsecase{}
-	uc.On("GetTree", mock.Anything).Return([]usecase.CategoryTreeNode{
-		{ID: 1, Name: "Root", Children: []usecase.CategoryTreeNode{}},
+	svc := &mockCategoryService{}
+	svc.On("GetTree", mock.Anything).Return([]service.CategoryTreeNode{
+		{ID: 1, Name: "Root", Children: []service.CategoryTreeNode{}},
 	}, nil).Once()
 
-	h := NewCategoryHandler(uc, nil)
+	h := NewCategoryHandler(svc, nil)
 	r := gin.New()
 	r.GET("/api/v1/categories/tree", h.GetTree)
 
@@ -121,16 +121,16 @@ func TestCategoryHandler_GetTree_OK(t *testing.T) {
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	uc.AssertExpectations(t)
+	svc.AssertExpectations(t)
 }
 
 func TestCategoryHandler_GetSubtree_NotFound(t *testing.T) {
 	t.Parallel()
 
-	uc := &mockCategoryUsecase{}
-	uc.On("GetSubtree", mock.Anything, uint(1)).Return(nil, usecase.ErrCategoryNotFound).Once()
+	svc := &mockCategoryService{}
+	svc.On("GetSubtree", mock.Anything, uint(1)).Return(nil, service.ErrCategoryNotFound).Once()
 
-	h := NewCategoryHandler(uc, nil)
+	h := NewCategoryHandler(svc, nil)
 	r := gin.New()
 	r.GET("/api/v1/categories/:id/subtree", h.GetSubtree)
 
@@ -141,14 +141,14 @@ func TestCategoryHandler_GetSubtree_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 	env := decodeEnvCat(t, rr)
 	assert.Equal(t, "not found", env.Message)
-	uc.AssertExpectations(t)
+	svc.AssertExpectations(t)
 }
 
 func TestCategoryHandler_CreateRoot_Unauthorized(t *testing.T) {
 	t.Parallel()
 
-	uc := &mockCategoryUsecase{}
-	h := NewCategoryHandler(uc, nil)
+	svc := &mockCategoryService{}
+	h := NewCategoryHandler(svc, nil)
 	r := gin.New()
 	r.POST("/api/v1/categories/root", h.CreateRoot)
 
@@ -157,16 +157,16 @@ func TestCategoryHandler_CreateRoot_Unauthorized(t *testing.T) {
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	uc.AssertExpectations(t)
+	svc.AssertExpectations(t)
 }
 
 func TestCategoryHandler_CreateRoot_OK(t *testing.T) {
 	t.Parallel()
 
-	uc := &mockCategoryUsecase{}
-	uc.On("CreateRoot", mock.Anything, "Books", uint(1)).Return(&model.CategoryModel{ID: 1, Name: "Books", Slug: "books", Lft: 1, Rgt: 2, Depth: 0}, nil).Once()
+	svc := &mockCategoryService{}
+	svc.On("CreateRoot", mock.Anything, "Books", uint(1)).Return(&model.CategoryModel{ID: 1, Name: "Books", Slug: "books", Lft: 1, Rgt: 2, Depth: 0}, nil).Once()
 
-	h := NewCategoryHandler(uc, nil)
+	h := NewCategoryHandler(svc, nil)
 	r := gin.New()
 	r.POST("/api/v1/categories/root", withAuthRole("admin"), h.CreateRoot)
 
@@ -177,5 +177,5 @@ func TestCategoryHandler_CreateRoot_OK(t *testing.T) {
 	r.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusCreated, rr.Code)
-	uc.AssertExpectations(t)
+	svc.AssertExpectations(t)
 }

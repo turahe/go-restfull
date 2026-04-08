@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -27,16 +27,16 @@ type CategoryTreeNode struct {
 	Children []CategoryTreeNode `json:"children"`
 }
 
-type CategoryUsecase struct {
+type CategoryService struct {
 	repo *repository.CategoryRepository
 	log  *zap.Logger
 }
 
-func NewCategoryUsecase(repo *repository.CategoryRepository, log *zap.Logger) *CategoryUsecase {
-	return &CategoryUsecase{repo: repo, log: log}
+func NewCategoryService(repo *repository.CategoryRepository, log *zap.Logger) *CategoryService {
+	return &CategoryService{repo: repo, log: log}
 }
 
-func (u *CategoryUsecase) CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (u *CategoryService) CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, ErrInvalidName
@@ -51,7 +51,7 @@ func (u *CategoryUsecase) CreateRoot(ctx context.Context, name string, actorUser
 	return out, nil
 }
 
-func (u *CategoryUsecase) CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (u *CategoryService) CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error) {
 	if parentID == 0 {
 		return nil, ErrCategoryNotFound
 	}
@@ -72,19 +72,19 @@ func (u *CategoryUsecase) CreateChild(ctx context.Context, parentID uint, name s
 	return out, nil
 }
 
-func (u *CategoryUsecase) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+func (u *CategoryService) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
 	return u.repo.List(ctx, req)
 }
 
-func (u *CategoryUsecase) GetTree(ctx context.Context) ([]CategoryTreeNode, error) {
+func (u *CategoryService) GetTree(ctx context.Context) ([]CategoryTreeNode, error) {
 	rows, err := u.repo.GetTree(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return buildTree(rows), nil
+	return buildCategoryTree(rows), nil
 }
 
-func (u *CategoryUsecase) GetSubtree(ctx context.Context, categoryID uint) ([]CategoryTreeNode, error) {
+func (u *CategoryService) GetSubtree(ctx context.Context, categoryID uint) ([]CategoryTreeNode, error) {
 	if categoryID == 0 {
 		return nil, ErrCategoryNotFound
 	}
@@ -98,11 +98,11 @@ func (u *CategoryUsecase) GetSubtree(ctx context.Context, categoryID uint) ([]Ca
 	if len(rows) == 0 {
 		return nil, ErrCategoryNotFound
 	}
-	return buildTree(rows), nil
+	return buildCategoryTree(rows), nil
 }
 
 // Update changes the category name (id must exist).
-func (u *CategoryUsecase) Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error) {
+func (u *CategoryService) Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error) {
 	if id == 0 {
 		return nil, ErrCategoryNotFound
 	}
@@ -124,7 +124,7 @@ func (u *CategoryUsecase) Update(ctx context.Context, id uint, name string, acto
 }
 
 // Delete soft-deletes the category and its entire subtree. Blocked if any post references a category id in that subtree.
-func (u *CategoryUsecase) Delete(ctx context.Context, id uint, actorUserID uint) error {
+func (u *CategoryService) Delete(ctx context.Context, id uint, actorUserID uint) error {
 	if id == 0 {
 		return ErrCategoryNotFound
 	}
@@ -141,8 +141,8 @@ func (u *CategoryUsecase) Delete(ctx context.Context, id uint, actorUserID uint)
 	return nil
 }
 
-// buildTree builds a forest from a flat list ordered by lft (O(n)).
-func buildTree(rows []model.CategoryModel) []CategoryTreeNode {
+// buildCategoryTree builds a forest from a flat list ordered by lft (O(n)).
+func buildCategoryTree(rows []model.CategoryModel) []CategoryTreeNode {
 	type stackItem struct {
 		node *CategoryTreeNode
 		rgt  int

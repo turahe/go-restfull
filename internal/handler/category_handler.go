@@ -9,31 +9,31 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/usecase"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-// categoryUsecase is satisfied by *usecase.CategoryUsecase (tests may use a mock).
-type categoryUsecase interface {
+// categoryService is satisfied by *service.CategoryService (tests may use a mock).
+type categoryService interface {
 	CreateRoot(ctx context.Context, name string, actorUserID uint) (*model.CategoryModel, error)
 	CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error)
 	Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error)
 	Delete(ctx context.Context, id uint, actorUserID uint) error
 	List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error)
-	GetTree(ctx context.Context) ([]usecase.CategoryTreeNode, error)
-	GetSubtree(ctx context.Context, categoryID uint) ([]usecase.CategoryTreeNode, error)
+	GetTree(ctx context.Context) ([]service.CategoryTreeNode, error)
+	GetSubtree(ctx context.Context, categoryID uint) ([]service.CategoryTreeNode, error)
 }
 
 type CategoryHandler struct {
 	BaseHandler
-	uc categoryUsecase
+	svc categoryService
 }
 
-func NewCategoryHandler(uc categoryUsecase, log *zap.Logger) *CategoryHandler {
-	return &CategoryHandler{BaseHandler: BaseHandler{Log: log}, uc: uc}
+func NewCategoryHandler(svc categoryService, log *zap.Logger) *CategoryHandler {
+	return &CategoryHandler{BaseHandler: BaseHandler{Log: log}, svc: svc}
 }
 
 // List godoc
@@ -58,7 +58,7 @@ func (h *CategoryHandler) List(c *gin.Context) {
 		return
 	}
 
-	page, err := h.uc.List(c.Request.Context(), req)
+	page, err := h.svc.List(c.Request.Context(), req)
 	if err != nil {
 		h.internalError(c, response.ServiceCodeCategories, err, "list failed")
 		return
@@ -98,12 +98,12 @@ func (h *CategoryHandler) CreateRoot(c *gin.Context) {
 	if !h.validate(c, response.ServiceCodeCategories, req) {
 		return
 	}
-	cat, err := h.uc.CreateRoot(c.Request.Context(), req.Name, auth.UserID)
+	cat, err := h.svc.CreateRoot(c.Request.Context(), req.Name, auth.UserID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrInvalidName):
+		case errors.Is(err, service.ErrInvalidName):
 			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid name", err.Error())
-		case errors.Is(err, usecase.ErrCategoryDuplicateName):
+		case errors.Is(err, service.ErrCategoryDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeCategories, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeCategories, err, "create root failed")
@@ -145,14 +145,14 @@ func (h *CategoryHandler) CreateChild(c *gin.Context) {
 	if !h.validate(c, response.ServiceCodeCategories, req) {
 		return
 	}
-	cat, err := h.uc.CreateChild(c.Request.Context(), uint(parentID), req.Name, auth.UserID)
+	cat, err := h.svc.CreateChild(c.Request.Context(), uint(parentID), req.Name, auth.UserID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrInvalidName):
+		case errors.Is(err, service.ErrInvalidName):
 			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid name", err.Error())
-		case errors.Is(err, usecase.ErrCategoryNotFound):
+		case errors.Is(err, service.ErrCategoryNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeCategories, response.CaseCodeNotFound), "not found", "parent category not found")
-		case errors.Is(err, usecase.ErrCategoryDuplicateName):
+		case errors.Is(err, service.ErrCategoryDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeCategories, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeCategories, err, "create child failed")
@@ -170,7 +170,7 @@ func (h *CategoryHandler) CreateChild(c *gin.Context) {
 // @Failure      500  {object}  response.Envelope
 // @Router       /api/v1/categories/tree [get]
 func (h *CategoryHandler) GetTree(c *gin.Context) {
-	tree, err := h.uc.GetTree(c.Request.Context())
+	tree, err := h.svc.GetTree(c.Request.Context())
 	if err != nil {
 		h.internalError(c, response.ServiceCodeCategories, err, "get tree failed")
 		return
@@ -194,10 +194,10 @@ func (h *CategoryHandler) GetSubtree(c *gin.Context) {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
-	sub, err := h.uc.GetSubtree(c.Request.Context(), uint(id))
+	sub, err := h.svc.GetSubtree(c.Request.Context(), uint(id))
 	if err != nil {
 		switch err {
-		case usecase.ErrCategoryNotFound:
+		case service.ErrCategoryNotFound:
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeCategories, response.CaseCodeNotFound), "not found", "category not found")
 		default:
 			h.internalError(c, response.ServiceCodeCategories, err, "get subtree failed")
@@ -239,14 +239,14 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 	if !h.validate(c, response.ServiceCodeCategories, req) {
 		return
 	}
-	cat, err := h.uc.Update(c.Request.Context(), uint(id), req.Name, auth.UserID)
+	cat, err := h.svc.Update(c.Request.Context(), uint(id), req.Name, auth.UserID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrInvalidName):
+		case errors.Is(err, service.ErrInvalidName):
 			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid name", err.Error())
-		case errors.Is(err, usecase.ErrCategoryNotFound):
+		case errors.Is(err, service.ErrCategoryNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeCategories, response.CaseCodeNotFound), "not found", "category not found")
-		case errors.Is(err, usecase.ErrCategoryDuplicateName):
+		case errors.Is(err, service.ErrCategoryDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeCategories, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeCategories, err, "update failed")
@@ -281,12 +281,12 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidValue), "invalid id", "id must be uint")
 		return
 	}
-	err = h.uc.Delete(c.Request.Context(), uint(id), auth.UserID)
+	err = h.svc.Delete(c.Request.Context(), uint(id), auth.UserID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrCategoryNotFound):
+		case errors.Is(err, service.ErrCategoryNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeCategories, response.CaseCodeNotFound), "not found", "category not found")
-		case errors.Is(err, usecase.ErrCategoryDeleteHasPosts):
+		case errors.Is(err, service.ErrCategoryDeleteHasPosts):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeCategories, response.CaseCodeConflict), "conflict", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeCategories, err, "delete failed")

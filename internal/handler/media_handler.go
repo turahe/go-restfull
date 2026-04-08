@@ -13,7 +13,7 @@ import (
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
-	"github.com/turahe/go-restfull/internal/usecase"
+	"github.com/turahe/go-restfull/internal/service"
 	"github.com/turahe/go-restfull/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -22,16 +22,16 @@ import (
 
 type MediaHandler struct {
 	BaseHandler
-	mediaSvc mediaUsecase
+	mediaSvc mediaService
 }
 
-// mediaUsecase is satisfied by *usecase.MediaUsecase (tests may use a mock).
-type mediaUsecase interface {
+// mediaService is satisfied by *service.MediaService (tests may use a mock).
+type mediaService interface {
 	Upload(ctx context.Context, actorUserID uint, fh *multipart.FileHeader, parentID *uint) (*model.Media, error)
 	CreateFolderRoot(ctx context.Context, actorUserID uint, name string) (*model.Media, error)
 	CreateFolderChild(ctx context.Context, actorUserID uint, parentID uint, name string) (*model.Media, error)
-	GetTree(ctx context.Context, actorUserID uint) ([]usecase.MediaTreeNode, error)
-	GetSubtree(ctx context.Context, actorUserID uint, mediaID uint) ([]usecase.MediaTreeNode, error)
+	GetTree(ctx context.Context, actorUserID uint) ([]service.MediaTreeNode, error)
+	GetSubtree(ctx context.Context, actorUserID uint, mediaID uint) ([]service.MediaTreeNode, error)
 	Update(ctx context.Context, actorUserID uint, id uint, name string) (*model.Media, error)
 	List(ctx context.Context, actorUserID uint, req request.MediaListRequest) (repository.CursorPage, error)
 	GetByID(ctx context.Context, actorUserID, id uint) (*model.Media, error)
@@ -39,7 +39,7 @@ type mediaUsecase interface {
 	PresignGet(ctx context.Context, objectKey string, expiry time.Duration) (string, error)
 }
 
-func NewMediaHandler(mediaSvc mediaUsecase, log *zap.Logger) *MediaHandler {
+func NewMediaHandler(mediaSvc mediaService, log *zap.Logger) *MediaHandler {
 	return &MediaHandler{BaseHandler: BaseHandler{Log: log}, mediaSvc: mediaSvc}
 }
 
@@ -83,9 +83,9 @@ func (h *MediaHandler) UploadMedia(c *gin.Context) {
 	m, err := h.mediaSvc.Upload(c.Request.Context(), auth.UserID, fh, parentID)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrMediaTooLarge):
+		case errors.Is(err, service.ErrMediaTooLarge):
 			response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeMedia, response.CaseCodeInvalidValue), "invalid request", "file too large")
-		case errors.Is(err, usecase.ErrMediaParentNotFound):
+		case errors.Is(err, service.ErrMediaParentNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "parent media not found")
 		default:
 			h.internalError(c, response.ServiceCodeMedia, err, "upload failed")
@@ -125,7 +125,7 @@ func (h *MediaHandler) CreateFolderRoot(c *gin.Context) {
 	m, err := h.mediaSvc.CreateFolderRoot(c.Request.Context(), auth.UserID, req.Name)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrMediaDuplicateName):
+		case errors.Is(err, service.ErrMediaDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeMedia, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeMedia, err, "create folder failed")
@@ -171,9 +171,9 @@ func (h *MediaHandler) CreateFolderChild(c *gin.Context) {
 	m, err := h.mediaSvc.CreateFolderChild(c.Request.Context(), auth.UserID, parentID, req.Name)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrMediaParentNotFound):
+		case errors.Is(err, service.ErrMediaParentNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "parent media not found")
-		case errors.Is(err, usecase.ErrMediaDuplicateName):
+		case errors.Is(err, service.ErrMediaDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeMedia, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeMedia, err, "create folder failed")
@@ -230,7 +230,7 @@ func (h *MediaHandler) GetSubtree(c *gin.Context) {
 	}
 	sub, err := h.mediaSvc.GetSubtree(c.Request.Context(), auth.UserID, id)
 	if err != nil {
-		if errors.Is(err, usecase.ErrMediaNotFound) {
+		if errors.Is(err, service.ErrMediaNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
 			return
 		}
@@ -276,9 +276,9 @@ func (h *MediaHandler) UpdateMedia(c *gin.Context) {
 	m, err := h.mediaSvc.Update(c.Request.Context(), auth.UserID, id, req.Name)
 	if err != nil {
 		switch {
-		case errors.Is(err, usecase.ErrMediaNotFound):
+		case errors.Is(err, service.ErrMediaNotFound):
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
-		case errors.Is(err, usecase.ErrMediaDuplicateName):
+		case errors.Is(err, service.ErrMediaDuplicateName):
 			response.Conflict(c, response.BuildResponseCode(http.StatusConflict, response.ServiceCodeMedia, response.CaseCodeConflict), "duplicate name", err.Error())
 		default:
 			h.internalError(c, response.ServiceCodeMedia, err, "update failed")
@@ -348,7 +348,7 @@ func (h *MediaHandler) GetMediaByID(c *gin.Context) {
 
 	m, err := h.mediaSvc.GetByID(c.Request.Context(), auth.UserID, id)
 	if err != nil {
-		if errors.Is(err, usecase.ErrMediaNotFound) {
+		if errors.Is(err, service.ErrMediaNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
 			return
 		}
@@ -384,7 +384,7 @@ func (h *MediaHandler) DeleteMedia(c *gin.Context) {
 		return
 	}
 	if err := h.mediaSvc.Delete(c.Request.Context(), auth.UserID, id); err != nil {
-		if errors.Is(err, usecase.ErrMediaNotFound) {
+		if errors.Is(err, service.ErrMediaNotFound) {
 			response.NotFound(c, response.BuildResponseCode(http.StatusNotFound, response.ServiceCodeMedia, response.CaseCodeNotFound), "not found", "media not found")
 			return
 		}
