@@ -11,6 +11,7 @@ import (
 type CategoryModel struct {
 	ID       uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name     string `json:"name" gorm:"type:varchar(255);not null;uniqueIndex:idx_categories_parent_name"`
+	Slug     string `json:"slug" gorm:"type:varchar(255);not null;uniqueIndex"`
 	ParentID *uint  `json:"parentId,omitempty" gorm:"column:parent_id;index;uniqueIndex:idx_categories_parent_name"`
 
 	Lft   int `json:"lft" gorm:"column:lft;index;not null"`

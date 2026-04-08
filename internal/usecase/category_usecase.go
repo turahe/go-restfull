@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
 	"github.com/turahe/go-restfull/internal/repository"
 
@@ -69,6 +70,10 @@ func (u *CategoryUsecase) CreateChild(ctx context.Context, parentID uint, name s
 		return nil, err
 	}
 	return out, nil
+}
+
+func (u *CategoryUsecase) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+	return u.repo.List(ctx, req)
 }
 
 func (u *CategoryUsecase) GetTree(ctx context.Context) ([]CategoryTreeNode, error) {

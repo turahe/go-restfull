@@ -8,8 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/internal/usecase"
 	"github.com/turahe/go-restfull/pkg/response"
 
@@ -30,6 +32,11 @@ func (m *mockCategoryUsecase) CreateChild(ctx context.Context, parentID uint, na
 	args := m.Called(ctx, parentID, name, actorUserID)
 	c, _ := args.Get(0).(*model.CategoryModel)
 	return c, args.Error(1)
+}
+
+func (m *mockCategoryUsecase) List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(repository.CursorPage), args.Error(1)
 }
 
 func (m *mockCategoryUsecase) GetTree(ctx context.Context) ([]usecase.CategoryTreeNode, error) {
@@ -75,6 +82,26 @@ func withAuthRole(role string) gin.HandlerFunc {
 		c.Set("auth_claims", middleware.AuthClaims{Role: role, UserID: 1, SessionID: "s"})
 		c.Next()
 	}
+}
+
+func TestCategoryHandler_List_OK(t *testing.T) {
+	t.Parallel()
+
+	uc := &mockCategoryUsecase{}
+	uc.On("List", mock.Anything, mock.AnythingOfType("request.CategoryListRequest")).Return(repository.CursorPage{
+		Items: []model.CategoryModel{{ID: 1, Name: "A", Slug: "a", Lft: 1, Rgt: 2, Depth: 0}},
+	}, nil).Once()
+
+	h := NewCategoryHandler(uc, nil)
+	r := gin.New()
+	r.GET("/api/v1/categories", h.List)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	uc.AssertExpectations(t)
 }
 
 func TestCategoryHandler_GetTree_OK(t *testing.T) {
@@ -137,7 +164,7 @@ func TestCategoryHandler_CreateRoot_OK(t *testing.T) {
 	t.Parallel()
 
 	uc := &mockCategoryUsecase{}
-	uc.On("CreateRoot", mock.Anything, "Books", uint(1)).Return(&model.CategoryModel{ID: 1, Name: "Books", Lft: 1, Rgt: 2, Depth: 0}, nil).Once()
+	uc.On("CreateRoot", mock.Anything, "Books", uint(1)).Return(&model.CategoryModel{ID: 1, Name: "Books", Slug: "books", Lft: 1, Rgt: 2, Depth: 0}, nil).Once()
 
 	h := NewCategoryHandler(uc, nil)
 	r := gin.New()

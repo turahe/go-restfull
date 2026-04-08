@@ -20,7 +20,7 @@ func TestPostRepository_CRUD_SlugExists_ListCursor(t *testing.T) {
 
 	u := &model.User{Name: "A", Email: "a@b.com", Password: "x"}
 	assert.NoError(t, db.WithContext(ctx).Create(u).Error)
-	cat := &model.CategoryModel{Name: "Tech", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: u.ID, UpdatedBy: u.ID}
+	cat := &model.CategoryModel{Name: "Tech", Slug: "tech", Lft: 1, Rgt: 2, Depth: 0, CreatedBy: u.ID, UpdatedBy: u.ID}
 	assert.NoError(t, db.WithContext(ctx).Create(cat).Error)
 
 	p := &model.Post{

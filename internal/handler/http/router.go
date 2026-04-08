@@ -79,6 +79,7 @@ func NewRouter(d Deps) *gin.Engine {
 		api.GET("/posts/slug/:slug", d.Handlers.Post.GetBySlug)
 		api.GET("/posts/:id/comments/tree", d.Handlers.Comment.GetTree)
 		api.GET("/posts/:id/comments/:cid/subtree", d.Handlers.Comment.GetSubtree)
+		api.GET("/categories", d.Handlers.Category.List)
 		api.GET("/categories/tree", d.Handlers.Category.GetTree)
 		api.GET("/categories/:id/subtree", d.Handlers.Category.GetSubtree)
 		api.GET("/tags", d.Handlers.Tag.List)

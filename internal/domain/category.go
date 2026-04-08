@@ -6,6 +6,7 @@ import "time"
 type Category struct {
 	ID       uint
 	Name     string
+	Slug     string
 	ParentID *uint
 	Lft      int
 	Rgt      int

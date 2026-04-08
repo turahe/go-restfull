@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,34 @@ func TestCategoryRepository_CreateChild_ShiftAndNested(t *testing.T) {
 	assert.Equal(t, 4, r.Rgt)
 }
 
+func TestCategoryRepository_List_Pagination(t *testing.T) {
+	db := openTestDB(t, &model.CategoryModel{})
+	repo := NewCategoryRepository(db, zap.NewNop())
+	ctx := context.Background()
+
+	_, err := repo.CreateRoot(ctx, "Alpha", testActor)
+	require.NoError(t, err)
+	_, err = repo.CreateRoot(ctx, "Beta", testActor)
+	require.NoError(t, err)
+
+	page, err := repo.List(ctx, request.CategoryListRequest{
+		PageRequest: request.PageRequest{Page: 1, Limit: 1},
+	})
+	require.NoError(t, err)
+	items := page.Items.([]model.CategoryModel)
+	require.Len(t, items, 1)
+	assert.NotNil(t, page.NextCursor)
+	assert.Nil(t, page.PrevCursor)
+
+	page2, err := repo.List(ctx, request.CategoryListRequest{
+		PageRequest: request.PageRequest{Page: 2, Limit: 1},
+	})
+	require.NoError(t, err)
+	items2 := page2.Items.([]model.CategoryModel)
+	require.Len(t, items2, 1)
+	assert.NotEqual(t, items[0].ID, items2[0].ID)
+}
+
 func TestCategoryRepository_GetTree_GetSubtree_FindByIDs(t *testing.T) {
 	db := openTestDB(t, &model.CategoryModel{})
 	repo := NewCategoryRepository(db, zap.NewNop())
@@ -107,6 +136,7 @@ func TestCategoryRepository_UpdateName(t *testing.T) {
 	up, err := repo.UpdateName(ctx, r.ID, "Alpha", testActor)
 	require.NoError(t, err)
 	assert.Equal(t, "Alpha", up.Name)
+	assert.Equal(t, "alpha", up.Slug)
 	assert.Equal(t, testActor, up.UpdatedBy)
 }
 

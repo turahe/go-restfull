@@ -8,6 +8,7 @@ import (
 	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/middleware"
 	"github.com/turahe/go-restfull/internal/model"
+	"github.com/turahe/go-restfull/internal/repository"
 	"github.com/turahe/go-restfull/internal/usecase"
 	"github.com/turahe/go-restfull/pkg/response"
 
@@ -21,6 +22,7 @@ type categoryUsecase interface {
 	CreateChild(ctx context.Context, parentID uint, name string, actorUserID uint) (*model.CategoryModel, error)
 	Update(ctx context.Context, id uint, name string, actorUserID uint) (*model.CategoryModel, error)
 	Delete(ctx context.Context, id uint, actorUserID uint) error
+	List(ctx context.Context, req request.CategoryListRequest) (repository.CursorPage, error)
 	GetTree(ctx context.Context) ([]usecase.CategoryTreeNode, error)
 	GetSubtree(ctx context.Context, categoryID uint) ([]usecase.CategoryTreeNode, error)
 }
@@ -32,6 +34,43 @@ type CategoryHandler struct {
 
 func NewCategoryHandler(uc categoryUsecase, log *zap.Logger) *CategoryHandler {
 	return &CategoryHandler{BaseHandler: BaseHandler{Log: log}, uc: uc}
+}
+
+// List godoc
+// @Summary      List categories (flat, tree order by lft)
+// @Tags         Categories
+// @Produce      json
+// @Param        page    query     int     false  "Page (1-based)"
+// @Param        limit   query     int     false  "Page size (max 200)"
+// @Param        name    query     string  false  "Filter by name (contains)"
+// @Param        search  query     string  false  "Search in name (contains)"
+// @Success      200     {object}  response.Envelope
+// @Failure      400     {object}  response.Envelope
+// @Failure      500     {object}  response.Envelope
+// @Router       /api/v1/categories [get]
+func (h *CategoryHandler) List(c *gin.Context) {
+	var req request.CategoryListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.BadRequest(c, response.BuildResponseCode(http.StatusBadRequest, response.ServiceCodeCategories, response.CaseCodeInvalidFormat), "invalid request", err.Error())
+		return
+	}
+	if !h.validate(c, response.ServiceCodeCategories, req) {
+		return
+	}
+
+	page, err := h.uc.List(c.Request.Context(), req)
+	if err != nil {
+		h.internalError(c, response.ServiceCodeCategories, err, "list failed")
+		return
+	}
+	response.OKPaginated(
+		c,
+		response.BuildResponseCode(http.StatusOK, response.ServiceCodeCategories, response.CaseCodeListRetrieved),
+		"ok",
+		page.Items,
+		page.NextCursor != nil,
+		page.PrevCursor != nil,
+	)
 }
 
 // CreateRoot godoc

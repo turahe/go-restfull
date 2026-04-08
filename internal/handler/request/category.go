@@ -11,3 +11,9 @@ type CreateCategoryChildBody struct {
 type UpdateCategoryBody struct {
 	Name string `json:"name" binding:"required,min=2,max=255"`
 }
+
+type CategoryListRequest struct {
+	PageRequest
+	SearchRequest
+	Name string `form:"name" json:"name" binding:"omitempty,min=1,max=255"`
+}

@@ -3,14 +3,54 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
+	"github.com/turahe/go-restfull/internal/handler/request"
 	"github.com/turahe/go-restfull/internal/model"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+var categorySlugNonAlpha = regexp.MustCompile(`[^a-z0-9]+`)
+
+func categorySlugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = categorySlugNonAlpha.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+	return s
+}
+
+// nextCategorySlug returns a unique slug for categories (global uniqueness), excluding excludeID when > 0.
+func nextCategorySlug(db *gorm.DB, name string, excludeID uint) (string, error) {
+	base := categorySlugify(name)
+	if base == "" {
+		base = "category"
+	}
+	slug := base
+	for i := 0; i < 100; i++ {
+		var n int64
+		q := db.Model(&model.CategoryModel{}).Where("slug = ?", slug)
+		if excludeID > 0 {
+			q = q.Where("id <> ?", excludeID)
+		}
+		if err := q.Count(&n).Error; err != nil {
+			return "", err
+		}
+		if n == 0 {
+			return slug, nil
+		}
+		slug = fmt.Sprintf("%s-%d", base, i+1)
+	}
+	return "", errors.New("could not allocate unique category slug")
+}
 
 // ErrCategorySubtreeHasPosts is returned when delete would remove categories still referenced by posts.category_id.
 var ErrCategorySubtreeHasPosts = errors.New("posts reference this category or its descendants")
@@ -77,8 +117,13 @@ func (r *CategoryRepository) CreateRoot(ctx context.Context, name string, actorU
 			lft = maxRgt + 1
 			rgt = maxRgt + 2
 		}
+		slug, err := nextCategorySlug(tx, name, 0)
+		if err != nil {
+			return err
+		}
 		out = &model.CategoryModel{
 			Name:      name,
+			Slug:      slug,
 			Lft:       lft,
 			Rgt:       rgt,
 			Depth:     0,
@@ -126,9 +171,14 @@ func (r *CategoryRepository) CreateChild(ctx context.Context, parentID uint, nam
 		if err := tx.Exec("UPDATE categories SET lft = lft + 2 WHERE deleted_at IS NULL AND lft > ?", parentRgt).Error; err != nil {
 			return err
 		}
+		slug, err := nextCategorySlug(tx, name, 0)
+		if err != nil {
+			return err
+		}
 		pid := parentID
 		out = &model.CategoryModel{
 			Name:      name,
+			Slug:      slug,
 			ParentID:  &pid,
 			Lft:       parentRgt,
 			Rgt:       parentRgt + 1,
@@ -143,6 +193,68 @@ func (r *CategoryRepository) CreateChild(ctx context.Context, parentID uint, nam
 		return nil, err
 	}
 	return out, nil
+}
+
+// List returns a paginated flat list of categories ordered by lft (tree order).
+func (r *CategoryRepository) List(ctx context.Context, req request.CategoryListRequest) (CursorPage, error) {
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	page := req.Page
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	countQ := r.db.WithContext(ctx).Model(&model.CategoryModel{})
+	if req.Name != "" {
+		countQ = countQ.Where("name LIKE ?", "%"+req.Name+"%")
+	}
+	if s := strings.TrimSpace(req.Search); s != "" {
+		countQ = countQ.Where("name LIKE ?", "%"+s+"%")
+	}
+
+	var totalRows int64
+	if err := countQ.Count(&totalRows).Error; err != nil {
+		r.log.Error("failed to count categories", zap.Error(err))
+		return CursorPage{}, err
+	}
+
+	q := r.db.WithContext(ctx).Model(&model.CategoryModel{})
+	if req.Name != "" {
+		q = q.Where("name LIKE ?", "%"+req.Name+"%")
+	}
+	if s := strings.TrimSpace(req.Search); s != "" {
+		q = q.Where("name LIKE ?", "%"+s+"%")
+	}
+
+	var rows []model.CategoryModel
+	if err := q.Order("lft asc").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
+		r.log.Error("failed to list categories", zap.Error(err))
+		return CursorPage{}, err
+	}
+
+	if len(rows) == 0 {
+		return CursorPage{Items: []model.CategoryModel{}, NextCursor: nil, PrevCursor: nil}, nil
+	}
+
+	var nextCursor *uint
+	if int64(offset)+int64(limit) < totalRows {
+		tmp := rows[len(rows)-1].ID
+		nextCursor = &tmp
+	}
+
+	var prevCursor *uint
+	if offset > 0 {
+		tmp := rows[0].ID
+		prevCursor = &tmp
+	}
+
+	return CursorPage{Items: rows, NextCursor: nextCursor, PrevCursor: prevCursor}, nil
 }
 
 // GetTree returns all categories ordered by lft ascending (single query).
@@ -218,8 +330,13 @@ func (r *CategoryRepository) UpdateName(ctx context.Context, id uint, name strin
 	if dup > 0 {
 		return nil, gorm.ErrDuplicatedKey
 	}
+	newSlug, err := nextCategorySlug(r.db.WithContext(ctx), name, id)
+	if err != nil {
+		return nil, err
+	}
 	if err := r.db.WithContext(ctx).Model(&model.CategoryModel{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"name":       name,
+		"slug":       newSlug,
 		"updated_by": actorUserID,
 		"updated_at": time.Now(),
 	}).Error; err != nil {
