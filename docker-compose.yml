@@ -13,7 +13,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      # Bind mounts — data under ./.docker/ on the host (create dirs automatically on first run)
+      - ./.docker/mysql:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
@@ -27,7 +28,7 @@ services:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - redis_data:/data
+      - ./.docker/redis:/data
 
   minio:
     image: minio/minio:latest
@@ -40,7 +41,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio_data:/data
+      - ./.docker/minio:/data
 
   api:
     build:
@@ -102,8 +103,3 @@ services:
         condition: service_started
       minio:
         condition: service_started
-
-volumes:
-  mysql_data:
-  redis_data:
-  minio_data:
